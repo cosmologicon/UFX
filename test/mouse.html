@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>UFX.random test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+input {
+    background: inherit; color: inherit; border: none;
+    font-family: inherit; font-size: inherit;
+    width: 20em;
+}
+table {
+    margin: auto;
+}
+td {
+    text-align: right
+}
+</style>
+
+<script src="../src/mouse.js"></script>
+<body>
+<h1>UFX.mouse test</h1>
+<div id=gamebox style="margin: auto; text-align: center">
+<canvas id=canvas style="border: 20px blue outset; margin: 10px"></canvas>
+<div>
+<input type=text id=mousepos readonly></input>
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 400
+canvas.height = 300
+var context = canvas.getContext("2d")
+var mousepos = document.getElementById("mousepos")
+
+var grid = document.createElement("canvas")
+grid.width = 400
+grid.height = 300
+var gcontext = grid.getContext("2d")
+
+for (var x = 0 ; x <= 400 ; x += 10) {
+    gcontext.strokeStyle = x % 100 ? "blue" : "white"
+    gcontext.beginPath()
+    gcontext.moveTo(x + 0.5, 0)
+    gcontext.lineTo(x + 0.5, 400)
+    gcontext.stroke()
+    gcontext.beginPath()
+    gcontext.moveTo(0, x + 0.5)
+    gcontext.lineTo(400, x + 0.5)
+    gcontext.stroke()
+}
+
+var dots = document.createElement("canvas")
+dots.width = 400
+dots.height = 300
+var dcontext = dots.getContext("2d")
+
+
+
+function draw() {
+    context.drawImage(grid, 0, 0)
+    context.drawImage(dots, 0, 0)
+    setTimeout(draw, 20)
+}
+draw()
+
+
+// UFX.mouse.init("canvas")
+
+// http://stackoverflow.com/questions/6773481/how-to-get-the-mouseevent-coordinates-for-an-element-that-has-css3-transform
+function geteventpos(event, elem) {
+    elem = elem || event.target
+    var rect = elem.getBoundingClientRect()
+    var x = event.clientX - rect.left - elem.clientLeft + elem.scrollLeft
+    var y = event.clientY - rect.top - elem.clientTop + elem.scrollTop
+    return [x, y]
+}
+
+canvas.onmouseout = function (event) {
+}
+canvas.onmousemove = function (event) {
+    mousepos.value = geteventpos(event)
+}
+
+canvas.onclick = function (event) {
+    var pos = geteventpos(event)
+    dcontext.fillStyle = "red"
+    dcontext.beginPath()
+    dcontext.arc(pos[0], pos[1], 4, 0, 2 * Math.PI, true); 
+    dcontext.closePath()
+    dcontext.fill()
+}
+
+</script>
+
+
