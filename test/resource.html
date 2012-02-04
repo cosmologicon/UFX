@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>UFX.resource test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+input {
+    background: inherit; color: inherit; border: none;
+    font-family: inherit; font-size: inherit;
+    width: 20em;
+}
+table {
+    margin: auto;
+}
+td {
+    text-align: right
+}
+</style>
+
+<script src="../src/resource.js"></script>
+<body>
+<h1>UFX.resource test</h1>
+
+<canvas id=canvas style="border: thin blue solid"></canvas>
+<button id=playsound type=button onclick="qplay(UFX.resource.sounds.jump)">Play sound</button>
+
+
+<script>
+//UFX.resource.onloading = function (f) { alert("loading" + f) }
+UFX.resource.onload = function () {
+    context.fillStyle = "#004"
+    context.fillRect(0, 0, 300, 300)
+    context.scale(0.5, 0.5)
+    context.drawImage(UFX.resource.images.abigail, 0, 0)
+    UFX.resource.sounds.jump.volume = 0.5
+    playsound.disabled = false
+}
+
+function qplay (sound) {
+    sound.pause()
+    sound.currentTime = 0
+    sound.play()
+}
+
+UFX.resource.base = "data"
+UFX.resource.load({abigail: "abigail.png", jump: "jump.wav"})
+
+var playsound = document.getElementById("playsound")
+playsound.disabled = true
+
+var canvas = document.getElementById("canvas")
+canvas.width = 300
+canvas.height = 300
+var context = canvas.getContext("2d")
+context.fillStyle = "black"
+context.fillRect(0, 0, 300, 300)
+context.fillStyle = "white"
+context.fillText("Loading...", 0, 0)
+
+</script>
+
+
