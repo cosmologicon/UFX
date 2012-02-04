@@ -8,7 +8,7 @@ UFX.resource.images = {}
 UFX.resource.sounds = {}
 
 // Recognized extensions
-UFX.resource.imagetypes = "png gif jpg jpeg bmp".split(" ")
+UFX.resource.imagetypes = "png gif jpg jpeg bmp tiff".split(" ")
 UFX.resource.soundtypes = "wav mp3 ogg au".split(" ")
 
 // Base path for loading resources
@@ -41,6 +41,7 @@ UFX.resource.load = function () {
 
 // Calling loadimage or loadsound is recommended when the resource type cannot be auto-detected
 //   from the URL. Or if you just want to be explicit about it.
+// Same calling conventions as load.
 UFX.resource.loadimage = function () {
     var resnames = UFX.resource._extractlist(arguments)
     for (var j = 0 ; j < resnames.length ; ++j) {
@@ -56,6 +57,43 @@ UFX.resource.loadsound = function () {
     }
 }
 
+// Firefox won't let me play a sound more than once every 10 seconds or so.
+// Use this class to create a set of identical sounds if you want to play in rapid succession
+// url can be a sound or a sound.src attribute. Multisound doesn't participate in the loading
+//   cycle, so you should have the url already preloaded when you call this factory.
+// n is the number of identical copies. Defaults to 10.
+UFX.resource.Multisound = function (url, n) {
+    var ms = Object.create(UFX.resource.Multisound.prototype)
+    ms._init(url, n)
+    return ms
+}
+
+UFX.resource.Multisound.prototype = {
+    _init: function (url, n) {
+        this.src = typeof url == "string" ? url : url.src
+        this._sounds = []
+        this._n = n || 10
+        this._k = 0
+        this.volume = 1.0
+        for (var j = 0 ; j < this._n ; ++j) {
+            var s = new Audio()
+            s.src = this.src
+            this._sounds.push(s)
+        }
+    },
+    play: function () {
+        var s = this._sounds[this._k++]
+        this._k %= this._n
+        s.volume = this.volume
+        s.play()
+    },
+    pause: function () {
+        for (var j = 0 ; j < this._n ; ++j) {
+            this._sounds[j].pause()
+        }
+    },
+}
+
 
 UFX.resource._seturl = function (url) {
     if (!UFX.resource.base) return url
@@ -64,7 +102,7 @@ UFX.resource._seturl = function (url) {
     return UFX.resource.base + (UFX.resource.base.charAt(n-1) == "/" ? "" : "/") + url
 }
 
-// Try to deduce what the resource is based on the url
+// Try to deduce what type the resource is based on the url
 UFX.resource._load = function (name, url) {
     var ext = url.split(".").pop()
     if (UFX.resource.imagetypes.indexOf(ext) > -1) {
