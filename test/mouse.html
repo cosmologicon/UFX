@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>UFX.random test</title>
+<title>UFX.mouse test</title>
 <link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
 <style>
 body {
@@ -65,26 +65,46 @@ dots.height = 300
 var dcontext = dots.getContext("2d")
 
 
+function drawdot(pos) {
+    dcontext.fillStyle = "red"
+    dcontext.beginPath()
+    dcontext.arc(pos[0], pos[1], 4, 0, 2 * Math.PI, true); 
+    dcontext.closePath()
+    dcontext.fill()
+}
 
 function draw() {
+    mousepos.value = UFX.mouse.drag && UFX.mouse.drag.pos
+
+    UFX.mouse.events().forEach(function (event) {
+        if (event.type == "up") {
+            drawdot(event.pos)
+        }
+    })
+    
+
+    context.clearRect(0, 0, 400, 300)
     context.drawImage(grid, 0, 0)
     context.drawImage(dots, 0, 0)
+
+    if (UFX.mouse.drag) {
+        context.strokeStyle = "yellow"
+        context.beginPath()
+        context.moveTo(UFX.mouse.drag.pos0[0], UFX.mouse.drag.pos0[1])
+        context.lineTo(UFX.mouse.drag.pos[0], UFX.mouse.drag.pos[1])
+//        context.endPath()
+        context.stroke()
+        
+    }
+
     setTimeout(draw, 20)
 }
 draw()
 
 
-// UFX.mouse.init("canvas")
+UFX.mouse.init("canvas")
 
-// http://stackoverflow.com/questions/6773481/how-to-get-the-mouseevent-coordinates-for-an-element-that-has-css3-transform
-function geteventpos(event, elem) {
-    elem = elem || event.target
-    var rect = elem.getBoundingClientRect()
-    var x = event.clientX - rect.left - elem.clientLeft + elem.scrollLeft
-    var y = event.clientY - rect.top - elem.clientTop + elem.scrollTop
-    return [x, y]
-}
-
+/*
 canvas.onmouseout = function (event) {
 }
 canvas.onmousemove = function (event) {
@@ -98,7 +118,7 @@ canvas.onclick = function (event) {
     dcontext.arc(pos[0], pos[1], 4, 0, 2 * Math.PI, true); 
     dcontext.closePath()
     dcontext.fill()
-}
+}*/
 
 </script>
 
