@@ -35,6 +35,11 @@ td {
 <canvas id=canvas style="border: 20px blue outset; margin: 10px"></canvas>
 <div>
 <input type=text id=mousepos readonly></input>
+<p><input type=checkbox onclick="UFX.mouse.capture.middle = this.checked">
+Capture middle click</input>
+<p><input type=checkbox onclick="UFX.mouse.capture.right = this.checked">
+Capture right click</input>
+
 <script>
 var canvas = document.getElementById("canvas")
 canvas.width = 400
@@ -65,8 +70,8 @@ dots.height = 300
 var dcontext = dots.getContext("2d")
 
 
-function drawdot(pos) {
-    dcontext.fillStyle = "red"
+function drawdot(pos, color) {
+    dcontext.fillStyle = color || "red"
     dcontext.beginPath()
     dcontext.arc(pos[0], pos[1], 4, 0, 2 * Math.PI, true); 
     dcontext.closePath()
@@ -78,7 +83,7 @@ function draw() {
 
     UFX.mouse.events().forEach(function (event) {
         if (event.type == "up") {
-            drawdot(event.pos)
+            drawdot(event.pos, ["red", "orange", "yellow"][event.button])
         }
     })
     
@@ -88,7 +93,7 @@ function draw() {
     context.drawImage(dots, 0, 0)
 
     if (UFX.mouse.drag) {
-        context.strokeStyle = "yellow"
+        context.strokeStyle = ["red", "orange", "yellow"][UFX.mouse.drag.button]
         context.beginPath()
         context.moveTo(UFX.mouse.drag.pos0[0], UFX.mouse.drag.pos0[1])
         context.lineTo(UFX.mouse.drag.pos[0], UFX.mouse.drag.pos[1])
@@ -100,7 +105,6 @@ function draw() {
     setTimeout(draw, 20)
 }
 draw()
-
 
 UFX.mouse.init("canvas")
 

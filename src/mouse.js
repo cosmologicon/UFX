@@ -12,8 +12,8 @@ UFX.mouse.qdown = true
 UFX.mouse.qup = true
 UFX.mouse.qclick = false
 UFX.mouse.qblur = false
-// Should we watch for left, middle, and right clicks?
-UFX.mouse.capture = [true, false, false]
+// Should we watch for left, middle, and right events?
+UFX.mouse.capture = { left: true, middle: false, right: false }
 
 // While the mouse is down, this is updated with info on the current drag event
 UFX.mouse.watchdrag = true
@@ -49,8 +49,9 @@ UFX.mouse._captureevents = function (element, backdrop) {
     element.onmouseout = UFX.mouse._onmouseout
     element.onmousedown = UFX.mouse._onmousedown
     backdrop.onmouseup = UFX.mouse._onmouseup
-    element.onmouseclick = UFX.mouse._onmouseclick
-
+    element.onclick = UFX.mouse._onclick
+    element.oncontextmenu = UFX.mouse._oncontextmenu
+    
     backdrop.onmousemove = UFX.mouse._onmousemove
 
     UFX.mouse._element = element
@@ -78,12 +79,33 @@ UFX.mouse._onblur = function (event) {
 }
 UFX.mouse._onmouseout = function (event) {
 }
+UFX.mouse._oncontextmenu = function (event) {
+    if (!UFX.mouse.active || !UFX.mouse.capture.right) return true
+    event.preventDefault()
+    return false
+}
+UFX.mouse._buttonmap = ["left", "middle", "right"]
+UFX.mouse._onclick = function (event) {
+    if (!UFX.mouse.active || !UFX.mouse.capture[UFX.mouse._buttonmap[event.button]]) return true
+    if (UFX.mouse.qclick) {
+        var mevent = {
+            type: "click",
+            pos: UFX.mouse._geteventpos(event, UFX.mouse._element),
+            button: event.button,
+            time: Date.now(),
+            baseevent: event,
+        }
+    }
+    event.preventDefault()
+    return false
+}
 UFX.mouse._onmousedown = function (event) {
-    if (!UFX.mouse.active || !UFX.mouse.capture[event.button]) return true
+    if (!UFX.mouse.active || !UFX.mouse.capture[UFX.mouse._buttonmap[event.button]]) return true
     var pos = UFX.mouse._geteventpos(event)
     if (UFX.mouse.watchdrag) {
         UFX.mouse.drag = {
             downevent: event,
+            button: event.button,
             pos0: pos,
             pos: pos,
             dx: 0,
@@ -99,10 +121,11 @@ UFX.mouse._onmousedown = function (event) {
             baseevent: event,
         }
     }
+    event.preventDefault()
     return false
 }
 UFX.mouse._onmouseup = function (event) {
-    if (!UFX.mouse.active || !UFX.mouse.capture[event.button]) return true
+    if (!UFX.mouse.active || !UFX.mouse.capture[UFX.mouse._buttonmap[event.button]]) return true
     if (!UFX.mouse.drag) return true
     UFX.mouse.drag = null
     if (UFX.mouse.qup) {
@@ -115,6 +138,7 @@ UFX.mouse._onmouseup = function (event) {
         }
         UFX.mouse._events.push(mevent)
     }
+    event.preventDefault()
     return false
 }
 
@@ -131,51 +155,3 @@ UFX.mouse._onmousemove = function (event) {
     return false
 }
 
-/*
-
-function getEventPos(event) {
-    return [event.layerX + event.target.offsetLeft,
-            event.layerY + event.target.offsetTop]
-}          
-
-
-// The gamebox is a div or other element that contains the canvas and any text boxes
-// It also captures mouse and keyboard events
-function setgamebox(boxname) {
-    if (typeof boxname == "undefined") boxname = "gamebox"
-    gamebox = typeof boxname == "string" ? document.getElementById(boxname) : boxname
-    gamebox.onmouseover = function () {
-    }
-    gamebox.onmouseout = function () {
-    }
-    gamebox.onmousemove = function (event) {
-        mousepos = getEventPos(event)
-        if (typeof gamemousemove != "undefined") {
-            var p = getEventPos(event)
-            gamemousemove(p[0], p[1])
-        }
-        return false
-    }
-    gamebox.onmousedown = function (event) {
-        if (typeof gamemousedown != "undefined") {
-            var p = getEventPos(event)
-            gamemousedown(p[0], p[1])
-        }
-        return false
-    }
-    gamebox.onmouseup = function (event) {
-        if (typeof gamemouseup != "undefined") {
-            var p = getEventPos(event)
-            gamemouseup(p[0], p[1])
-        }
-        return false
-    }
-    gamebox.onclick = function (event) {
-        if (typeof gameclick != "undefined") {
-            var p = getEventPos(event)
-            gameclick(p[0], p[1])
-        }
-        return false
-    }
-}
-*/
