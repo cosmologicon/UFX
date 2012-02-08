@@ -4,7 +4,9 @@
 
 
 UFX.pause = function () {
-    UFX.scene.push(UFX.pause.Pause)
+    if (!UFX.pause.ispaused()) {
+        UFX.scene.push(UFX.pause.Pause)
+    }
 }
 UFX.pause.unpause = function () {
     if (UFX.pause.ispaused()) {
@@ -14,6 +16,10 @@ UFX.pause.unpause = function () {
 UFX.pause.ispaused = function () {
     return UFX.scene.top() === UFX.pause.Pause
 }
+UFX.pause.init = function () {
+    document.addEventListener("blur", UFX.pause, false)
+}
+
 
 UFX.pause.Pause = Object.create(UFX.scene.Scene)
 UFX.pause.Pause.start = function () {
@@ -31,7 +37,15 @@ UFX.pause.Pause.start = function () {
     this.r = Math.min(this.x, this.y) * 0.3
 }
 
-UFX.pause.Pause.think = function (dt) {
+UFX.pause.Pause.thinkargs = function (dt) {
+    var clicked = false
+    UFX.mouse.events().forEach(function (event) {
+        if (event.type == "up") clicked = true
+    })
+    return [dt, clicked]
+}
+
+UFX.pause.Pause.think = function (dt, clicked) {
     context.drawImage(this.backdrop, 0, 0)
     this.t += dt
 
@@ -51,6 +65,8 @@ UFX.pause.Pause.think = function (dt) {
     context.closePath()
     context.fill()
     context.restore()
+    
+    if (clicked) UFX.pause.unpause()
 }
 
 

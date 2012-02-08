@@ -31,6 +31,7 @@ td {
 <script src="../src/ticker.js"></script>
 <script src="../src/scene.js"></script>
 <script src="../src/pause.js"></script>
+<script src="../src/mouse.js"></script>
 <body>
 <h1>UFX.scene test</h1>
 <canvas id=canvas style="border: thin blue solid"></canvas>
@@ -90,8 +91,10 @@ window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequest
 UFX.ticker.animsync = true
 UFX.scene.push(BallScene)
 UFX.scene.init()
-setTimeout(UFX.pause, 1000)
-setTimeout(UFX.pause.unpause, 2000)
+//setTimeout(UFX.pause, 1000)
+//setTimeout(UFX.pause.unpause, 2000)
+UFX.pause.init()
+UFX.mouse.init("canvas")
 
 </script>
 

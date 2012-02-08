@@ -71,7 +71,7 @@ UFX.mouse._geteventpos = function (event, elem) {
     return [event.clientX - off[0], event.clientY - off[1]]
 }
 
-
+// TODO: make sure the drag event is destroyed when this happens
 UFX.mouse._onblur = function (event) {
     if (!UFX.mouse.active) return true
     
@@ -110,6 +110,8 @@ UFX.mouse._onmousedown = function (event) {
             pos: pos,
             dx: 0,
             dy: 0,
+            t0: Date.now(),
+            dt: 0,
         }
     }
     if (UFX.mouse.qdown) {
@@ -127,7 +129,6 @@ UFX.mouse._onmousedown = function (event) {
 UFX.mouse._onmouseup = function (event) {
     if (!UFX.mouse.active || !UFX.mouse.capture[UFX.mouse._buttonmap[event.button]]) return true
     if (!UFX.mouse.drag) return true
-    UFX.mouse.drag = null
     if (UFX.mouse.qup) {
         var mevent = {
             type: "up",
@@ -136,8 +137,16 @@ UFX.mouse._onmouseup = function (event) {
             time: Date.now(),
             baseevent: event,
         }
+        if (UFX.mouse.drag) {
+            mevent.t0 = UFX.mouse.drag.t0
+            mevent.dt = Date.now() - mevent.t0
+            mevent.pos0 = UFX.mouse.drag.pos0
+            mevent.dx = mevent.pos[0] - mevent.pos0[0]
+            mevent.dy = mevent.pos[1] - mevent.pos0[1]
+        }
         UFX.mouse._events.push(mevent)
     }
+    UFX.mouse.drag = null
     event.preventDefault()
     return false
 }
@@ -151,6 +160,7 @@ UFX.mouse._onmousemove = function (event) {
         UFX.mouse.drag.pos = pos
         UFX.mouse.drag.dx = pos[0] - UFX.mouse.drag.pos0[0]
         UFX.mouse.drag.dy = pos[1] - UFX.mouse.drag.pos0[1]
+        UFX.mouse.drag.dt = Date.now() - UFX.mouse.drag.t0
     }
     return false
 }
