@@ -38,7 +38,7 @@ UFX.random.setseed = function (n) {
     if (typeof n == "undefined") {
         n = Math.floor(Math.random() * 4294967296)
     }
-    UFX.random.seed = n % 4294967296
+    UFX.random.seed = Math.floor(n) % 4294967296
     return UFX.random.seed
 }
 
