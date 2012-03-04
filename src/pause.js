@@ -35,6 +35,7 @@ UFX.pause.Pause.start = function () {
     this.bcontext.fillRect(0, 0, this.x, this.y)
     this.t = 0
     this.r = Math.min(this.x, this.y) * 0.3
+    UFX.mouse.clearevents()
 }
 
 UFX.pause.Pause.thinkargs = function (dt) {

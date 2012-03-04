@@ -13,6 +13,7 @@ if (typeof UFX == "undefined") UFX = {}
 // UFX.random(a, b) : float in [a, b)
 // UFX.random.rand() : integer in [0, 2^32)
 // UFX.random.rand(n) : integer in [0, n)
+// UFX.random.rand(m, n) : integer in [m, n)
 
 UFX.random = function (a, b) {
     if (typeof b == "undefined") {
@@ -24,13 +25,14 @@ UFX.random = function (a, b) {
     }
     return UFX.random.rand() * (b - a) / 4294967296.0 + a
 }
-UFX.random.rand = function (n) {
+UFX.random.rand = function (m, n) {
+    if (typeof n != "undefined") return m + UFX.random.rand(n-m)
     if (typeof UFX.random.seed == "undefined") {
         UFX.random.setseed()
     }
     // Values from Numerical Recipes, according to Wikipedia
     UFX.random.seed = (1664525 * UFX.random.seed + 1013904223) % 4294967296
-    return n ? Math.floor(UFX.random.seed * n / 4294967296) : UFX.random.seed
+    return m ? Math.floor(UFX.random.seed * m / 4294967296) : UFX.random.seed
 }
 
 // You don't have to call this, you can just assign to UFX.random.seed
