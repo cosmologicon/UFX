@@ -100,6 +100,32 @@ UFX.random.spread = function (n, dfac) {
     return r
 }
 
+// Gaussian normal variable
+// http://www.taygeta.com/random/gaussian.html
+UFX.random.normal = function (mu, sigma) {
+    mu = mu || 0
+    sigma = sigma || 1
+    if (typeof UFX.random.normal._y == "number") {
+        var x = UFX.random.normal._y
+        delete UFX.random.normal._y
+    } else {
+        var x, y, w
+        do {
+            x = UFX.random(-1, 1)
+            y = UFX.random(-1, 1)
+            w = x * x + y * y
+        } while (w > 1)
+        try {
+            w = Math.sqrt(-2. * Math.log(w) / w)
+            x /= w
+            y /= w
+        } catch (err) {
+            x = y = 0
+        }
+        UFX.random.normal._y = y
+    }
+    return x * sigma + mu
+}
 
 
 
