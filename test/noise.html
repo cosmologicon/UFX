@@ -39,10 +39,10 @@ td {
 
 
 <script>
-var s = 200
+var s = 120
 var canvas = document.getElementById("canvas")
-canvas.width = s
-canvas.height = s
+canvas.width = s*4
+canvas.height = s*4
 var context = canvas.getContext("2d")
 context.fillStyle = "black"
 context.fillRect(0, 0, s, s)
@@ -53,16 +53,38 @@ data = idata.data
 function go() {
     setTimeout(go, 20)
     var t = Date.now() * 0.001
-    for (var y = 0, j = 0 ; y < s ; ++y) {
-        for (var x = 0 ; x < s; ++x, j += 4) {
-            var v = UFX.noise([(x + 0.5) * 10. / s - t * 0.5, (y + 0.5) * 10. / s - t, t * 0.2])
-            v = 2 * Math.exp(v) - 2.5
-            val = Math.min(Math.max(Math.floor(v * 100 + 120), 0), 255)
-            data[j] = data[j+1] = data[j+2] = val
-            data[j+3] = 255
+
+    if (false) {
+        for (var y = 0, j = 0 ; y < s ; ++y) {
+            for (var x = 0 ; x < s; ++x, j += 4) {
+                var v = UFX.noise([(x + 0.5) * 8. / s - t * 0.5, (y + 0.5) * 8. / s - t, t * 0.2], [8, 8, 8])
+                v = 2 * Math.exp(v) - 2.5
+                val = Math.min(Math.max(Math.floor(v * 100 + 120), 0), 255)
+                data[j] = data[j+1] = data[j+2] = val
+                data[j+3] = 255
+            }
+        }
+    } else {
+        var ndata1 = UFX.noise.wrapslice([s, s], t * 0.1, [16, 16, 256], [t, t*0.5])
+//        var ndata2 = UFX.noise.wrapslice([s, s], t * 0.1, [8, 8, 256], [-t*0.6, t*1.1])
+        for (var y = 0, j = 0, k = 0 ; y < s ; ++y) {
+            for (var x = 0 ; x < s; ++x, j += 4, ++k) {
+                var v1 = ndata1[k]
+                v1 = 2 * v1 - 1
+                val1 = Math.min(Math.max(Math.floor(v1 * 100 + 120), 0), 255)
+//                var v2 = ndata2[k]
+//                v2 = 2 * v2 - 1
+//                val2 = Math.min(Math.max(Math.floor(v2 * 100 + 120), 0), 255)
+                data[j] = data[j+1] = data[j+2] = val1
+                data[j+3] = 255
+            }
         }
     }
     context.putImageData(idata, 0, 0)
+    context.save()
+    context.scale(4, 4)
+    context.drawImage(canvas, 0, 0)
+    context.restore()
 }
 go()
 
