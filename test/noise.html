@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>UFX.noise test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+input {
+    background: inherit; color: inherit; border: none;
+    font-family: inherit; font-size: inherit;
+    width: 20em;
+}
+table {
+    margin: auto;
+}
+td {
+    text-align: right
+}
+</style>
+
+<script src="../src/noise.js"></script>
+<body>
+<h1>UFX.noise test</h1>
+
+<table>
+<tr><td><canvas id=canvas style="border: thin blue solid"></canvas>
+<tr><td><input type=text id=info></input>
+</table>
+
+
+<script>
+var s = 200
+var canvas = document.getElementById("canvas")
+canvas.width = s
+canvas.height = s
+var context = canvas.getContext("2d")
+context.fillStyle = "black"
+context.fillRect(0, 0, s, s)
+
+idata = context.createImageData(s, s)
+data = idata.data
+
+function go() {
+    setTimeout(go, 20)
+    var t = Date.now() * 0.001
+    for (var y = 0, j = 0 ; y < s ; ++y) {
+        for (var x = 0 ; x < s; ++x, j += 4) {
+            var v = UFX.noise([(x + 0.5) * 10. / s - t * 0.5, (y + 0.5) * 10. / s - t, t * 0.2])
+            v = 2 * Math.exp(v) - 2.5
+            val = Math.min(Math.max(Math.floor(v * 100 + 120), 0), 255)
+            data[j] = data[j+1] = data[j+2] = val
+            data[j+3] = 255
+        }
+    }
+    context.putImageData(idata, 0, 0)
+}
+go()
+
+
+</script>
+
+
