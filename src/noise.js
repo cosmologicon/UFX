@@ -21,6 +21,7 @@ UFX.noise = function (p, wrapsize) {
         a[j] = p[j] - Math.floor(p[j])
     }
     var r = 0  // return value
+    // Loop through the 2^n lattice points bordering this point
     for (var k = 0, kmax = 1 << n ; k < kmax ; ++k) {
         var v = new Array(n)
         for (var j = 0 ; j < n ; ++j) {
@@ -147,10 +148,38 @@ UFX.noise.wrapslice = function (s, zoff, ngrid, soff, noff) {
                         (-axj*gradx1[j01] + byj*grady1[j01] + bz*gradz1[j01]) * cayj) * cbxj +
                        (( bxj*gradx1[j10] - ayj*grady1[j10] + bz*gradz1[j10]) * cbyj +
                         ( bxj*gradx1[j11] + byj*grady1[j11] + bz*gradz1[j11]) * cayj) * caxj) * caz
-            val[pj] /= 1414.213
+            val[pj] /= 1732.051
         }
     }
     return val
+}
+
+// Fractalize a noise map
+// TODO: handle non-power-of-2 sizes
+UFX.noise.fractalize = function (v, s, levels) {
+    var sx = s[0], sy = s[1]
+    var sx2 = sx/2, sy2 = sy/2, s2 = sx2 * sy2
+    if (sx2 < 2 || sy2 < 2) return
+    var v2 = new Array(sx2 * sy2)
+    for (var y = 0, j = 0 ; y < sy ; y += 2) {
+        var h = y * sx
+        for (var x = 0 ; x < sx ; x += 2, ++j) {
+            v2[j] = v[h + x]
+        }
+    }
+    if (levels !== 1) {
+        UFX.noise.fractalize(v2, [sx2, sy2], (typeof levels == "number" ? levels - 1 : levels))
+    }
+    for (var j = 0 ; j < s2 ; ++j) v2[j] *= 0.5
+    for (var y2 = 0, j2 = 0 ; y2 < sy2 ; ++y2) {
+        for (var x2 = 0 ; x2 < sx2 ; ++x2, ++j2) {
+            var val = v2[j2]
+            v[y2*sx+x2] += val
+            v[y2*sx+x2+sx2] += val
+            v[(y2+sy2)*sx+x2] += val
+            v[(y2+sy2)*sx+x2+sx2] += val
+        }
+    }
 }
 
 

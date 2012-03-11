@@ -99,9 +99,11 @@ UFX.ticker.stop = function () {
         UFX.ticker._rafhandle = null
     }
     if (UFX.ticker._sthandle) {
-        cancelTimeout(UFX.ticker._sthandle)
+        clearTimeout(UFX.ticker._sthandle)
         UFX.ticker._sthandle = null
     }
+    delete UFX.ticker._avgdtu, UFX.ticker._avgdtf
+    delete UFX.ticker._lastthink, UFX.ticker._lastdraw
 }
 UFX.ticker.resume = function () {
     UFX.ticker.stop()
