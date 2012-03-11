@@ -18,17 +18,21 @@ h1 {
 input {
     background: inherit; color: inherit; border: none;
     font-family: inherit; font-size: inherit;
-    width: 20em;
 }
 table {
     margin: auto;
 }
 td {
-    text-align: right;
+    vertical-align: top;
+}
+ul {
+    margin-top: 0;
 }
 li {
-    text-align: left;
     list-style-type: none;
+}
+input[type="text"] {
+    min-width: 20em;
 }
 </style>
 
@@ -43,7 +47,7 @@ li {
 <ul>
 <li><input type=radio onclick="update()" name=mode value=blank>Blank</input>
 <li><input type=radio onclick="update()" name=mode value=cloud0>Cloud (reference implementation)</input>
-<li><input type=radio onclick="update()" name=mode value=cloud1 checked>Cloud (parallel calculation)</input>
+<li><input type=radio onclick="update()" name=mode value=cloud1 checked>Cloud (optimized)</input>
 <li><input type=radio onclick="update()" name=mode value=fcloud>Fractal Cloud</input>
 <li><input type=radio onclick="update()" name=mode value=ghost>Ectoplasm</input>
 <li><input type=radio onclick="update()" name=mode value=fghost>Fractal Ectoplasm</input>
@@ -68,8 +72,8 @@ li {
 <li><input type=text id=fps readonly></input>
 <li><input type=text id=info readonly></input>
 </ul>
+</td>
 </table>
-
 
 <script>
 
