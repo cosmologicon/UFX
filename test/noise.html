@@ -61,6 +61,7 @@ input[type="text"] {
 <li><input type=radio onclick="update()" name=mode value=terrain>Terrain</input>
 <li><input type=radio onclick="update()" name=mode value=fterrain>Fractal Terrain</input>
 <li><input type=radio onclick="update()" name=mode value=sterrain>Shaded Fractal Terrain</input>
+<!-- <li><input type=radio onclick="update()" name=mode value=dmatter>Dark Matter</input> -->
 <br><br>
 <li><input type=radio onclick="update()" name=size value=size64>64x64 pixels</input>
 <li><input type=radio onclick="update()" name=size value=size128 checked>128x128 pixels</input>
@@ -268,6 +269,35 @@ function go(dt) {
                 data[j] = color[0]
                 data[j+1] = color[1]
                 data[j+2] = color[2]
+                data[j+3] = 255
+            }
+        }
+    } else if (mode == "dmatter") { 
+        var ndata = new Array(50)
+        for (var j = 0 ; j < ndata.length ; ++j) {
+            var z = 0.673 * j + 18.345
+            ndata[j] = UFX.noise.wrapslice([s, s], z, [4, 4, 256])
+            UFX.noise.fractalize(ndata[j], [s, s])
+        }
+        for (var y = 0, j = 0, k = 0 ; y < s ; ++y) {
+            for (var x = 0 ; x < s; ++x, j += 4, ++k) {
+                var gray = 0, blue = 0
+                for (var w = 0 ; w < ndata.length ; ++w) {
+                    var f = ndata[w][k]
+                    f = Math.max(Math.min(1 - 32 * Math.abs(f), 1), 0)
+                    gray = (1 - f) * gray + f
+                    f *= w / ndata.length
+                    f *= w / ndata.length
+                    f *= w / ndata.length
+                    f *= w / ndata.length
+                    f *= w / ndata.length
+                    f *= w / ndata.length
+                    blue = (1 - f) * blue + f
+                }
+                gray = gray * 255
+                blue = blue * 255
+                data[j] = data[j+1] = blue
+                data[j+2] = (gray + blue) / 2
                 data[j+3] = 255
             }
         }
