@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>About UFX</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: #DDF; color: black;
+    font-family: 'Viga';
+    font-size: 110%;
+    width: 44em;
+    margin: auto;
+    text-align: justify;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+p {
+    margin-left: 1em;
+}
+.modlist {
+    margin-left: 2em;
+}
+.modlist th {
+    text-align:right;
+    padding-right: 1em;
+    vertical-align: top;
+}
+</style>
+<body>
+
+<h1>UFX: Javascript HTML5 game library</h1>
+
+<p>UFX is a library for writing Javascript video games, comprising <a href="#modulelist">a set of
+modules</a> that do various things. The modules can generally be used independently of each other.
+Most modules require HTML5 and ECMAScript 5, but some can be used without full support.
+
+<p>UFX is completely free to use however you want, and it doesn't depend on any other Javascript
+frameworks.
+
+<h2 id=shouldi>Should I use UFX?</h2>
+
+<p>First of all, UFX is very incomplete. It's still under active development. But even once it gets
+completed, you probably don't want to use the whole thing. I made some design decisions that I know
+are not popular, but I prefer them.
+
+<p>You might still find UFX useful, however, because you can use one or more modules from it without
+using the rest. Modules are, for the most part, independent. They should work fine alongside other
+libraries. So use whatever suits your needs.
+
+<h2 id=howcani>How can I use UFX?</h2>
+
+<p>I haven't worked this out yet. For now just make a copy of the source files (because APIs are
+subject to change) and include them like you would any Javascript file.
+
+<p>All UFX functionality is placed in the UFX namespace. Every module has its own namespace within
+UFX that's the name of that module. So for instance, you would access the functions in the
+UFX.random module via the object UFX.random.
+
+<h2 id=modulelist>Module list</h2>
+
+<table class=modlist>
+<tr><th>UFX.key<td>keyboard stuff
+<tr><th>UFX.mouse<td>mouse stuff
+<tr><th>UFX.resource<td>image and sound loading
+<tr><th>UFX.ticker<td>time step management
+<tr><th>UFX.Thing<td>component-based entity system
+<tr><th>UFX.scene<td>scene management (workflow)
+<tr><th>UFX.pause<td>simple pause screen
+<tr><th>UFX.random<td>random number generator (offers some more functionality than Math.random)
+<tr><th>UFX.noise<td>Perlin noise generator (for CG effects)
+</table>
+
+<h2 id=plannedmods>Planned module list</h2>
+
+<table class=modlist>
+<tr><th>UFX.sprite<td>sprite sheets and sprite animation
+<tr><th>UFX.texture<td>procedural texture generation
+<tr><th>UFX.menu<td>menus and buttons
+<tr><th>UFX.transition<td>transitions between scenes
+</table>
+
+
+
+
