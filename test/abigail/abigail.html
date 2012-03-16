@@ -35,11 +35,12 @@ td {
 <script src="../../src/ticker.js"></script>
 <script src="../../src/scene.js"></script>
 <script src="../../src/pause.js"></script>
+<script src="../../src/key.js"></script>
 <script src="../../src/mouse.js"></script>
 <script src="../../src/random.js"></script>
 
 <script src="tower.js"></script>
-<script src="main.js"></script>
+<script src="play.js"></script>
 
 <body>
 <h1>Abigail's Descent test version</h1>
@@ -55,10 +56,15 @@ var context = canvas.getContext("2d")
 window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||  
                                window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
 
-/*UFX.ticker.animsync = true
+
+UFX.ticker.animsync = true
 UFX.scene.init()
-UFX.mouse.init("canvas")
-UFX.pause.init()*/
+UFX.key.init()
+//UFX.mouse.init("canvas")
+//UFX.pause.init()
+
+UFX.scene.push(PlayScene)
+UFX.ticker.registersync(UFX.scene.think, UFX.scene.draw)
 
 /*
 var i = blocktexture(200, 200)
@@ -67,12 +73,6 @@ context.drawImage(i, 200, 0)
 context.drawImage(i, 0, 200)
 context.drawImage(i, 200, 200)
 */
-function go() {
-    context.clearRect(0, 0, 540, 540)
-    drawtower()
-    setTimeout(go, 10)
-}
-window.requestAnimationFrame(go)
 
 </script>
 
