@@ -53,6 +53,7 @@ input[type="text"] {
 <li><input type=radio onclick="update()" name=mode value=fghost>Fractal Ectoplasm</input>
 <li><input type=radio onclick="update()" name=mode value=marble>Marble</input>
 <li><input type=radio onclick="update()" name=mode value=wood>Wood</input>
+<!-- <li><input type=radio onclick="update()" name=mode value=stone>Stone</input> -->
 <li><input type=radio onclick="update()" name=mode value=vflame>Vertical flame</input>
 <li><input type=radio onclick="update()" name=mode value=fflame1>Fractal flame (1 iteration)</input>
 <li><input type=radio onclick="update()" name=mode value=fflame2>Fractal flame (2 iterations)</input>
@@ -231,6 +232,24 @@ function go(dt) {
                 data[j] = v
                 data[j+1] = v*0.6
                 data[j+2] = v*0.2
+                data[j+3] = 255
+            }
+        }
+    } else if (mode == "stone") {
+        var ndata2 = UFX.noise.wrapslice([s, s], t * 2, [16, 16, 256], [0, 0])
+        var ndata3 = UFX.noise.wrapslice([s, s], t * 0.7, [8, 16, 256], [0, 0])
+        UFX.noise.fractalize(ndata2, [s, s], 2)
+        for (var y = 0, j = 0, k = 0 ; y < s ; ++y) {
+            for (var x = 0 ; x < s; ++x, j += 4, ++k) {
+                var v = 100
+                v += Math.max(Math.min(1000 * (ndata3[k]), 30), -30)
+                v += Math.max(100 - 8000 * Math.abs(ndata3[k]), 0)
+                var dx = ndata2[y*s+(x+1)%s] - ndata2[y*s+(x+s-1)%s]
+                var dy = ndata2[(y+1)%s*s+x] - ndata2[(y+s-1)%s*s+x]
+                v *= 1 + (2 * dx + dy) * s / 400
+                data[j] = v
+                data[j+1] = v
+                data[j+2] = v
                 data[j+3] = 255
             }
         }

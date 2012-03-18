@@ -3,7 +3,7 @@ var PlayScene = {
     __proto__: UFX.scene.Scene,
 
     start: function () {
-        this.tower = Tower(500, [120, 0, 0])
+        this.tower = Tower(500, [128, 128, 128])
         UFX.key.watchlist = "up down left right".split(" ")
     },
 
@@ -25,7 +25,7 @@ var PlayScene = {
         context.save()
         context.translate(270, 270)
         context.scale(2, 2)
-        this.tower.draw()
+        this.tower.draw([-260, 260])
         context.restore()
     },
 }

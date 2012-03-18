@@ -12,7 +12,6 @@ function blocktexture(x, y, color) {
     var img = document.createElement("canvas")
     img.width = x
     img.height = y
-    var con = img.getContext("2d")
     con.fillStyle = randomshade(color[0], color[1], color[2])
     con.fillRect(0, 0, x, y)
     var nblock = Math.round(x * y / 200)
@@ -30,18 +29,52 @@ function blocktexture(x, y, color) {
     return con
 }
 
+function stonetexture(sx, sy, color) {
+    var img = document.createElement("canvas")
+    img.width = sx
+    img.height = sy
+    var con = img.getContext("2d")
+    var idata = con.createImageData(sx, sy)
+    var data = idata.data
+    var ndata2 = UFX.noise.wrapslice([sx, sy], 0.123, [64, 64, 256], [0, 0])
+    var ndata3 = UFX.noise.wrapslice([sx, sy], 0.234, [8, 16, 256], [0, 0])
+//    UFX.noise.fractalize(ndata2, [sx, sy], 2)
+    for (var y = 0, j = 0, k = 0 ; y < sy ; ++y) {
+        for (var x = 0 ; x < sx; ++x, j += 4, ++k) {
+            var v = 150
+            v += Math.max(Math.min(1000 * (ndata3[k]), 30), -30)
+            v += Math.max(100 - 8000 * Math.abs(ndata3[k]), 0)
+            var dx = ndata2[y*sx+(x+1)%sx] - ndata2[y*sx+(x+sx-1)%sx]
+            var dy = ndata2[(y+1)%sy*sx+x] - ndata2[(y+sy-1)%sy*sx+x]
+            v *= 1 + (2 * dx + dy) * sx * sy / 500000
+            data[j] = v * color[0] / 255.
+            data[j+1] = v * color[1] / 255.
+            data[j+2] = v * color[2] / 255.
+            data[j+3] = 255
+        }
+    }
+    con.putImageData(idata, 0, 0)
+    return con
+}
+
+
+
 function panels(n, x, y, color0) {
     n = n || 10
     x = x || 40
     y = y || 400
-    var tex = blocktexture(n * x, y, color0)
+    var tex = stonetexture(n * x, y, color0)
     var ps = []
     for (var j = 0 ; j < n ; ++j) {
         var p = document.createElement("canvas")
-        p.width = x
-        p.height = y
+        p.width = x + 1
+        p.height = y + 1
         var pcon = p.getContext("2d")
+        // TODO: slightly more efficient?
         pcon.drawImage(tex.canvas, -j*x, 0)
+        pcon.drawImage(tex.canvas, (n-j)*x, 0)
+        pcon.drawImage(tex.canvas, -j*x, y)
+        pcon.drawImage(tex.canvas, (n-j)*x, y)
         ps.push(p)
     }
     return ps
@@ -72,7 +105,7 @@ CylindricalFacer = {
         this.y0 = y0 || 0
         this.targetx = this.x0
         this.targety = this.y0
-        this.z = this.r / 4.
+        this.h0 = 1200.
     },
     face: function (x, y) {
         this.targetx = x
@@ -91,6 +124,7 @@ CylindricalFacer = {
         var f = 1 - Math.exp(-4 * dt)
         this.x0 += f * this.getdx(this.x0, this.targetx)
         this.y0 += f * (this.targety - this.y0)
+        this.z = Math.max((this.h0 - this.y0) / this.h0 * 0.4, -0.25) * this.r
     },
 }
 
@@ -100,30 +134,46 @@ TowerWalls = {
         this.color0 = color0
         this.npanels = Math.floor(this.circ / 30.) + 1
         this.panelx = Math.floor(this.circ / this.npanels)
-        this.panels = panels(this.npanels, this.panelx, 500, this.color0)
+        this.panely = 500
+        this.panels = panels(this.npanels, this.panelx, this.panely, this.color0)
     },
-    draw: function () {
+    draw: function (yrange) {
         var theta = Date.now() * 0.001, dtheta = 2 * Math.PI / this.npanels
+        var ymin = yrange[0], ymax = yrange[1]
+        var rowmin = Math.max(Math.floor((this.y0 - ymax) / this.panely) + 1, 0)
+        var rowmax = Math.floor((this.y0 - ymin) / this.panely) - 1
+        rowmax = rowmin + 2
+        rowmin = 0
+        rowmax = 2
+//        alert([rowmin, rowmax])
+//        top of row is: -this.panely * (row + 1) + this.y0 < ymax
+//        row + 1 > (this.y0 - ymax) / this.panely
         for (var jpanel = 0 ; jpanel < this.npanels ; ++jpanel) {
-            var p0 = this.worldpos(this.circ * jpanel / this.npanels, 500)
-            var p1 = this.worldpos(this.circ * (jpanel + 1) / this.npanels, 500)
+            var p0 = this.worldpos(this.circ * jpanel / this.npanels, this.panely)
+            var p1 = this.worldpos(this.circ * (jpanel + 1) / this.npanels, this.panely)
             if (p0[0] >= p1[0]) continue
             context.save()
-            context.transform((p1[0] - p0[0] + 1) / this.panelx, (p1[1] - p0[1]) / this.panelx, 0, 1, p0[0], p0[1])
-            context.drawImage(this.panels[jpanel], 0, 0)
+            var xscale = (p1[0] - p0[0]) / this.panelx, yscale = (p1[1] - p0[1]) / this.panelx
+            context.transform(xscale, yscale, 0, 1, p0[0], p0[1])
+            for (var row = rowmin ; row < rowmax ; ++row) {
+                context.drawImage(this.panels[jpanel], 0, -row * this.panely)
+            }
             context.restore()
         }
     },
 }
 
+// TODO: see if there's a way to enable this without utterly destroying performance
+//   because it looks AWESOME
 TowerShading = {
-    draw: function () {
-        var grad = context.createLinearGradient(-120, 0, 120, 0)
-        grad.addColorStop(0, "rgba(0,0,0,0.4)")
+    draw: function (yrange) {
+        var ymin = yrange[0], height = yrange[1] - yrange[0]
+        var grad = context.createLinearGradient(-this.r, 0, this.r, 0)
+        grad.addColorStop(0, "rgba(0,0,0,0.6)")
         grad.addColorStop(0.3, "rgba(0,0,0,0)")
-        grad.addColorStop(1, "rgba(0,0,0,0.8)")
+        grad.addColorStop(1, "rgba(0,0,0,1)")
         context.fillStyle = grad
-        context.fillRect(-270, -270, 540, 540)
+        context.fillRect(-this.r, ymin, 2*this.r, height)
     },
 }
 
@@ -132,6 +182,7 @@ function Tower(circ, color) {
         addcomp(CylindricalSpace, circ).
         addcomp(CylindricalFacer).
         addcomp(TowerWalls, color).
+//        addcomp(TowerShading).
         addcomp(UFX.Component.HasChildren)
 }
 
