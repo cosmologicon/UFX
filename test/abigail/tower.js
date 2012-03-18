@@ -163,17 +163,15 @@ TowerWalls = {
     },
 }
 
-// TODO: see if there's a way to enable this without utterly destroying performance
-//   because it looks AWESOME
 TowerShading = {
     draw: function (yrange) {
         var ymin = yrange[0], height = yrange[1] - yrange[0]
         var grad = context.createLinearGradient(-this.r, 0, this.r, 0)
         grad.addColorStop(0, "rgba(0,0,0,0.6)")
         grad.addColorStop(0.3, "rgba(0,0,0,0)")
-        grad.addColorStop(1, "rgba(0,0,0,1)")
+        grad.addColorStop(1, "rgba(0,0,0,0.9)")
         context.fillStyle = grad
-        context.fillRect(-this.r, ymin, 2*this.r, height)
+        context.fillRect(-this.r-1, ymin, 2*this.r+2, height)
     },
 }
 
@@ -182,7 +180,7 @@ function Tower(circ, color) {
         addcomp(CylindricalSpace, circ).
         addcomp(CylindricalFacer).
         addcomp(TowerWalls, color).
-//        addcomp(TowerShading).
+        addcomp(TowerShading).
         addcomp(UFX.Component.HasChildren)
 }
 

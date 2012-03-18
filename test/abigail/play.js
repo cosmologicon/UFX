@@ -17,6 +17,7 @@ var PlayScene = {
                 tower.scootch(dx, dy)
             }
         })
+        document.getElementById("fps").value = UFX.ticker.getfpsstr()
     },
     
     draw: function () {
