@@ -57,7 +57,24 @@ function stonetexture(sx, sy, color) {
     return con
 }
 
-
+function groundtexture(sx, sy) {
+    var img = document.createElement("canvas")
+    img.width = sx
+    img.height = sy
+    var con = img.getContext("2d")
+    var idata = con.createImageData(sx, sy)
+    var data = idata.data
+    for (var y = 0, j = 0, k = 0 ; y < sy ; ++y) {
+        for (var x = 0 ; x < sx; ++x, j += 4, ++k) {
+            data[j] = Math.random() * 100
+            data[j+1] = 40 + Math.random() * 60
+            data[j+2] = 0
+            data[j+3] = 255
+        }
+    }
+    con.putImageData(idata, 0, 0)
+    return con
+}
 
 function panels(n, x, y, color0) {
     n = n || 10
@@ -128,6 +145,27 @@ CylindricalFacer = {
     },
 }
 
+TowerGround = {
+    init: function () {
+        this.ground = groundtexture(60, 60).canvas
+    },
+    draw: function(yrange) {
+        context.save()
+        context.translate(0, this.y0)
+        context.scale(25, 25 * this.z / this.r)
+        context.save()
+        context.rotate(this.x0 / this.circ * 2 * Math.PI)
+        context.drawImage(this.ground, -30, -30)
+        context.restore()
+        var grad = context.createLinearGradient(0, 0, 0, -30)
+        grad.addColorStop(0, "rgba(0,0,0,0)")
+        grad.addColorStop(1, "rgba(0,0,0,1)")
+        context.fillStyle = grad
+        context.fillRect(-30, -60, 60, 60)
+        context.restore()
+    },
+}
+
 
 TowerWalls = {
     init: function (color0) {
@@ -179,8 +217,9 @@ function Tower(circ, color) {
     return UFX.Thing().
         addcomp(CylindricalSpace, circ).
         addcomp(CylindricalFacer).
+        addcomp(TowerGround).
         addcomp(TowerWalls, color).
-        addcomp(TowerShading).
+//        addcomp(TowerShading).
         addcomp(UFX.Component.HasChildren)
 }
 
