@@ -139,8 +139,9 @@ CylindricalFacer = {
     },
     worldpos: function (x, y, r) {
         r = this.r + (r || 0)
+        var z = r * this.z / this.r
         var theta = (x - this.x0) / this.r
-        return [this.r * Math.sin(theta), this.z * Math.cos(theta) - (y - this.y0)]
+        return [r * Math.sin(theta), z * Math.cos(theta) - (y - this.y0)]
     },
     think: function (dt) {
         var f = 1 - Math.exp(-4 * dt)
@@ -172,18 +173,11 @@ TowerGround = {
     },
 }
 
-
-TowerWalls = {
-    init: function (color0) {
-        this.color0 = color0
-        this.npanels = Math.floor(this.circ / 30.) + 1
-        this.panelx = Math.floor(this.circ / this.npanels)
-        this.panely = 500
-        this.panels = panels(this.npanels, this.panelx, this.panely, this.color0)
-    },
+TowerClip = {
     draw: function (yrange) {
         var ymin = yrange[0], ymax = yrange[1]
 
+        context.save()
         context.beginPath()
         context.moveTo(-this.r-1, ymin)
         if (this.y0 < ymax) {
@@ -197,7 +191,26 @@ TowerWalls = {
         }
         context.lineTo(this.r+1, ymin)
         context.clip()
+    },
+}
 
+TowerPostClip = {
+    draw: function (yrange) {
+        context.restore()
+    }
+}
+
+
+TowerWalls = {
+    init: function (color0) {
+        this.color0 = color0
+        this.npanels = Math.floor(this.circ / 30.) + 1
+        this.panelx = Math.floor(this.circ / this.npanels)
+        this.panely = 500
+        this.panels = panels(this.npanels, this.panelx, this.panely, this.color0)
+    },
+    draw: function (yrange) {
+        var ymin = yrange[0], ymax = yrange[1]
         var rowmin = Math.max(Math.floor((this.y0 - ymax) / this.panely) + 1, 0)
         var rowmax = Math.floor((this.y0 - ymin) / this.panely) - 1
         rowmax = rowmin + 2
@@ -249,14 +262,41 @@ HasPortals = {
 }
 
 
+HasPlatforms = {
+    init: function () {
+        this.platforms = []
+    },
+    addplatform: function (platform) {
+        this.platforms.push(platform)
+    },
+    draw: function (yrange) {
+        this.platforms.forEach(function (platform) {
+            platform.draw(yrange)
+        })
+    },
+}
+
+BackPlatforms = {
+    draw: function (yrange) {
+        this.platforms.forEach(function (platform) {
+            platform.backdraw(yrange)
+        })
+    },
+}
+
+
 function Tower(circ, color) {
     return UFX.Thing().
         addcomp(CylindricalSpace, circ).
         addcomp(CylindricalFacer).
         addcomp(TowerGround).
+        addcomp(BackPlatforms).
+        addcomp(TowerClip).
         addcomp(TowerWalls, color).
         addcomp(HasPortals).
         addcomp(TowerShading).
+        addcomp(TowerPostClip).
+        addcomp(HasPlatforms).
         addcomp(UFX.Component.HasChildren)
 }
 

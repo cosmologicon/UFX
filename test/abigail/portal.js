@@ -14,17 +14,13 @@ DrawPortal = {
         this.pos.forEach(function (pos) {
             if (!pos.tower.infront(pos.x)) return
             var p = pos.tower.worldpos(pos.x, pos.y)
-            var p0 = pos.tower.worldpos(pos.x - 10, pos.y)
-            var p1 = pos.tower.worldpos(pos.x + 10, pos.y)
+            // TODO: add a method so I don't have to take the numerical derivative here
+            var p0 = pos.tower.worldpos(pos.x - 1, pos.y)
+            var p1 = pos.tower.worldpos(pos.x + 1, pos.y)
 
             context.save()
-            var xscale = (p1[0] - p0[0]) / 20., yscale = (p1[1] - p0[1]) / 20.
+            var xscale = (p1[0] - p0[0]) / 2., yscale = (p1[1] - p0[1]) / 2.
             context.transform(xscale, yscale, 0, 1, p[0], p[1])
-
-
-//            context.save()
-//            context.translate(p[0], p[1])
-
             context.fillStyle = "gray"
             context.fillRect(-10, -40, 20, 40)
             context.fillStyle = "black"

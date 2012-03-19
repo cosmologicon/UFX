@@ -5,6 +5,7 @@ var PlayScene = {
     start: function () {
         this.tower = Tower(500, [128, 128, 128])
         var p = Portal(this.tower, [100, 100], this.tower, [-20, 10])
+        var p = Platform(this.tower, 40, 200, 100)
         UFX.key.watchlist = "up down left right".split(" ")
     },
 
