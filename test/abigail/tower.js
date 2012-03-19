@@ -66,9 +66,10 @@ function groundtexture(sx, sy) {
     var data = idata.data
     for (var y = 0, j = 0, k = 0 ; y < sy ; ++y) {
         for (var x = 0 ; x < sx; ++x, j += 4, ++k) {
-            data[j] = Math.random() * 100
-            data[j+1] = 40 + Math.random() * 60
-            data[j+2] = 0
+            var dx = 2*x/sx-1, dy = 2*y/sy-1, d = Math.sqrt(dx*dx+dy*dy)
+            data[j] = Math.random() * 30 + 80 * Math.exp(-3*d)
+            data[j+1] = Math.random() * 30 + 80
+            data[j+2] = Math.random() * 20
             data[j+3] = 255
         }
     }
@@ -147,21 +148,22 @@ CylindricalFacer = {
 
 TowerGround = {
     init: function () {
-        this.ground = groundtexture(60, 60).canvas
+        this.groundr = 50
+        this.ground = groundtexture(this.groundr * 2, this.groundr * 2).canvas
     },
     draw: function(yrange) {
         context.save()
         context.translate(0, this.y0)
-        context.scale(25, 25 * this.z / this.r)
+        context.scale(500/this.groundr, 500/this.groundr * this.z / this.r)
         context.save()
         context.rotate(this.x0 / this.circ * 2 * Math.PI)
-        context.drawImage(this.ground, -30, -30)
+        context.drawImage(this.ground, -this.groundr, -this.groundr)
         context.restore()
-        var grad = context.createLinearGradient(0, 0, 0, -30)
+        var grad = context.createLinearGradient(0, 0, 0, -this.groundr)
         grad.addColorStop(0, "rgba(0,0,0,0)")
         grad.addColorStop(1, "rgba(0,0,0,1)")
         context.fillStyle = grad
-        context.fillRect(-30, -60, 60, 60)
+        context.fillRect(-this.groundr, -2*this.groundr, 2*this.groundr, 2*this.groundr)
         context.restore()
     },
 }
