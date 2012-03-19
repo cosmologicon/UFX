@@ -133,6 +133,10 @@ CylindricalFacer = {
         this.targetx += dx || 0
         this.targety += dy || 0
     },
+    // given an x-coordinates, say whether it's visible from the front
+    infront: function (x) {
+        return Math.abs(this.getdx(this.x0, x)) < this.circ / 4
+    },
     worldpos: function (x, y, r) {
         r = this.r + (r || 0)
         var theta = (x - this.x0) / this.r
@@ -230,12 +234,28 @@ TowerShading = {
     },
 }
 
+HasPortals = {
+    init: function () {
+        this.portals = []
+    },
+    addportal: function (portal) {
+        this.portals.push(portal)
+    },
+    draw: function (yrange) {
+        this.portals.forEach(function (portal) {
+            portal.draw(yrange)
+        })
+    },
+}
+
+
 function Tower(circ, color) {
     return UFX.Thing().
         addcomp(CylindricalSpace, circ).
         addcomp(CylindricalFacer).
         addcomp(TowerGround).
         addcomp(TowerWalls, color).
+        addcomp(HasPortals).
         addcomp(TowerShading).
         addcomp(UFX.Component.HasChildren)
 }
