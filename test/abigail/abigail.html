@@ -59,8 +59,9 @@ window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequest
                                window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
 
 
-UFX.ticker.animsync = true
-UFX.scene.init()
+//UFX.ticker.animsync = true
+//UFX.scene.init()
+UFX.ticker.register(UFX.scene.think, UFX.scene.draw, {maxups: 90, delay: 20})
 UFX.key.init()
 //UFX.mouse.init("canvas")
 //UFX.pause.init()

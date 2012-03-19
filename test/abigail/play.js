@@ -25,8 +25,9 @@ var PlayScene = {
         context.fillRect(0, 0, 540, 540)
         context.save()
         context.translate(270, 270)
-        context.scale(2, 2)
-        this.tower.draw([-260, 260])
+        var s = 2
+        context.scale(s, s)
+        this.tower.draw([-270/s, 270/s])
         context.restore()
     },
 }

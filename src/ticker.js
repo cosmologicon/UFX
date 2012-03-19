@@ -70,7 +70,7 @@ UFX.ticker.register = function (tcallback, dcallback, opts) {
 
 // For use when you want think and draw synched
 UFX.ticker.registersync = function (tcallback, dcallback, maxups, minups) {
-    var opts = { upf: 1 }
+    var opts = { upf: 1, animsync: true }
     if (maxups) {
         opts.maxups = maxups
         opts.minups = minups || maxups
@@ -82,12 +82,11 @@ UFX.ticker.registersync = function (tcallback, dcallback, maxups, minups) {
 // Update all options
 UFX.ticker.setoptions = function (opts) {
     if (!opts) return
-    
-    var copykeys = ["maxups", "minups", "maxupf", "animsync"]
+    var copykeys = ["maxups", "minups", "maxupf", "animsync", "delay"]
 
     for (var j = 0 ; j < copykeys.length ; ++j) {
         var key = copykeys[j]
-        if (typeof opts[key] != "undefined") UFX.ticker[key] = opts[key]
+        if (typeof opts[key] !== "undefined") UFX.ticker[key] = opts[key]
     }
 }
 

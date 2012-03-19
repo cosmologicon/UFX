@@ -176,8 +176,22 @@ TowerWalls = {
         this.panels = panels(this.npanels, this.panelx, this.panely, this.color0)
     },
     draw: function (yrange) {
-        var theta = Date.now() * 0.001, dtheta = 2 * Math.PI / this.npanels
         var ymin = yrange[0], ymax = yrange[1]
+
+        context.beginPath()
+        context.moveTo(-this.r-1, ymin)
+        if (this.y0 < ymax) {
+            for (var jtheta = 0 ; jtheta <= 16 ; ++jtheta) {
+                var theta = jtheta * Math.PI / 16
+                context.lineTo(-(this.r+1) * Math.cos(theta), this.y0 + this.z * Math.sin(theta))
+            }
+        } else {
+            context.lineTo(-this.r-1, ymax)
+            context.lineTo(this.r+1, ymax)
+        }
+        context.lineTo(this.r+1, ymin)
+        context.clip()
+
         var rowmin = Math.max(Math.floor((this.y0 - ymax) / this.panely) + 1, 0)
         var rowmax = Math.floor((this.y0 - ymin) / this.panely) - 1
         rowmax = rowmin + 2
@@ -205,11 +219,12 @@ TowerShading = {
     draw: function (yrange) {
         var ymin = yrange[0], height = yrange[1] - yrange[0]
         var grad = context.createLinearGradient(-this.r, 0, this.r, 0)
-        grad.addColorStop(0, "rgba(0,0,0,0.6)")
+        grad.addColorStop(0, "rgba(0,0,0,1)")
+        grad.addColorStop(0.1, "rgba(0,0,0,0.4)")
         grad.addColorStop(0.3, "rgba(0,0,0,0)")
-        grad.addColorStop(1, "rgba(0,0,0,0.9)")
+        grad.addColorStop(1, "rgba(0,0,0,1)")
         context.fillStyle = grad
-        context.fillRect(-this.r-1, ymin, 2*this.r+2, height)
+        context.fillRect(-this.r-4, ymin, 2*this.r+8, height)
     },
 }
 
@@ -219,7 +234,7 @@ function Tower(circ, color) {
         addcomp(CylindricalFacer).
         addcomp(TowerGround).
         addcomp(TowerWalls, color).
-//        addcomp(TowerShading).
+        addcomp(TowerShading).
         addcomp(UFX.Component.HasChildren)
 }
 
