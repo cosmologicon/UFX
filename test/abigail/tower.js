@@ -114,6 +114,13 @@ CylindricalSpace = {
         if (dx < 0) dx += this.circ
         return dx - 0.5 * this.circ
     },
+    // given an x-range and an x-coordinate, determine whether the coordinate
+    //   is within the x-range
+    intervalhas: function (x0, x1, x) {
+        var dx = (x - x0) % this.circ
+        if (dx < 0) dx += this.circ
+        return dx < x1 - x0
+    },
 }
 
 // A cylindrical space that has a certain side facing the camera
@@ -269,6 +276,7 @@ HasPlatforms = {
     },
     addplatform: function (platform) {
         this.platforms.push(platform)
+        platform.attachto(this)
     },
     draw: function (yrange) {
         this.platforms.forEach(function (platform) {
@@ -285,6 +293,28 @@ BackPlatforms = {
     },
 }
 
+HasSprites = {
+    init: function () {
+        this.sprites = []
+    },
+    addsprite: function (sprite) {
+        this.sprites.push(sprite)
+        sprite.attachto(this)
+    },
+    draw: function (yrange) {
+        this.sprites.forEach(function (sprite) {
+            sprite.draw(yrange)
+        })
+    },
+}
+
+// Because the draw order for this game is so complicated, we handle it manually.
+// We don't want an object's children necessarily drawn before or after it.
+HasInvisibleChildren = {
+    __proto__: UFX.Component.HasChildren,
+    draw: function () { },
+}
+
 
 function Tower(circ, color) {
     return UFX.Thing().
@@ -297,8 +327,9 @@ function Tower(circ, color) {
         addcomp(HasPortals).
         addcomp(TowerShading).
         addcomp(TowerPostClip).
+        addcomp(HasSprites).
         addcomp(HasPlatforms).
-        addcomp(UFX.Component.HasChildren)
+        addcomp(HasInvisibleChildren)
 }
 
 

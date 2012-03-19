@@ -10,6 +10,28 @@ HorizontalExtent = {
     },
 }
 
+// Standard platform holding
+HoldSteady = {
+    holds: function (sprite) {
+//        hright = sprite.cliffhang if sprite.stepped and sprite.facingright else 0
+//        hleft = sprite.cliffhang if sprite.stepped and not sprite.facingright else 0
+        return this.tower.intervalhas(this.x0, this.x1, sprite.x)
+    },
+    catches: function (sprite) {
+        this.oldy = this.y
+        return sprite.y < this.y && this.oldy <= sprite.oldy && this.holds(sprite)
+    },
+}
+
+// What the ground does, hold everything at this level
+HoldEverything = {
+    __proto__: HoldSteady,
+    holds: function (sprite) {
+        return true
+    },
+}
+
+
 DrawPlatform = {
     init: function () {
         this.npanel = 10
@@ -70,7 +92,21 @@ DrawPlatformPath = {
         this.outlinecolor.addColorStop(0.85, "rgba(196,196,196,1)")
         this.outlinecolor.addColorStop(1, "rgba(0,0,0,1)")
     },
-    setpath: function (condition) {
+    setps: function () {
+        this.px = []
+        this.py = []
+        this.px0 = []
+        this.py0 = []
+        for (var j = 0 ; j < this.ncrenel + 1 ; ++j) {
+            var p = this.tower.worldpos(this.x0 + this.dx * j / this.ncrenel, this.y, this.r)
+            this.px.push(p[0])
+            this.py.push(p[1])
+            var p0 = this.tower.worldpos(this.x0 + this.dx * j / this.ncrenel, this.y, 1)
+            this.px0.push(p0[0])
+            this.py0.push(p0[1])
+        }
+    },
+    setwallpath: function (condition) {
         var started = -1
         for (var j = 0 ; j < this.ncrenel ; ++j) {
             if (!condition(this.px[j], this.px[j+1])) continue
@@ -112,19 +148,9 @@ DrawPlatformPath = {
         return true
     },
     backdraw: function (yrange) {
-        this.px = []
-        this.py = []
-        this.px0 = []
-        this.py0 = []
-        for (var j = 0 ; j < this.ncrenel + 1 ; ++j) {
-            var p = this.tower.worldpos(this.dx * j / this.ncrenel, this.y, this.r)
-            this.px.push(p[0])
-            this.py.push(p[1])
-            var p0 = this.tower.worldpos(this.dx * j / this.ncrenel, this.y, 1)
-            this.px0.push(p0[0])
-            this.py0.push(p0[1])
-        }
-        if (this.setpath(function (x0, x1) { return x0 >= x1; })) {
+        this.setps()
+
+        if (this.setwallpath(function (x0, x1) { return x0 >= x1; })) {
             context.fillStyle = this.grad1
             context.fill()
         }
@@ -138,7 +164,7 @@ DrawPlatformPath = {
             context.fillStyle = this.floorcolor0
             context.fill()
         }
-        if (this.setpath(function (x0, x1) { return x0 < x1; })) {
+        if (this.setwallpath(function (x0, x1) { return x0 < x1; })) {
             context.strokeStyle = this.outlinecolor
             context.stroke()
             context.fillStyle = this.grad0
@@ -147,12 +173,30 @@ DrawPlatformPath = {
     },
 }
 
+DontDraw = {
+    draw: function (yrange) {},
+    backdraw: function (yrange) {},
+}
+
 
 function Platform(tower, x0, x1, y) {
     return UFX.Thing().
+        addcomp(UFX.Component.HasParent).
         addcomp(HorizontalExtent, tower, x0, x1, y).
-        addcomp(DrawPlatformPath)
-        
+        addcomp(HoldSteady).
+        addcomp(DrawPlatformPath).
+        addcomp(HasInvisibleChildren)
 }
+
+// A special platform located at y = 0 that extends around the whole tower
+function Ground(tower) {
+    return UFX.Thing().
+        addcomp(UFX.Component.HasParent).
+        addcomp(HorizontalExtent, tower, 0, tower.circ, 0).
+        addcomp(HoldEverything).
+        addcomp(DontDraw).
+        addcomp(HasInvisibleChildren)
+}
+
 
 
