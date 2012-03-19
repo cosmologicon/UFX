@@ -153,22 +153,23 @@ CylindricalFacer = {
 
 TowerGround = {
     init: function () {
-        this.groundr = 50
+        this.groundr = 100
         this.ground = groundtexture(this.groundr * 2, this.groundr * 2).canvas
     },
     draw: function(yrange) {
         context.save()
         context.translate(0, this.y0)
-        context.scale(500/this.groundr, 500/this.groundr * this.z / this.r)
+        context.scale(1000/this.groundr, 1000/this.groundr * this.z / this.r)
         context.save()
         context.rotate(this.x0 / this.circ * 2 * Math.PI)
         context.drawImage(this.ground, -this.groundr, -this.groundr)
         context.restore()
-        var grad = context.createLinearGradient(0, 0, 0, -this.groundr)
+        var grad = context.createLinearGradient(0, 0, 0, -1.5*this.groundr)
         grad.addColorStop(0, "rgba(0,0,0,0)")
-        grad.addColorStop(1, "rgba(0,0,0,1)")
+        grad.addColorStop(0.66, "rgba(144,144,192,1)")
+        grad.addColorStop(1, "rgba(0,0,128,1)")
         context.fillStyle = grad
-        context.fillRect(-this.groundr, -2*this.groundr, 2*this.groundr, 2*this.groundr)
+        context.fillRect(-this.groundr, -1.5*this.groundr, 2*this.groundr, 1.5*this.groundr)
         context.restore()
     },
 }

@@ -23,7 +23,7 @@ var PlayScene = {
     },
     
     draw: function () {
-        context.fillStyle = "black"
+        context.fillStyle = "rgba(0,0,128,1)"
         context.fillRect(0, 0, 540, 540)
         context.save()
         context.translate(270, 270)

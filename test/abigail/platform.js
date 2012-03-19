@@ -69,7 +69,6 @@ DrawPlatformPath = {
         this.outlinecolor.addColorStop(0.15, "rgba(196,196,196,1)")
         this.outlinecolor.addColorStop(0.85, "rgba(196,196,196,1)")
         this.outlinecolor.addColorStop(1, "rgba(0,0,0,1)")
-//        this.outlinecolor = "rgba(196, 196, 196, 1)"
     },
     setpath: function (condition) {
         var started = -1
