@@ -113,17 +113,17 @@ DrawPlatformPath = {
             if (started === -1) {
                 started = j
                 context.beginPath()
-                context.moveTo(this.px[j], this.py[j])
+                context.moveTo(this.px[j], this.py[j] + 6)
             }
-            context.lineTo(this.px[j+1], this.py[j+1])
+            context.lineTo(this.px[j+1], this.py[j+1] + 6)
         }
         if (started === -1) return false
         for (var j = this.ncrenel - 1 ; j >= 0 ; --j) {
             if (!condition(this.px[j], this.px[j+1])) continue
-            context.lineTo(this.px[j+1], this.py[j+1] - (j % 2 ? 12 : 6))
-            context.lineTo(this.px[j+1], this.py[j+1] - (j % 2 ? 6 : 12))
+            context.lineTo(this.px[j+1], this.py[j+1] - (j % 2 ? 6 : 0))
+            context.lineTo(this.px[j+1], this.py[j+1] - (j % 2 ? 0 : 6))
         }
-        context.lineTo(this.px[started], this.py[started] - (started % 2 ? 6 : 12))
+        context.lineTo(this.px[started], this.py[started] - (started % 2 ? 0 : 6))
         context.closePath()
         return true
     },
@@ -147,9 +147,33 @@ DrawPlatformPath = {
         context.closePath()
         return true
     },
+    setsupportpath: function (condition) {
+        var started = -1
+        for (var j = 0 ; j < this.ncrenel ; ++j) {
+            if (!condition(this.px[j], this.px[j+1])) continue
+            if (started === -1) {
+                started = j
+                context.beginPath()
+                context.moveTo(this.px[j], this.py[j] + 6)
+            }
+            context.lineTo(this.px[j+1], this.py[j+1] + 6)
+        }
+        if (started === -1) return false
+        for (var j = this.ncrenel - 1 ; j >= 0 ; --j) {
+            if (!condition(this.px[j], this.px[j+1])) continue
+            context.lineTo(this.px0[j+1], this.py0[j+1] + 18)
+        }
+        context.lineTo(this.px0[started], this.py0[started] + 18)
+        context.closePath()
+        return true
+    },
     backdraw: function (yrange) {
         this.setps()
 
+        if (this.setsupportpath(function (x0, x1) { return x0 >= x1; })) {
+            context.fillStyle = this.grad1
+            context.fill()
+        }
         if (this.setwallpath(function (x0, x1) { return x0 >= x1; })) {
             context.fillStyle = this.grad1
             context.fill()
@@ -160,6 +184,10 @@ DrawPlatformPath = {
         }
     },
     draw: function (yrange) {
+        if (this.setsupportpath(function (x0, x1) { return x0 < x1; })) {
+            context.fillStyle = this.grad0
+            context.fill()
+        }
         if (this.setfloorpath(function (x0, x1) { return x0 < x1; })) {
             context.fillStyle = this.floorcolor0
             context.fill()

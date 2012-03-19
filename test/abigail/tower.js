@@ -67,7 +67,7 @@ function groundtexture(sx, sy) {
     for (var y = 0, j = 0, k = 0 ; y < sy ; ++y) {
         for (var x = 0 ; x < sx; ++x, j += 4, ++k) {
             var dx = 2*x/sx-1, dy = 2*y/sy-1, d = Math.sqrt(dx*dx+dy*dy)
-            data[j] = Math.random() * 30 + 80 * Math.exp(-3*d)
+            data[j] = Math.random() * 30 + 80 * Math.min(Math.exp(-8*d+0.75), 1)
             data[j+1] = Math.random() * 30 + 80
             data[j+2] = Math.random() * 20
             data[j+3] = 255
@@ -76,6 +76,29 @@ function groundtexture(sx, sy) {
     con.putImageData(idata, 0, 0)
     return con
 }
+
+function cloudtexture(sx, sy, t) {
+    var img = document.createElement("canvas")
+    img.width = sx
+    img.height = sy
+    var con = img.getContext("2d")
+    var idata = con.createImageData(sx, sy)
+    var data = idata.data
+    var ndata = UFX.noise.wrapslice([sx, sy], t*0.01, [16, 32, 256], [0, 0])
+    UFX.noise.fractalize(ndata, [sx, sy], 2)
+    for (var y = 0, j = 0, k = 0 ; y < sy ; ++y) {
+        for (var x = 0 ; x < sx; ++x, j += 4, ++k) {
+            var v = Math.max(Math.min(4 * ndata[k] - 1, 1), 0)
+            data[j] = 128 * v
+            data[j+1] = 128 * v
+            data[j+2] = 128
+            data[j+3] = 255
+        }
+    }
+    con.putImageData(idata, 0, 0)
+    return con
+}
+
 
 function panels(n, x, y, color0) {
     n = n || 10
@@ -181,6 +204,40 @@ TowerGround = {
     },
 }
 
+HasClouds = {
+    init: function() {
+        this.cloudsize = 256
+        this.cloudt = 0
+        this.clouds = cloudtexture(this.cloudsize, this.cloudsize, this.cloudt).canvas
+    },
+    think: function (dt) {
+        this.cloudt += dt
+        if (Math.floor(this.cloudt - dt) < Math.floor(this.cloudt))
+            this.clouds = cloudtexture(this.cloudsize, this.cloudsize, this.cloudt).canvas
+    },
+    draw: function(yrange) {
+        context.save()
+        var zoom = 4
+        context.scale(zoom, zoom)
+        var f = (this.x0 / this.circ - 0.5) % 1.
+        if (f < 0) f += 1.
+        f += 0.5
+        for (var g = 0 ; g < 5 ; ++g) {
+            context.drawImage(this.clouds, -this.cloudsize * f, this.y0/zoom - this.cloudsize * g)
+            context.drawImage(this.clouds, -this.cloudsize * (-1 + f), this.y0/zoom - this.cloudsize * g)
+        }
+        context.restore()
+
+        var grad = context.createLinearGradient(0, -1.5*this.groundr, 0, -6*this.groundr)
+        grad.addColorStop(0, "rgba(0,0,128,1)")
+        grad.addColorStop(1, "rgba(255, 255, 255,1)")
+        context.fillStyle = grad
+        context.fillStyle = "red"
+        context.fillRect(-this.cloudsize, -6*this.groundr, 2*this.cloudsize, 4.5*this.groundr)
+    },
+
+}
+
 TowerClip = {
     draw: function (yrange) {
         var ymin = yrange[0], ymax = yrange[1]
@@ -219,14 +276,8 @@ TowerWalls = {
     },
     draw: function (yrange) {
         var ymin = yrange[0], ymax = yrange[1]
-        var rowmin = Math.max(Math.floor((this.y0 - ymax) / this.panely) + 1, 0)
-        var rowmax = Math.floor((this.y0 - ymin) / this.panely) - 1
-        rowmax = rowmin + 2
-        rowmin = 0
-        rowmax = 2
-//        alert([rowmin, rowmax])
-//        top of row is: -this.panely * (row + 1) + this.y0 < ymax
-//        row + 1 > (this.y0 - ymax) / this.panely
+        var rowmin = Math.max(Math.floor((this.y0 - ymax - Math.abs(this.z)) / this.panely), 0)
+        var rowmax = Math.floor((this.y0 - ymin + Math.abs(this.z)) / this.panely)
         for (var jpanel = 0 ; jpanel < this.npanels ; ++jpanel) {
             var p0 = this.worldpos(this.circ * jpanel / this.npanels, this.panely)
             var p1 = this.worldpos(this.circ * (jpanel + 1) / this.npanels, this.panely)
@@ -234,7 +285,7 @@ TowerWalls = {
             context.save()
             var xscale = (p1[0] - p0[0]) / this.panelx, yscale = (p1[1] - p0[1]) / this.panelx
             context.transform(xscale, yscale, 0, 1, p0[0], p0[1])
-            for (var row = rowmin ; row < rowmax ; ++row) {
+            for (var row = rowmin ; row <= rowmax ; ++row) {
                 context.drawImage(this.panels[jpanel], 0, -row * this.panely)
             }
             context.restore()
@@ -320,6 +371,7 @@ function Tower(circ, color) {
     return UFX.Thing().
         addcomp(CylindricalSpace, circ).
         addcomp(CylindricalFacer).
+//        addcomp(HasClouds).
         addcomp(TowerGround).
         addcomp(BackPlatforms).
         addcomp(TowerClip).
