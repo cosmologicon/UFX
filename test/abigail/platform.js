@@ -106,7 +106,7 @@ DrawPlatformPath = {
             this.py0.push(p0[1])
         }
     },
-    setwallpath: function (condition) {
+    setcrenelpath: function (condition) {
         var started = -1
         for (var j = 0 ; j < this.ncrenel ; ++j) {
             if (!condition(this.px[j], this.px[j+1])) continue
@@ -147,7 +147,7 @@ DrawPlatformPath = {
         context.closePath()
         return true
     },
-    setsupportpath: function (condition) {
+    setcorbelpath: function (condition) {
         var started = -1
         for (var j = 0 ; j < this.ncrenel ; ++j) {
             if (!condition(this.px[j], this.px[j+1])) continue
@@ -168,13 +168,11 @@ DrawPlatformPath = {
         return true
     },
     backdraw: function (yrange) {
-        this.setps()
-
-        if (this.setsupportpath(function (x0, x1) { return x0 >= x1; })) {
+        if (this.setcorbelpath(function (x0, x1) { return x0 >= x1; })) {
             context.fillStyle = this.grad1
             context.fill()
         }
-        if (this.setwallpath(function (x0, x1) { return x0 >= x1; })) {
+        if (this.setcrenelpath(function (x0, x1) { return x0 >= x1; })) {
             context.fillStyle = this.grad1
             context.fill()
         }
@@ -183,27 +181,44 @@ DrawPlatformPath = {
             context.fill()
         }
     },
-    draw: function (yrange) {
-        if (this.setsupportpath(function (x0, x1) { return x0 < x1; })) {
+    drawcorbel: function (yrange) {
+        if (this.setcorbelpath(function (x0, x1) { return x0 < x1; })) {
             context.fillStyle = this.grad0
             context.fill()
         }
+    },
+    drawfloor: function (yrange) {
         if (this.setfloorpath(function (x0, x1) { return x0 < x1; })) {
             context.fillStyle = this.floorcolor0
             context.fill()
         }
-        if (this.setwallpath(function (x0, x1) { return x0 < x1; })) {
+    },
+    drawcrenel: function (yrange) {
+        if (this.setcrenelpath(function (x0, x1) { return x0 < x1; })) {
             context.strokeStyle = this.outlinecolor
             context.stroke()
             context.fillStyle = this.grad0
             context.fill()
         }
     },
+    drawfuncs: function (yrange) {
+        if (!this.tower.isvisible(yrange, [this.y - 18, this.y + 6], this.r)) return []
+    
+        this.setps()
+
+        return [
+            [this.drawcorbel, this, 1, this.y, "corbel"],
+            [this.drawfloor, this, 1, this.y, "floor"],
+            [this.drawcrenel, this, 1, this.y, "crenel"],
+            [this.backdraw, this, -1, this.y],
+        ]
+    },
 }
 
 DontDraw = {
     draw: function (yrange) {},
     backdraw: function (yrange) {},
+    drawfuncs: function (yrange) { return [] },
 }
 
 HasInvisibleChildren = {

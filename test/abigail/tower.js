@@ -170,6 +170,10 @@ CylindricalFacer = {
 //        return [r * Math.sin(theta), this.fz * r * Math.cos(theta) + this.fy * (this.y0 - y)]
         return [r * Math.sin(theta), this.fz * r * Math.cos(theta) / this.fy + (this.y0 - y)]
     },
+    isvisible: function (yrange, yextent, r) {
+        var absz = this.fz * (this.r + (r || 0))
+        return yextent[0] - absz <= yrange[1] && yextent[1] + absz >= yrange[0]
+    },
     settilt: function () {
         var dy = this.h0 - Math.min(this.y0, this.hmax)
         var d = Math.sqrt(this.D * this.D + dy * dy)
@@ -180,18 +184,18 @@ CylindricalFacer = {
     cylinderclip: function (yrange) {
         var ymin = yrange[0], ymax = yrange[1]
         context.beginPath()
-        context.moveTo(-this.r-1, ymin)
-        if (this.y0 < ymax) {
+        context.moveTo(-this.r-1, this.y0 - ymax)
+        if (ymin < 0) {
             for (var jtheta = 0 ; jtheta <= 16 ; ++jtheta) {
                 var theta = jtheta * Math.PI / 16
                 context.lineTo(-(this.r+1) * Math.cos(theta),
                                 this.y0 + this.r * this.fz / this.fy * Math.sin(theta))
             }
         } else {
-            context.lineTo(-this.r-1, ymax)
-            context.lineTo(this.r+1, ymax)
+            context.lineTo(-this.r-1, this.y0 - ymin)
+            context.lineTo(this.r+1, this.y0 - ymin)
         }
-        context.lineTo(this.r+1, ymin)
+        context.lineTo(this.r+1, this.y0 - ymax)
         context.clip()
     },
 }
@@ -300,12 +304,11 @@ TowerWalls = {
     drawwalls: function (yrange) {
         var ymin = yrange[0], ymax = yrange[1]
         var absz = Math.abs(this.fz) * this.r
-        var rowmin = Math.max(Math.floor((this.y0 - ymax - absz) / this.panely), 0)
-        var rowmax = Math.floor((this.y0 - ymin + absz) / this.panely)
+        var rowmin = Math.max(Math.floor((ymin - absz) / this.panely), 0)
+        var rowmax = Math.floor((ymax + absz) / this.panely)
         for (var jpanel = 0 ; jpanel < this.npanels ; ++jpanel) {
             var p0 = this.worldpos(this.circ * jpanel / this.npanels, this.panely)
             var p1 = this.worldpos(this.circ * (jpanel + 1) / this.npanels, this.panely)
-            if (jpanel == 0) document.title = p0[1]
             if (p0[0] >= p1[0]) continue
             context.save()
             var xscale = (p1[0] - p0[0]) / this.panelx, yscale = (p1[1] - p0[1]) / this.panelx
@@ -328,7 +331,7 @@ TowerShading = {
         this.towershade = grad
     },
     towershading: function (yrange) {
-        var ymin = yrange[0], height = yrange[1] - yrange[0]
+        var ymin = this.y0 - yrange[1], height = yrange[1] - yrange[0]
         context.fillStyle = this.towershade
         context.fillRect(-this.r-4, ymin, 2*this.r+8, height)
     },
@@ -355,27 +358,70 @@ HasTowerChildren = {
     addportal: function (portal) {
         this.portals.push(portal)
     },
+    // Thus begins the monumental task of drawing the tower parts in the correct order.
+    // You'd think that a 2.5-D system would be easier than a 3-D system, but no.
+    // Whether an object should be on top or not is not as simple as its distance from a camera.
+    // In particular, we don't want sprites' heads to go behind platforms.
     draw: function (Yrange) {
-        var yrange = [Yrange[0] / this.zoom / this.fy, Yrange[1] / this.zoom / this.fy]
+        var yrange = [this.y0 - Yrange[1] / this.zoom / this.fy,
+                      this.y0 - Yrange[0] / this.zoom / this.fy]
         context.scale(this.zoom, this.zoom * this.fy)
         this.drawground(yrange)
-        this.platforms.forEach(function (platform) {
-            platform.backdraw(yrange)
-        })
-        context.save()
-        this.cylinderclip(yrange)
-        this.drawwalls(yrange)
-        this.portals.forEach(function (portal) {
-            portal.draw(yrange)
-        })
-        this.towershading(yrange)
-        context.restore()
-        this.platforms.forEach(function (platform) {
-            platform.draw(yrange)
-        })
-        this.sprites.forEach(function (sprite) {
-            sprite.draw(yrange)
-        })
+
+        // Objects attached to the tower have a different sort order depending on whether
+        //   we're looking down or up
+        var order
+        if (this.fz > 0) {
+            order = { "corbel": 1, "floor": 2, "sprite": 3, "crenel": 4 }
+        } else {
+            order = { "sprite": 1, "floor": 2, "support": 3, "crenel": 4 }
+        }
+        // Vertical wall draw orders depend on whether it's on the left or right side of the tower
+        var getdx = this.getdx, x0 = this.x0
+        var onright = function (x) { return getdx(x0, x) > 0 }
+        var dfsortfunc = function (df0, df1) {
+            // First check the main layers
+            if (df0[2] !== df1[2]) return df0[2] - df1[2]
+            //  -2 = not attached to the tower, in back
+            //  -1 = attached to the tower, in back
+            //   0 = part of the tower surface (shaded along with tower walls, notably)
+            //   1 = attached to the tower in front
+            //   2 = not attached to the tower, in front
+            var layer = df0[2]
+            // For objects not attached to the tower, we can simply sort by z-coordinate
+            if (layer == 0 || layer == -2 || layer == 2) return df0[3] - df1[3]
+            if (layer == 1) {
+                // Draw from top to bottom
+                if (df0[3] !== df1[3]) return df1[3] - df0[3]
+                // We're now dealing with parts of a single platform, or a sprite on that platform.
+                // Here's where things get tricky.
+                return order[df0[4]] - order[df1[4]]
+            }
+            return 0
+        }
+
+        // Array of all functions we'll need to invoke
+        var dfs = [
+            [context.save, context, 0, -101],
+            [this.cylinderclip, this, 0, -100],
+            [this.drawwalls, this, 0, 0],
+            [this.towershading, this, 0, 1],
+            [context.restore, context, 0, 101],
+        ]
+
+        // Get draw callbacks from all children
+        var getdfs = function (obj) {
+            dfs.push.apply(dfs, obj.drawfuncs(yrange))
+        }
+        this.platforms.forEach(getdfs)
+//        this.portals.forEach(getdfs)
+        this.sprites.forEach(getdfs)
+
+        // Put draw callbacks into correct order
+        dfs.sort(dfsortfunc)
+        // Invoke draw callbacks
+        dfs.forEach(function (df) { df[0].call(df[1], yrange) })
+
     },
 }
 

@@ -94,6 +94,9 @@ DrawBox = {
         context.stroke()
         context.restore()
     },
+    drawfuncs: function (yrange) {
+        return [[this.draw, this, (this.tower.infront(this.x) ? 1 : -1), this.y, "sprite"]]
+    },
 }
 
 
