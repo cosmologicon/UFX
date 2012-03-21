@@ -28,7 +28,7 @@ var PlayScene = {
         var keymove = (UFX.key.ispressed.right ? 1 : 0) - (UFX.key.ispressed.left ? 1 : 0)
         this.you.step(dt * keymove)
         var lookpos = this.you.lookingat()
-        this.tower.face(lookpos[0], lookpos[1])
+        this.tower.panto(lookpos[0], lookpos[1])
         document.getElementById("fps").value = UFX.ticker.getfpsstr()
     },
     
@@ -38,11 +38,11 @@ var PlayScene = {
         context.save()
         context.translate(270, 270)
 //        var s = 1 + 0.2 * Math.sin(Date.now() * 0.001 / 4)
-        var s = 2
-        context.scale(s, s)
+//        var s = 2
+//        context.scale(s, s)
 //        context.rotate(2 * this.tower.y0 / 800)
 //        this.tower.draw([-380/s, 380/s])
-        this.tower.draw([-270/s, 270/s])
+        this.tower.draw([-270, 270])
         context.restore()
     },
 }

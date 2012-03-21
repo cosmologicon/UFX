@@ -206,6 +206,11 @@ DontDraw = {
     backdraw: function (yrange) {},
 }
 
+HasInvisibleChildren = {
+    __proto__: UFX.Component.HasChildren,
+    draw: function () {},
+}
+
 
 function Platform(tower, x0, x1, y) {
     return UFX.Thing().

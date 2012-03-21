@@ -147,21 +147,18 @@ CylindricalSpace = {
 }
 
 // A cylindrical space that has a certain side facing the camera
+// Through fancy 2.5-D effects, the space appears to tilt toward the camera (when looking down)
+//   or away from the camera (when looking up)
 CylindricalFacer = {
     init: function (x0, y0) {
         this.x0 = x0 || 0
         this.y0 = y0 || 0
-        this.targetx = this.x0
-        this.targety = this.y0
-        this.h0 = 1200.
-    },
-    face: function (x, y) {
-        this.targetx = x
-        this.targety = y
-    },
-    scootch: function (dx, dy) {
-        this.targetx += dx || 0
-        this.targety += dy || 0
+        this.fy = 1
+        this.fz = 0
+        this.h0 = 1200.  // height of eye above ground
+        this.hmax = 1800.  // height before we stop tilting away
+        this.D = 2400.   // distance from tower to eye
+        this.zoom = 2
     },
     // given an x-coordinates, say whether it's visible from the front
     infront: function (x) {
@@ -169,15 +166,67 @@ CylindricalFacer = {
     },
     worldpos: function (x, y, r) {
         r = this.r + (r || 0)
-        var z = r * this.z / this.r
         var theta = (x - this.x0) / this.r
-        return [r * Math.sin(theta), z * Math.cos(theta) - (y - this.y0)]
+//        return [r * Math.sin(theta), this.fz * r * Math.cos(theta) + this.fy * (this.y0 - y)]
+        return [r * Math.sin(theta), this.fz * r * Math.cos(theta) / this.fy + (this.y0 - y)]
+    },
+    settilt: function () {
+        var dy = this.h0 - Math.min(this.y0, this.hmax)
+        var d = Math.sqrt(this.D * this.D + dy * dy)
+        this.fy = this.D / d
+        this.fz = dy / d
+    },
+    // Set the context clipping region in the shape of the cylinder
+    cylinderclip: function (yrange) {
+        var ymin = yrange[0], ymax = yrange[1]
+        context.beginPath()
+        context.moveTo(-this.r-1, ymin)
+        if (this.y0 < ymax) {
+            for (var jtheta = 0 ; jtheta <= 16 ; ++jtheta) {
+                var theta = jtheta * Math.PI / 16
+                context.lineTo(-(this.r+1) * Math.cos(theta),
+                                this.y0 + this.r * this.fz / this.fy * Math.sin(theta))
+            }
+        } else {
+            context.lineTo(-this.r-1, ymax)
+            context.lineTo(this.r+1, ymax)
+        }
+        context.lineTo(this.r+1, ymin)
+        context.clip()
+    },
+}
+
+// Pans dynamically to a target and zooms dynamically to a zoom factor
+CylindricalTargeter = {
+    init: function () {
+        this.targetx = this.x0
+        this.targety = this.y0
+        this.targetzoom = this.zoom
+    },
+    panto: function (x, y) {
+        this.targetx = x
+        this.targety = y
+    },
+    zoomto: function (zoom) {
+        this.targetzoom = zoom
+    },
+    scootch: function (dx, dy) {
+        this.targetx += dx || 0
+        this.targety += dy || 0
     },
     think: function (dt) {
         var f = 1 - Math.exp(-4 * dt)
         this.x0 += f * this.getdx(this.x0, this.targetx)
         this.y0 += f * (this.targety - this.y0)
-        this.z = Math.max((this.h0 - this.y0) / this.h0 * 0.4, -0.25) * this.r
+        if (this.zoom !== this.targetzoom) {
+            var zflog = f * Math.log(this.targetzoom / this.zoom)
+            if (Math.abs(zflog) < 0.01) {
+                this.zoom = this.targetzoom
+            } else {
+                this.zoom *= Math.exp(zflog)
+            }
+        }
+        this.settilt()
     },
 }
 
@@ -186,12 +235,13 @@ TowerGround = {
         this.groundr = 100
         this.ground = groundtexture(this.groundr * 2, this.groundr * 2).canvas
     },
-    draw: function(yrange) {
+    drawground: function(yrange) {
         context.save()
-        context.translate(0, this.y0)
-        context.scale(1000/this.groundr, 1000/this.groundr * this.z / this.r)
+        var p = this.worldpos(0, 0, -this.r)
+        context.translate(p[0], p[1])
+        context.scale(1000/this.groundr, 1000/this.groundr * this.fz / this.fy)
         context.save()
-        context.rotate(this.x0 / this.circ * 2 * Math.PI)
+        context.rotate(this.x0 / this.r)
         context.drawImage(this.ground, -this.groundr, -this.groundr)
         context.restore()
         var grad = context.createLinearGradient(0, 0, 0, -1.5*this.groundr)
@@ -238,33 +288,6 @@ HasClouds = {
 
 }
 
-TowerClip = {
-    draw: function (yrange) {
-        var ymin = yrange[0], ymax = yrange[1]
-
-        context.save()
-        context.beginPath()
-        context.moveTo(-this.r-1, ymin)
-        if (this.y0 < ymax) {
-            for (var jtheta = 0 ; jtheta <= 16 ; ++jtheta) {
-                var theta = jtheta * Math.PI / 16
-                context.lineTo(-(this.r+1) * Math.cos(theta), this.y0 + this.z * Math.sin(theta))
-            }
-        } else {
-            context.lineTo(-this.r-1, ymax)
-            context.lineTo(this.r+1, ymax)
-        }
-        context.lineTo(this.r+1, ymin)
-        context.clip()
-    },
-}
-
-TowerPostClip = {
-    draw: function (yrange) {
-        context.restore()
-    }
-}
-
 
 TowerWalls = {
     init: function (color0) {
@@ -274,13 +297,15 @@ TowerWalls = {
         this.panely = 500
         this.panels = panels(this.npanels, this.panelx, this.panely, this.color0)
     },
-    draw: function (yrange) {
+    drawwalls: function (yrange) {
         var ymin = yrange[0], ymax = yrange[1]
-        var rowmin = Math.max(Math.floor((this.y0 - ymax - Math.abs(this.z)) / this.panely), 0)
-        var rowmax = Math.floor((this.y0 - ymin + Math.abs(this.z)) / this.panely)
+        var absz = Math.abs(this.fz) * this.r
+        var rowmin = Math.max(Math.floor((this.y0 - ymax - absz) / this.panely), 0)
+        var rowmax = Math.floor((this.y0 - ymin + absz) / this.panely)
         for (var jpanel = 0 ; jpanel < this.npanels ; ++jpanel) {
             var p0 = this.worldpos(this.circ * jpanel / this.npanels, this.panely)
             var p1 = this.worldpos(this.circ * (jpanel + 1) / this.npanels, this.panely)
+            if (jpanel == 0) document.title = p0[1]
             if (p0[0] >= p1[0]) continue
             context.save()
             var xscale = (p1[0] - p0[0]) / this.panelx, yscale = (p1[1] - p0[1]) / this.panelx
@@ -294,76 +319,64 @@ TowerWalls = {
 }
 
 TowerShading = {
-    draw: function (yrange) {
-        var ymin = yrange[0], height = yrange[1] - yrange[0]
+    init: function () {
         var grad = context.createLinearGradient(-this.r, 0, this.r, 0)
         grad.addColorStop(0, "rgba(0,0,0,1)")
         grad.addColorStop(0.1, "rgba(0,0,0,0.4)")
         grad.addColorStop(0.3, "rgba(0,0,0,0)")
         grad.addColorStop(1, "rgba(0,0,0,1)")
-        context.fillStyle = grad
+        this.towershade = grad
+    },
+    towershading: function (yrange) {
+        var ymin = yrange[0], height = yrange[1] - yrange[0]
+        context.fillStyle = this.towershade
         context.fillRect(-this.r-4, ymin, 2*this.r+8, height)
-    },
-}
-
-HasPortals = {
-    init: function () {
-        this.portals = []
-    },
-    addportal: function (portal) {
-        this.portals.push(portal)
-    },
-    draw: function (yrange) {
-        this.portals.forEach(function (portal) {
-            portal.draw(yrange)
-        })
-    },
-}
-
-
-HasPlatforms = {
-    init: function () {
-        this.platforms = []
-    },
-    addplatform: function (platform) {
-        this.platforms.push(platform)
-        platform.attachto(this)
-    },
-    draw: function (yrange) {
-        this.platforms.forEach(function (platform) {
-            platform.draw(yrange)
-        })
-    },
-}
-
-BackPlatforms = {
-    draw: function (yrange) {
-        this.platforms.forEach(function (platform) {
-            platform.backdraw(yrange)
-        })
-    },
-}
-
-HasSprites = {
-    init: function () {
-        this.sprites = []
-    },
-    addsprite: function (sprite) {
-        this.sprites.push(sprite)
-        sprite.attachto(this)
-    },
-    draw: function (yrange) {
-        this.sprites.forEach(function (sprite) {
-            sprite.draw(yrange)
-        })
     },
 }
 
 // Because the draw order for this game is so complicated, we handle it manually.
 // We don't want an object's children necessarily drawn before or after it.
-HasInvisibleChildren = {
+HasTowerChildren = {
     __proto__: UFX.Component.HasChildren,
-    draw: function () { },
+    init: function () {
+        HasTowerChildren.__proto__.init.call(this)
+        this.sprites = []
+        this.platforms = []
+        this.portals = []
+    },
+    addsprite: function (sprite) {
+        this.sprites.push(sprite)
+        sprite.attachto(this)
+    },
+    addplatform: function (platform) {
+        this.platforms.push(platform)
+        platform.attachto(this)
+    },
+    addportal: function (portal) {
+        this.portals.push(portal)
+    },
+    draw: function (Yrange) {
+        var yrange = [Yrange[0] / this.zoom / this.fy, Yrange[1] / this.zoom / this.fy]
+        context.scale(this.zoom, this.zoom * this.fy)
+        this.drawground(yrange)
+        this.platforms.forEach(function (platform) {
+            platform.backdraw(yrange)
+        })
+        context.save()
+        this.cylinderclip(yrange)
+        this.drawwalls(yrange)
+        this.portals.forEach(function (portal) {
+            portal.draw(yrange)
+        })
+        this.towershading(yrange)
+        context.restore()
+        this.platforms.forEach(function (platform) {
+            platform.draw(yrange)
+        })
+        this.sprites.forEach(function (sprite) {
+            sprite.draw(yrange)
+        })
+    },
 }
 
 
@@ -371,17 +384,12 @@ function Tower(circ, color) {
     return UFX.Thing().
         addcomp(CylindricalSpace, circ).
         addcomp(CylindricalFacer).
+        addcomp(CylindricalTargeter).
 //        addcomp(HasClouds).
         addcomp(TowerGround).
-        addcomp(BackPlatforms).
-        addcomp(TowerClip).
         addcomp(TowerWalls, color).
-        addcomp(HasPortals).
-        addcomp(TowerShading).
-        addcomp(TowerPostClip).
-        addcomp(HasSprites).
-        addcomp(HasPlatforms).
-        addcomp(HasInvisibleChildren)
+        addcomp(HasTowerChildren).
+        addcomp(TowerShading)
 }
 
 
