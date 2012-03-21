@@ -78,14 +78,19 @@ DrawPlatformPath = {
     init: function () {
         this.r = 12
         this.ncrenel = Math.floor(this.dx / 24.) * 2 + 1
-        this.grad0 = context.createLinearGradient(-this.tower.r - this.r, 0, this.tower.r + this.r, 0)
-        this.grad0.addColorStop(0, "rgba(0,0,0,1)")
-        this.grad0.addColorStop(0.1, "rgba(64,64,64,1)")
-        this.grad0.addColorStop(0.3, "rgba(128,128,128,1)")
-        this.grad0.addColorStop(1, "rgba(0,0,0,1)")
+        this.corbelshade = context.createLinearGradient(-this.tower.r - this.r, 0, this.tower.r + this.r, 0)
+        this.corbelshade.addColorStop(0, "rgba(0,0,0,1)")
+        this.corbelshade.addColorStop(0.1, "rgba(64,64,64,1)")
+//        this.corbelshade.addColorStop(0.2, "rgba(196,196,196,1)")
+        this.corbelshade.addColorStop(0.3, "rgba(128,128,128,1)")
+        this.corbelshade.addColorStop(1, "rgba(0,0,0,1)")
         this.grad1 = "black"
-        this.floorcolor1 = "gray"
-        this.floorcolor0 = "gray"
+        this.floorcolor1 = "black"
+        this.floorshade = context.createLinearGradient(-this.tower.r, 0, this.tower.r, 0)
+        this.floorshade.addColorStop(0, "rgba(0,0,0,1)")
+        this.floorshade.addColorStop(0.1, "rgba(96,96,96,1)")
+        this.floorshade.addColorStop(0.3, "rgba(144,144,144,1)")
+        this.floorshade.addColorStop(1, "rgba(0,0,0,1)")
         this.outlinecolor = context.createLinearGradient(-this.tower.r - this.r, 0, this.tower.r + this.r, 0)
         this.outlinecolor.addColorStop(0, "rgba(0,0,0,1)")
         this.outlinecolor.addColorStop(0.15, "rgba(196,196,196,1)")
@@ -183,13 +188,13 @@ DrawPlatformPath = {
     },
     drawcorbel: function (yrange) {
         if (this.setcorbelpath(function (x0, x1) { return x0 < x1; })) {
-            context.fillStyle = this.grad0
+            context.fillStyle = this.corbelshade
             context.fill()
         }
     },
     drawfloor: function (yrange) {
         if (this.setfloorpath(function (x0, x1) { return x0 < x1; })) {
-            context.fillStyle = this.floorcolor0
+            context.fillStyle = this.floorshade
             context.fill()
         }
     },
@@ -197,15 +202,13 @@ DrawPlatformPath = {
         if (this.setcrenelpath(function (x0, x1) { return x0 < x1; })) {
             context.strokeStyle = this.outlinecolor
             context.stroke()
-            context.fillStyle = this.grad0
+            context.fillStyle = this.corbelshade
             context.fill()
         }
     },
     drawfuncs: function (yrange) {
         if (!this.tower.isvisible(yrange, [this.y - 18, this.y + 6], this.r)) return []
-    
         this.setps()
-
         return [
             [this.drawcorbel, this, 1, this.y, "corbel"],
             [this.drawfloor, this, 1, this.y, "floor"],

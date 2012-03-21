@@ -171,7 +171,7 @@ CylindricalFacer = {
         return [r * Math.sin(theta), this.fz * r * Math.cos(theta) / this.fy + (this.y0 - y)]
     },
     isvisible: function (yrange, yextent, r) {
-        var absz = this.fz * (this.r + (r || 0))
+        var absz = Math.abs(this.fz * (this.r + (r || 0)) / this.fy)
         return yextent[0] - absz <= yrange[1] && yextent[1] + absz >= yrange[0]
     },
     settilt: function () {
@@ -199,6 +199,16 @@ CylindricalFacer = {
         context.clip()
     },
 }
+
+DramaticTilt = {
+    init: function () {
+        this.D = 800.
+    },
+    settilt: function () {
+        this.targetzoom = 2 * this.fy * this.fy
+    },
+}
+
 
 // Pans dynamically to a target and zooms dynamically to a zoom factor
 CylindricalTargeter = {
@@ -374,7 +384,7 @@ HasTowerChildren = {
         if (this.fz > 0) {
             order = { "corbel": 1, "floor": 2, "sprite": 3, "crenel": 4 }
         } else {
-            order = { "sprite": 1, "floor": 2, "support": 3, "crenel": 4 }
+            order = { "sprite": 1, "floor": 2, "corbel": 3, "crenel": 4 }
         }
         // Vertical wall draw orders depend on whether it's on the left or right side of the tower
         var getdx = this.getdx, x0 = this.x0
@@ -430,6 +440,7 @@ function Tower(circ, color) {
     return UFX.Thing().
         addcomp(CylindricalSpace, circ).
         addcomp(CylindricalFacer).
+//        addcomp(DramaticTilt).
         addcomp(CylindricalTargeter).
 //        addcomp(HasClouds).
         addcomp(TowerGround).
