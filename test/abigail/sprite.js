@@ -102,13 +102,11 @@ DrawBox = {
 
 Controlled = {
     init: function () {
-        this.walkspeed = 140
-        this.jumpspeed = 240
     },
     step: function (ds) {
 //        if self.outtimer: return
         if (ds == 0) return
-        this.x += this.walkspeed * ds
+        this.x += settings.walkspeed * ds
         this.facingright = ds > 0
         //.stepped = True
     },
@@ -122,7 +120,7 @@ Controlled = {
 //            if self.playsounds: noise.play("jump-1")
         } else {
             this.attachto(this.tower)
-            this.vy = this.jumpspeed
+            this.vy = settings.jumpspeed
 //            self.jumps = 1
 //            if self.playsounds: noise.play("jump-1")
         }

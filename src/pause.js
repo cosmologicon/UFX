@@ -43,6 +43,10 @@ UFX.pause.Pause.thinkargs = function (dt) {
     UFX.mouse.events().forEach(function (event) {
         if (event.type == "up") clicked = true
     })
+    if (UFX.key) {
+        UFX.key.clearevents()
+        UFX.key.clearcombos()
+    }
     return [dt, clicked]
 }
 

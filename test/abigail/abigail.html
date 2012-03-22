@@ -40,6 +40,7 @@ td {
 <script src="../../src/random.js"></script>
 <script src="../../src/noise.js"></script>
 
+<script src="settings.js"></script>
 <script src="tower.js"></script>
 <script src="portal.js"></script>
 <script src="platform.js"></script>
@@ -53,8 +54,8 @@ td {
 
 <script>
 var canvas = document.getElementById("canvas")
-canvas.width = 540
-canvas.height = 540
+canvas.width = settings.canvaswidth
+canvas.height = settings.canvasheight
 var context = canvas.getContext("2d")
 
 // polyfill, boo!
@@ -64,7 +65,7 @@ window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequest
 
 //UFX.ticker.animsync = true
 UFX.scene.init()
-//UFX.ticker.register(UFX.scene.think, UFX.scene.draw, {delay: 20})
+//UFX.ticker.register(UFX.scene.think, UFX.scene.draw, {maxfps: 90, delay: 20})
 UFX.key.init()
 UFX.mouse.init("canvas")
 UFX.pause.init()
