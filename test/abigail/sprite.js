@@ -106,12 +106,26 @@ Controlled = {
         this.njumps = this.maxjumps  // Number of times having jumped since leaving last platform
         this.tjump = null
     },
-    step: function (ds) {
+    controlstep: function (ds) {
 //        if self.outtimer: return
         if (ds == 0) return
         this.x += settings.walkspeed * ds
         this.facingright = ds > 0
         //.stepped = True
+    },
+    controljump: function () {
+        if (this.parent === this.tower) {
+            if (this.njumps >= this.maxjumps) return
+//            this.vy = settings.jumpspeed
+//            self.vy = min(self.vy + settings.djumpboost, settings.jumpspeed)
+            this.njumps += 1
+//            if self.playsounds: noise.play("jump-1")
+        } else {
+            this.attachto(this.tower)
+//            this.vy = settings.jumpspeed
+            this.njumps = 1
+//            if self.playsounds: noise.play("jump-1")
+        }
     },
     think: function (dt) {
         if (this.tjump !== null) this.tjump += dt
@@ -120,21 +134,24 @@ Controlled = {
         this.njumps = 1
         this.tjump = 0
     },
-    jump: function () {
-//        if self.outtimer: return
-        if (this.parent === this.tower) {
-            if (this.njumps >= this.maxjumps) return
-            this.vy = settings.jumpspeed
-//            self.vy = min(self.vy + settings.djumpboost, settings.jumpspeed)
-            this.njumps += 1
-//            if self.playsounds: noise.play("jump-1")
+    // Call this each update with jcontrol whether up is being pressed
+    //   and hcontrol whether right/left is being pressed
+    control: function (hcontrol, jcontrol, dt) {
+        this.controlstep(hcontrol * dt)
+        if (jcontrol) {
+            if (this.tjump === null) {
+                this.tjump = 0
+                this.controljump()
+            }
+            this.tjump += dt
+            if (this.tjump < settings.hoptime) {
+                this.vy = this.tjump * settings.jumpspeed / settings.hoptime
+            }
+            this.controljump(dt)
         } else {
-            this.attachto(this.tower)
-            this.vy = settings.jumpspeed
-            this.njumps = 1
-            this.tjump = 0
-//            if self.playsounds: noise.play("jump-1")
+            this.tjump = null
         }
+//        if self.outtimer: return
     },
     land: function () {
         this.njumps = 0

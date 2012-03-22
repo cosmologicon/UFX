@@ -25,16 +25,18 @@ var PlayScene = {
                 unpress[event.name] = event.dt
             }
         })
-        var keymove = (UFX.key.ispressed.right ? 1 : 0) - (UFX.key.ispressed.left ? 1 : 0)
-        return [dt, press, unpress, keymove]
+        var pressed = {}
+        for (var key in UFX.key.ispressed) pressed[key] = true
+        return [dt, press, unpress, pressed]
     },
 
-    think: function (dt, press, unpress, keymove) {
+    think: function (dt, press, unpress, pressed) {
         this.tower.think(dt)
-        if (press.up) this.you.jump()
-        if (typeof unpress.up === "number") this.you.releasejump(unpress.up)
+//        if (typeof unpress.up === "number") this.you.releasejump(unpress.up)
         if (press.esc || press.P) UFX.pause()
-        this.you.step(dt * keymove)
+        var keymove = (pressed.right ? 1 : 0) - (pressed.left ? 1 : 0)
+//        this.you.step(dt * keymove)
+        this.you.control(keymove, pressed.up, dt)
         var lookpos = this.you.lookingat()
         this.tower.panto(lookpos[0], lookpos[1])
         document.getElementById("fps").value = UFX.ticker.getfpsstr()
