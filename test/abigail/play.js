@@ -16,19 +16,23 @@ var PlayScene = {
     },
 
     thinkargs: function (dt) {
-        var press = {}
+        var press = {}, unpress = {}
         UFX.key.events().forEach(function (event) {
             if (event.type === "down") {
                 press[event.name] = true
             }
+            if (event.type === "up") {
+                unpress[event.name] = event.dt
+            }
         })
         var keymove = (UFX.key.ispressed.right ? 1 : 0) - (UFX.key.ispressed.left ? 1 : 0)
-        return [dt, press, keymove]
+        return [dt, press, unpress, keymove]
     },
 
-    think: function (dt, press, keymove) {
+    think: function (dt, press, unpress, keymove) {
         this.tower.think(dt)
         if (press.up) this.you.jump()
+        if (typeof unpress.up === "number") this.you.releasejump(unpress.up)
         if (press.esc || press.P) UFX.pause()
         this.you.step(dt * keymove)
         var lookpos = this.you.lookingat()

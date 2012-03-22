@@ -46,7 +46,6 @@ CanLand = {
         this.attachto(platform)
     },
     drop: function () {
-        if (this.parent === this.tower) return
         this.attachto(this.tower)
         this.vy = -this.dropspeed
         this.y -= 0.1
@@ -62,7 +61,7 @@ CanLand = {
                 }
             }
         } else {
-            if (!this.parent.holds(this)) {
+            if (this.parent !== this.tower && !this.parent.holds(this)) {
                 this.drop()
             }
         }
@@ -102,6 +101,10 @@ DrawBox = {
 
 Controlled = {
     init: function () {
+        this.maxjumps = 2
+        this.laststand = this.y  // last y-coordinate while grounded
+        this.njumps = this.maxjumps  // Number of times having jumped since leaving last platform
+        this.tjump = null
     },
     step: function (ds) {
 //        if self.outtimer: return
@@ -110,20 +113,43 @@ Controlled = {
         this.facingright = ds > 0
         //.stepped = True
     },
+    think: function (dt) {
+        if (this.tjump !== null) this.tjump += dt
+    },
+    drop: function () {
+        this.njumps = 1
+        this.tjump = 0
+    },
     jump: function () {
 //        if self.outtimer: return
         if (this.parent === this.tower) {
-//            if self.jumps >= self.maxjumps:
-                return
+            if (this.njumps >= this.maxjumps) return
+            this.vy = settings.jumpspeed
 //            self.vy = min(self.vy + settings.djumpboost, settings.jumpspeed)
-//            self.jumps += 1
+            this.njumps += 1
 //            if self.playsounds: noise.play("jump-1")
         } else {
             this.attachto(this.tower)
             this.vy = settings.jumpspeed
-//            self.jumps = 1
+            this.njumps = 1
+            this.tjump = 0
 //            if self.playsounds: noise.play("jump-1")
         }
+    },
+    land: function () {
+        this.njumps = 0
+        this.tjump = null
+        this.laststand = this.y
+    },
+    // Call this when the jump key is released
+    releasejump: function (dt) {
+        if (this.tjump >= settings.hoptime) return
+        if (this.vy <= 0) return
+        var v0 = settings.jumpspeed * this.tjump / settings.hoptime
+//        this.vy = v0 - this.tjump * this.g
+//        this.y = this.laststand + (v0 - 0.5 * this.g * this.tjump) * this.tjump
+//        this.vy = 0
+        this.vy *= this.tjump / settings.hoptime
     },
 }
 
