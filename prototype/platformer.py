@@ -184,6 +184,22 @@ class StandState(State):
         elif keys[K_UP]:
             self.jump()
             self.state = FreefallState
+
+    @staticmethod
+    def draw(self):
+        x, y = screenpos(*self.worldpos())
+        k = 1 if self.facingright else -1
+        bfac = sqrt(abs(self.vx)) * 0.04
+        def f((a,b)): 
+            px = x + settings.spritewidth * (a + bfac * b) * k
+            py = y - settings.spriteheight * b
+            return int(px),int(py)
+        ps = map(f, [(0.4,0),(-0.4,0.8),(0.4,0.6),(-0.8,0)])
+        draw.polygon(screen, (144, 72, 0), ps, 0)
+        draw.lines(screen, (255, 128, 0), True, ps)
+        draw.circle(screen, (144, 144, 0), f((0, 1)), 6, 0)
+        draw.circle(screen, (255, 255, 0), f((0, 1)), 6, 1)
+
         
 
 class FreefallState(State):
@@ -202,6 +218,27 @@ class FreefallState(State):
 
         self.y += self.vy * dt - 0.5 * settings.gravity * dt ** 2
         self.vy -= settings.gravity * dt
+
+    @staticmethod
+    def draw(self):
+        x, y = screenpos(*self.worldpos())
+        k = 1 if self.facingright else -1
+        vfac = min(max(self.vy, -200), 200) * 0.0006
+        vx, vy = abs(self.vx), self.vy
+        v = sqrt(vx ** 2 + vy ** 2)
+        S, C = (0, 1) if v < 1 else vy / v, vx / v
+        theta = 0.25 * sin(2 * atan2(self.vy, self.vx))
+        S, C = (0, 1) if v < 1 else sin(theta), cos(theta)
+        def f((a,b)): 
+            px = settings.spritewidth * a * k
+            py = settings.spriteheight * b * (1 + vfac)
+            px, py = C * px + S * py, -S * px + C * py
+            return int(x + px),int(y - py)
+        ps = map(f, [(0.4,0),(-0.4,0.8),(0.4,0.6),(-0.8,0)])
+        draw.polygon(screen, (144, 72, 0), ps, 0)
+        draw.lines(screen, (255, 128, 0), True, ps)
+        draw.circle(screen, (144, 144, 0), f((0, 1)), 6, 0)
+        draw.circle(screen, (255, 255, 0), f((0, 1)), 6, 1)
 
 
 class Sprite:
@@ -231,14 +268,7 @@ class Sprite:
         x, y = self.worldpos()
         return x + (1 if self.facingright else -1) * settings.lookahead, max(y, sy/4)
     def draw(self):
-        x, y = screenpos(*self.worldpos())
-        k = 1 if self.facingright else -1
-        f = lambda (a,b): (int(x+settings.spritewidth*a*k),int(y-settings.spriteheight*b))
-        ps = map(f, [(0.4,0),(-0.4,0.8),(0.4,0.6),(-0.8,0)])
-        draw.polygon(screen, (144, 72, 0), ps, 0)
-        draw.lines(screen, (255, 128, 0), True, ps)
-        draw.circle(screen, (144, 144, 0), f((0, 1)), 6, 0)
-        draw.circle(screen, (255, 255, 0), f((0, 1)), 6, 1)
+        self.state.draw(self)
     def land(self, platform):
         self.attachto(platform)
         self.walkofftime = 0
