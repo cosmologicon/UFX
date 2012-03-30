@@ -18,6 +18,7 @@ targetx0, targety0 = 0, 0
 class settings:
     lookahead = 100
     gravity = 400
+    fallgravity = 800
     spriteheight = 36
     spritewidth = 20
     walkaccel = 600
@@ -26,8 +27,22 @@ class settings:
     walkoffthreshold = 60
     walkoffwidth = 10
     walkoffdelay = 0.16
-    jumpspeed = 240
+    jumpyaccel = 3200
+    jumpyspeed = 240
+    jumpxaccel = 600
+    jumpxdecel = 200
+    jumpxspeed = 240
     panspeed = 3
+    canbackflipfromground = True
+    canbackflipfromair = False
+    backflipdt = 0.2
+    backflipyaccel = 3200
+    backflipyspeed = 288
+    backflipxspeed = 120
+    backflipxaccel = 0
+    backflipxdecel = 0
+    backflipgravity = gravity
+    backflipfallgravity = fallgravity
 
 
 
@@ -144,6 +159,13 @@ class Ground(Platform):
 
 class State:
     @staticmethod
+    def enter(self):
+        pass
+    @staticmethod
+    def exit(self):
+        pass
+
+    @staticmethod
     def think(self, dt, keys):
         pass
 
@@ -153,7 +175,7 @@ class State:
         if catchers:
             platform = max(catchers, key = lambda p: p.y)
             self.land(platform)
-            self.state = StandState
+            self.setstate(StandState)
 
     
 class StandState(State):
@@ -180,10 +202,20 @@ class StandState(State):
         self.x += self.vx * dt
         if not self.parent.holds(self):
             self.drop()
-            self.state = FreefallState
-        elif keys[K_UP]:
+            self.jholding = False
+            self.setstate(FreefallState)
+        elif keys[K_UP] and not self.oldkeys[K_UP]:
+            if settings.canbackflipfromground:
+                if xmove > 0 and self.lastpress[K_LEFT] > self.t - settings.backflipdt:
+                    self.backflipping = True
+                    self.facingright = True
+                if xmove < 0 and self.lastpress[K_RIGHT] > self.t - settings.backflipdt:
+                    self.backflipping = True
+                    self.facingright = False
             self.jump()
-            self.state = FreefallState
+            self.jholding = True
+            self.jtime = 0
+            self.setstate(FreefallState)
 
     @staticmethod
     def draw(self):
@@ -206,18 +238,56 @@ class FreefallState(State):
     @staticmethod
     def think(self, dt):
         keys = self.keys
-        xmove = keys[K_RIGHT] - keys[K_LEFT]
-        if xmove:
-            self.facingright = xmove > 0
-            self.vx += xmove * settings.walkaccel * dt
-            self.vx = min(max(-settings.walkspeed, self.vx), settings.walkspeed)
+        self.jtime += dt
+        if not keys[K_UP]: self.jholding = False
+        if self.backflipping:
+            if self.jholding and self.vy < settings.backflipyspeed:
+                self.y += self.vy * dt + 0.5 * settings.backflipyaccel * dt ** 2
+                self.vy += settings.backflipyaccel * dt
+                if self.vy >= settings.backflipyspeed:
+                    self.vy = settings.backflipyspeed
+                    self.jholding = False
+            else:
+                g = settings.backflipgravity if keys[K_UP] else settings.backflipfallgravity
+                self.y += self.vy * dt - 0.5 * g * dt ** 2
+                self.vy -= g * dt
+                if self.vy < 0:
+                    self.backflipping = False
+        elif self.jholding and self.vy < settings.jumpyspeed:
+            self.y += self.vy * dt + 0.5 * settings.jumpyaccel * dt ** 2
+            self.vy += settings.jumpyaccel * dt
+            if self.vy >= settings.jumpyspeed:
+                self.vy = settings.jumpyspeed
+                self.jholding = False
         else:
-            self.vx = 0
+            g = settings.gravity if keys[K_UP] else settings.fallgravity
+            self.y += self.vy * dt - 0.5 * g * dt ** 2
+            self.vy -= g * dt
 
+        xmove = keys[K_RIGHT] - keys[K_LEFT]
+        dvx = settings.jumpxdecel * dt
+        if xmove:
+            if settings.canbackflipfromair and self.jtime < settings.backflipdt:
+                if xmove > 0 and not self.oldkeys[K_RIGHT] and self.lastpress[K_LEFT] > self.t - settings.backflipdt:
+                    self.backflipping = True
+                if xmove < 0 and not self.oldkeys[K_LEFT] and self.lastpress[K_RIGHT] > self.t - settings.backflipdt:
+                    self.backflipping = True
+            if not self.backflipping:
+                self.facingright = xmove > 0
+            if self.vx * xmove < 0:
+                if abs(self.vx) < abs(dvx):
+                    self.vx = 0
+                else:
+                    self.vx += dvx if self.vx < 0 else -dvx
+            self.vx += xmove * settings.jumpxaccel * dt
+            self.vx = min(max(-settings.jumpxspeed, self.vx), settings.jumpxspeed)
+        else:
+            if abs(self.vx) < abs(dvx):
+                self.vx = 0
+            else:
+                self.vx += dvx if self.vx < 0 else -dvx
         self.x += self.vx * dt
 
-        self.y += self.vy * dt - 0.5 * settings.gravity * dt ** 2
-        self.vy -= settings.gravity * dt
 
     @staticmethod
     def draw(self):
@@ -226,13 +296,17 @@ class FreefallState(State):
         vfac = min(max(self.vy, -200), 200) * 0.0006
         vx, vy = abs(self.vx), self.vy
         v = sqrt(vx ** 2 + vy ** 2)
-        S, C = (0, 1) if v < 1 else vy / v, vx / v
+        (S, C) = (0, 1) if v < 1 else (vy / v, vx / v)
         theta = 0.25 * sin(2 * atan2(self.vy, self.vx))
-        S, C = (0, 1) if v < 1 else sin(theta), cos(theta)
+        if self.backflipping and not self.jholding:
+            theta += -2 * pi * self.vy / settings.backflipyspeed * (1 if self.facingright else -1)
+        (S, C) = (0, 1) if v < 1 else (sin(theta), cos(theta))
         def f((a,b)): 
             px = settings.spritewidth * a * k
             py = settings.spriteheight * b * (1 + vfac)
+            py -= 0.7 * settings.spriteheight
             px, py = C * px + S * py, -S * px + C * py
+            py += 0.7 * settings.spriteheight
             return int(x + px),int(y - py)
         ps = map(f, [(0.4,0),(-0.4,0.8),(0.4,0.6),(-0.8,0)])
         draw.polygon(screen, (144, 72, 0), ps, 0)
@@ -247,7 +321,17 @@ class Sprite:
         self.vx = self.vy = 0
         self.facingright = True
         self.parent = None
-        self.state = FreefallState
+        self.state = None
+        self.jholding = False
+        self.jtime = 0
+        self.backflipping = False
+        self.t = 0
+        self.lastpress = { K_UP: -1000, K_DOWN: -1000, K_LEFT: -1000, K_RIGHT: -1000 }
+        self.setstate(FreefallState)
+    def setstate(self, state):
+        if self.state: self.state.exit(self)
+        self.state = state
+        if self.state: self.state.enter(self)
     def worldpos(self):
         px, py = self.parent.worldpos() if self.parent else (0,0)
         return px + self.x, py + self.y
@@ -273,11 +357,14 @@ class Sprite:
         self.attachto(platform)
         self.walkofftime = 0
     def jump(self):
-        self.vy = settings.jumpspeed
         self.attachto()
     def drop(self):
         self.attachto()
     def think(self, dt):
+        self.t += dt
+        for key in self.lastpress:
+            if self.keys[key]:
+                self.lastpress[key] = self.t
         self.state.think(self, dt)
         if self.parent:
             self.parent.constrain(self)
@@ -304,13 +391,16 @@ stars = [(randint(0, 10000), randint(0, 10000), uniform(0.25, 0.5), randint(64, 
 init()
 screen = display.set_mode((sx, sy), HWSURFACE)
 clock = time.Clock()
+you.keys = None
 while True:
     dt = clock.tick(30) * 0.001
     dt = 0.033
     for e in event.get():
         if e.type == KEYDOWN and e.key == K_ESCAPE: exit()
         if e.type == QUIT: exit()
+    you.oldkeys = you.keys
     you.keys = key.get_pressed()
+    if not you.oldkeys: you.oldkeys = you.keys
     you.oldpos = you.worldpos()
     if not you.parent:
         you.think(dt)
