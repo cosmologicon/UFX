@@ -102,17 +102,22 @@ class State:
     @classmethod
     def xmotion(cls, sprite, dt):
         xmove = keytracker.keys[K_RIGHT] - keytracker.keys[K_LEFT]
-        dvx = cls.xdecel * dt  # Change in vx due to decelartaion
-        if xmove == 0 or sprite.vx * xmove < 0:
-            if abs(sprite.vx) < abs(dvx):
-                sprite.vx = 0
-            else:
-                sprite.vx += dvx if sprite.vx < 0 else -dvx
+        k = 1 if sprite.vx > 0 else -1 if sprite.vx < 0 else xmove
+        if xmove == 0:  # not holding anything
+            dvx = cls.xdecel * dt
+            sprite.vx = 0 if abs(sprite.vx) < dvx else sprite.vx - k * dvx
+        elif sprite.vx and k * xmove < 0:  # holding backward
+            dvx = cls.xbdecel * dt
+            sprite.vx = 0 if abs(sprite.vx) < dvx else sprite.vx - k * dvx
+        else:  # holding forward
+            vx = abs(sprite.vx)
+            if vx < cls.xspeed:  # going slower than max speed
+                vx = min(vx + cls.xfaccel * dt, cls.xspeed)
+            elif vx > cls.xspeed:  # going faster than max speed
+                vx = max(vx - cls.xfdecel * dt, cls.xspeed)
+            sprite.vx = vx * k
         if xmove:
             sprite.facingright = xmove > 0
-            sprite.vx += xmove * cls.xaccel * dt
-            if xmove > 0: sprite.vx = min(sprite.vx, cls.xspeed)
-            if xmove < 0: sprite.vx = max(sprite.vx, -cls.xspeed)
         sprite.x += sprite.vx * dt
 
     @classmethod
@@ -120,10 +125,12 @@ class State:
         pass
 
 # Attached to the top of a platform (can be walking)
-class Stand(State):
-    xspeed = 200
-    xaccel = 400
-    xdecel = 400
+class Standing(State):
+    xspeed =  200 # The speed you'll eventually hit if you keep holding forward
+    xfaccel = 400 # Acceleration (toward xspeed) if you hold forward and speed < xspeed
+    xfdecel = 200 # Deceleration (toward xspeed) if you hold forward and speed > xspeed
+    xdecel =  400 # Deceleration (toward 0) if you don't hold anything
+    xbdecel = 800 # Deceleration (toward 0) if you hold backward
     @classmethod
     def think(cls, sprite, dt):
         cls.xmotion(sprite, dt)
@@ -137,6 +144,12 @@ class Stand(State):
                 sprite.nextstate = FlipLeaping
             else:
                 sprite.nextstate = Leaping
+        elif keytracker.pressed[K_RIGHT]:
+            if keytracker.prevpressdt(K_RIGHT) < 0.4 <= keytracker.pressdt(K_LEFT):
+                sprite.nextstate = Sprinting
+        elif keytracker.pressed[K_LEFT]:
+            if keytracker.prevpressdt(K_LEFT) < 0.4 <= keytracker.pressdt(K_RIGHT):
+                sprite.nextstate = Sprinting
 
     @classmethod
     def orientation(cls, sprite):
@@ -154,7 +167,7 @@ class Ground(Entity):
     x = y = 0
     dx, dy = 1, 0
     color = 0, 64, 0
-    spritestate = Stand
+    spritestate = Standing
     def __init__(self):
         Entity.__init__(self)
     def draw(self):
@@ -171,7 +184,7 @@ class Ground(Entity):
 
 class Platform(Entity):
     color = 255, 255, 255
-    spritestate = Stand
+    spritestate = Standing
     def __init__(self, (x0, y0), (x1, y1)):
         Entity.__init__(self)
         self.x, self.y = x0, y0
@@ -205,9 +218,11 @@ class Platform(Entity):
 class Falling(State):
     gravity = 800  # gravity with no resistance
     rgravity = 400 # gravity with resistance (holding the UP key)
-    xspeed = 240
-    xaccel = 600
-    xdecel = 240
+    xspeed =  240
+    xfaccel = 300
+    xfdecel = 200
+    xdecel =  200
+    xbdecel = 400
     @classmethod
     def enter(cls, sprite):
         sprite.attachto()
@@ -242,9 +257,11 @@ class Falling(State):
 class Leaping(State):
     yspeed = 200
     yaccel = 2000
-    xspeed = 240
-    xaccel = 600
-    xdecel = 240
+    xspeed =  240
+    xfaccel = 600
+    xfdecel = 200
+    xdecel =  200
+    xbdecel = 800
     nextstate = Falling
     
     @classmethod
@@ -262,10 +279,38 @@ class Leaping(State):
             sprite.nextstate = cls.nextstate
         cls.xmotion(sprite, dt)
 
+# Special move where you sprint as long as you hold down the key
+class Sprinting(Standing):
+    xspeed =  500
+    xfaccel = 1500
+    xfdecel = 1500
+    xdecel =  400
+    xbdecel = 800
+    dt = 0.5
+
+    @classmethod
+    def enter(cls, sprite):
+        sprite.transitiontimer = 0
+
+    @classmethod
+    def think(cls, sprite, dt):
+        sprite.transitiontimer += dt
+        cls.xmotion(sprite, dt)
+        xmove = keytracker.keys[K_RIGHT] - keytracker.keys[K_LEFT]
+        if not sprite.parent.holds(sprite):
+            sprite.nextstate = Falling
+        elif keytracker.pressed[K_UP]:
+            sprite.nextstate = Leaping
+        elif xmove * sprite.vx <= 0 or sprite.transitiontimer >= cls.dt:
+            sprite.nextstate = Standing
+
+
 class Flipping(Falling):
-    xspeed = 120
-    xaccel = 300
-    xdecel = 120
+    xspeed =  120
+    xfaccel = 200
+    xfdecel = 200
+    xdecel =  200
+    xbdecel = 400
     @classmethod
     def think(cls, sprite, dt):
         sprite.y += sprite.vy * dt
@@ -273,8 +318,7 @@ class Flipping(Falling):
         sprite.vy -= g * dt
         if sprite.vy < 0:
             sprite.nextstate = Falling
-
-        cls.xmotion(sprite, dt)
+#        cls.xmotion(sprite, dt)
 
     @classmethod
     def draw(cls, sprite):
@@ -294,21 +338,19 @@ class Flipping(Falling):
         draw.line(screen, (255, 0, 0), pos0, pos2, 1)
         draw.circle(screen, (255, 128, 0), pos0, 3, 1)
 
-
-#    @classmethod
-#    def orientation(cls, sprite):
-#        theta = uniform(0, 2*pi)
-#        S, C = sin(theta), cos(theta)
-#        return (C, -S), (S, C)
-
 class FlipLeaping(Leaping):
     yspeed = 240
     yaccel = 2000
-    xspeed = 240
-    xaccel = 600
-    xdecel = 240
+    xspeed =  120
+    xfaccel = 0
+    xfdecel = 0
+    xdecel =  0
+    xbdecel = 0
     nextstate = Flipping
-    
+    @classmethod
+    def enter(cls, sprite):
+        Leaping.enter(sprite)
+        sprite.vx = (1 if sprite.facingright else -1) * cls.xspeed
 
 
 class You(Entity):
@@ -378,7 +420,9 @@ class keytracker:
     keys = None      # keys that are currently held down
     lastkeys = None  # keys that were held down the previous frame
     pressed = None   # keys that are newly held down this frame
-    lastt = None  # The last time that the give key was pressed
+    lastt = None     # The last time that the given key was held down
+    lastpress = None # The last time that the given key was pressed
+    prevpress = None # The next-to-last time that the given key was pressed
     playing = True
     t = 0
     @classmethod
@@ -386,17 +430,32 @@ class keytracker:
         cls.t += dt
         cls.lastkeys = cls.keys
         cls.keys = key.get_pressed()
-        if not cls.lastkeys: cls.lastkeys = cls.keys
-        cls.pressed = [k and not lastk for k, lastk in zip(cls.keys, cls.lastkeys)]
-        if not cls.lastt: cls.lastt = [-1000] * len(cls.keys)
-        for j, k in enumerate(cls.keys):
+        if not cls.lastkeys:
+            cls.lastkeys = cls.keys
+            cls.pressed = [False] * len(cls.keys)
+            cls.lastpress = [-1000] * len(cls.keys)
+            cls.prevpress = [-1000] * len(cls.keys)
+            cls.lastt = [-1000] * len(cls.keys)
+        for j, (k, lastk) in enumerate(zip(cls.keys, cls.lastkeys)):
             if k:
                 cls.lastt[j] = cls.t
+            cls.pressed[j] = k and not lastk
+            if k and not lastk:
+                cls.prevpress[j] = cls.lastpress[j]
+                cls.lastpress[j] = cls.t
         if cls.keys[K_ESCAPE]: cls.playing = False
-    # Time since the key was last pressed
+    # Time since the key was last held
     @classmethod
     def keydt(cls, key):
         return cls.t - cls.lastt[key]
+    # Time since the key was last pressed
+    @classmethod
+    def pressdt(cls, key):
+        return cls.t - cls.lastpress[key]
+    # Time since the key was previously pressed
+    @classmethod
+    def prevpressdt(cls, key):
+        return cls.t - cls.prevpress[key]
 
 you = You((0, 100))
 ground = Ground()
