@@ -4,6 +4,7 @@ from pygame import *
 from random import *
 from math import *
 
+seed(14046)
 
 
 class settings:
@@ -188,6 +189,7 @@ class Ground(Entity):
     def __init__(self):
         Entity.__init__(self)
     def draw(self):
+        Entity.draw(self)
         x, y = camera.screenpos(self.worldpos())
         if y > camera.sy: return
         rect = Rect(0, y, camera.sx, camera.sy)
@@ -217,6 +219,8 @@ class Platform(Entity):
         Entity.think(self, dt)
     def draw(self):
         x0, y0 = self.worldpos()
+        if abs(x0 - camera.x) > 2000 or abs(y0 - camera.y) > 2000: return
+        Entity.draw(self)
         x1, y1 = x0 + self.dx, y0 + self.dy
         draw.line(screen, self.color, camera.screenpos((x0, y0)), camera.screenpos((x1, y1)), 3)
     def catches(self, sprite):
@@ -240,6 +244,31 @@ class Platform(Entity):
         x, y = sprite.worldpos()
         x0, y0 = self.worldpos()
         return 10, y0 + (x - x0) * self.dy / self.dx
+
+class MovingPlatform(Platform):
+    color = 128, 128, 255
+    def __init__(self, ps, (dx, dy), speed):
+        Platform.__init__(self, ps[0], (ps[0][0]+dx, ps[0][1]+dy))
+        self.ps = ps
+        d = lambda (x0,y0),(x1,y1): sqrt((x1-x0)**2 + (y1-y0)**2)
+        self.ds = [d(ps[j], ps[-j+1]) for j in range(len(ps))]
+        self.speed = speed
+        self.tpath = [d / self.speed for d in self.ds]
+        self.t = 0
+        self.jpath = 0
+        self.setpos()
+    def setpos(self):
+        while self.t > self.tpath[self.jpath]:
+            self.t -= self.tpath[self.jpath]
+            self.jpath = (self.jpath + 1) % len(self.ps)
+        f = self.t / self.tpath[self.jpath]
+        (x0, y0), (x1, y1) = self.ps[self.jpath], self.ps[-self.jpath+1]
+        self.x, self.y = x1*f + x0*(1-f), y1*f + y0*(1-f)
+    def think(self, dt):
+        Platform.think(self, dt)
+        self.t += dt
+        self.setpos()
+
 
 class Clinging(State):
     dropvx = 10
@@ -347,6 +376,8 @@ class Wall(Entity):
         Entity.think(self, dt)
     def draw(self):
         x0, y0 = self.worldpos()
+        if abs(x0 - camera.x) > 2000 or abs(y0 - camera.y) > 2000: return
+        Entity.draw(self)
         x1, y1 = x0 + self.dx, y0 + self.dy
         draw.line(screen, self.color, camera.screenpos((x0, y0)), camera.screenpos((x1, y1)), 3)
     def catches(self, sprite):
@@ -402,6 +433,8 @@ class Hook(Entity):
         Entity.think(self, dt)
     def draw(self):
         x0, y0 = self.worldpos()
+        if abs(x0 - camera.x) > 2000 or abs(y0 - camera.y) > 2000: return
+        Entity.draw(self)
         draw.circle(screen, self.color, camera.screenpos((x0, y0)), 4)
     def catches(self, sprite):
         sx0, sy0 = sprite.worldpos()
@@ -432,8 +465,28 @@ class EdgedPlatform(Platform):
         Hook((x0, y0)).attachto(self)
         Hook((x1, y1), False).attachto(self)
 
+class MovingEdgedPlatform(MovingPlatform):
+    color = 0, 255, 0
+    def __init__(self, *args):
+        MovingPlatform.__init__(self, *args)
+        Hook((self.x, self.y)).attachto(self)
+        Hook((self.x1, self.y1), False).attachto(self)
 
 
+class Box(Platform):
+    def __init__(self, (x0, y0), (x1, y1)):
+        Platform.__init__(self, (x0, y1), (x1, y1))
+        Wall((x0, y0), (x0, y1)).attachto(self)
+        Wall((x1, y1), (x1, y0)).attachto(self)
+        self.p0, self.p1 = (x0, y0), (x1, y1)
+    def draw(self):
+        if abs(self.p0[0] - camera.x) > 2000 or abs(self.p0[1] - camera.y) > 2000: return
+        x0, y1 = camera.screenpos(self.p0)
+        x1, y0 = camera.screenpos(self.p1)
+        surf = Surface((x1-x0, y1-y0)).convert_alpha()
+        surf.fill((255, 255, 255, 24))
+        screen.blit(surf, (x0, y0))
+        Platform.draw(self)
 
 # Under the influence of gravity (may still be going up)
 class Falling(State):
@@ -638,6 +691,8 @@ class camera:
     targetx, targety = x, y
     sx, sy = settings.screensize
     stars = [(randint(0, 10000), randint(0, 10000), randint(64, 196)) for _ in range(settings.nstars)]
+    font = None
+    cache = {}
 
     @classmethod
     def lookat(cls, wpos):
@@ -657,8 +712,22 @@ class camera:
             f = 0.5
             px, py = int((x - cls.x * f) % cls.sx), int((y + cls.y * f) % cls.sy)
             screen.set_at((px, py), (c, c, c))
+        if not cls.font: cls.font = font.Font(None, 48)
+        xmin = int(ceil((-cls.sx/2-200+cls.x)/400))
+        xmax = int(ceil((cls.sx/2+200+cls.x)/400))
+        ymin = int(max(ceil((-cls.sy/2-200+cls.y)/400), 1))
+        ymax = int(ceil((cls.sy/2+200+cls.y)/400))
+        for x in range(xmin, xmax):
+            for y in range(ymin, ymax):
+                text = "(%s,%s)" % (x, y)
+                if text not in cls.cache:
+                    cls.cache[text] = cls.font.render(text, True, (255, 0, 255), (0, 0, 0))
+                cls.cache[text].set_alpha(64)
+                rect = cls.cache[text].get_rect(center = cls.screenpos((400*x, 400*y)))
+                screen.blit(cls.cache[text], rect)
 
 screen = display.set_mode(settings.screensize, HWSURFACE)
+display.set_caption("Platformer prototype")
 font.init()
 
 # A singleton to keep track of which keys are/were pressed
@@ -671,10 +740,10 @@ class keytracker:
     prevpress = None # The next-to-last time that the given key was pressed
     t = 0
     @classmethod
-    def think(cls, dt):
+    def think(cls, dt, keys):
         cls.t += dt
         cls.lastkeys = cls.keys
-        cls.keys = key.get_pressed()
+        cls.keys = keys
         if not cls.lastkeys:
             cls.lastkeys = cls.keys
             cls.pressed = [False] * len(cls.keys)
@@ -723,44 +792,97 @@ class HUD:
             screen.blit(cls.cache[line], rect)
 
 you = You((0, 100))
+platforms = []
+
+if False:
+    platforms.append(Platform((100, 20), (200, 60)))
+    platforms.append(Platform((240, 80), (500, 80)))
+    ps = [(-600, 100), (-400, 100), (-200, 50), (-50, 50)]
+    for j in (0,1,2):
+        platforms.append(Platform(ps[j], ps[j+1]))
+    platforms.append(Platform((-700, 40), (-500, -10)))
+    platforms.append(Wall((440, 20), (540, 800)))
+    platforms.append(Wall((480, 20), (480, 800)))
+    platforms.append(Wall((360, 800), (320, 140)))
+
+    platforms.append(Wall((550, -10), (550, 80)))
+    platforms.append(Platform((550, 80), (770, 130)))
+    platforms.append(Wall((770, 130), (770, -10)))
+
+    platforms.append(Wall((530, -10), (530, 40)))
+
+    platforms.append(EdgedPlatform((-220, 120), (-20, 120)))
+    platforms.extend(platforms[-1].children)
+
+    platforms.append(Box((-100, 160), (0, 190)))
+    platforms.extend(platforms[-1].children)
+
+if True:
+    for j in range(400):
+        h = j * 20 + 10
+        px0 = randint(-h//2-500, h//2+500)
+        dx = randint(100, 320 + j//2)
+        dy = randint(20, 80 + j//2)
+        k = randint(0, max(100-j,10))
+        if k == 0:
+            platforms.append(Box((px0, h-dy), (px0+dx, h+dy)))
+        elif k == 1:
+            platforms.append(Platform((px0, h), (px0+dx, h+dy)))
+        elif k == 2:
+            platforms.append(Platform((px0, h), (px0+dx, h-dy)))
+        elif k == 3:
+            platforms.append(EdgedPlatform((px0, h), (px0+dx, h)))
+        elif k == 4:
+            platforms.append(EdgedPlatform((px0, h), (px0+dx, h+dy)))
+        elif k == 5:
+            platforms.append(EdgedPlatform((px0, h), (px0+dx, h-dy)))
+        elif k == 6:
+            platforms.append(MovingPlatform(((px0, h), (px0, h+5*dy)), (dx, 0), 100))
+        elif k == 7:
+            platforms.append(MovingEdgedPlatform(((px0, h), (px0, h+5*dy)), (dx, 0), 100))
+        else:
+            platforms.append(Platform((px0, h), (px0+dx, h)))
+        platforms.extend(platforms[-1].children)
+
 ground = Ground()
 
-platforms = [Platform((100, 20), (200, 60)), Platform((240, 80), (500, 80)), ground]
-ps = [(-600, 100), (-400, 100), (-200, 50), (-50, 50)]
-for j in (0,1,2):
-    platforms.append(Platform(ps[j], ps[j+1]))
-platforms.append(Platform((-700, 40), (-500, -10)))
-platforms.append(Wall((440, 20), (540, 800)))
-platforms.append(Wall((480, 20), (480, 800)))
-platforms.append(Wall((360, 800), (320, 140)))
+platforms.append(ground)
 
-platforms.append(Wall((550, -10), (550, 80)))
-platforms.append(Platform((550, 80), (770, 130)))
-platforms.append(Wall((770, 130), (770, -10)))
-
-platforms.append(Wall((530, -10), (530, 40)))
-
-platforms.append(EdgedPlatform((-220, 120), (-20, 120)))
-platforms.extend(platforms[-1].children)
-
-keytracker.think(0)
+keytracker.think(0, key.get_pressed())
 slomo = False
 clock = time.Clock()
 accumdt = 0
+recordlines = []
+import sys
+playbackmode = len(sys.argv) > 1
+if playbackmode:
+    playbackfile = open(sys.argv[1])
 while not keytracker.keys[K_ESCAPE]:
     dt = min(clock.tick(60) * 0.001, 0.1)
     if keytracker.pressed[K_CAPSLOCK]:
         slomo = not slomo
     if slomo or keytracker.keys[K_LSHIFT] or keytracker.keys[K_RSHIFT]:
         dt /= 3
+    if keytracker.keys[K_LCTRL] or keytracker.keys[K_RCTRL]:
+        dt *= 2
 
     accumdt += dt
 
     while accumdt > 0:
-        dt = 0.004
+        dt = 0.01
         accumdt -= dt
         event.pump()
-        keytracker.think(dt)
+        if playbackmode:
+            kcodes = map(int, playbackfile.next().split())
+            keys = [kcode in kcodes for kcode in range(323)]
+            keys0 = key.get_pressed()
+            for kcode in (K_ESCAPE, K_CAPSLOCK, K_LSHIFT, K_RSHIFT, K_LCTRL, K_RCTRL):
+                keys[kcode] = keys0[kcode]
+        else:
+            keys = key.get_pressed()
+            kcodes = [kcode for kcode, val in enumerate(keys) if val]
+            recordlines.append(" ".join(map(str, kcodes)))
+        keytracker.think(dt, keys)
         entities.think(dt)
         camera.lookat(you.lookat())
         camera.think(dt)
@@ -771,8 +893,13 @@ while not keytracker.keys[K_ESCAPE]:
 
     camera.draw()
     entities.draw()
-    you.draw()
+#    you.draw()
     HUD.draw(dt)
     display.flip()
+
+if not playbackmode:
+    import datetime
+    f = open("playback-%s.txt" % datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S"), "w")
+    f.write("\n".join(recordlines))
 
 
