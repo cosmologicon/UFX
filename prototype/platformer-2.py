@@ -96,15 +96,25 @@ class State:
         return ((1 if sprite.facingright else -1), 0), (0, 1)
 
     @classmethod
+    def drawshape(cls, ps, headp):
+        draw.polygon(screen, (144, 72, 0), ps, 0)
+        draw.lines(screen, (255, 128, 0), True, ps)
+        draw.circle(screen, (144, 144, 0), headp, 5, 0)
+        draw.circle(screen, (255, 255, 0), headp, 5, 1)
+
+    @classmethod
+    def bodyshape(cls):
+        return (0.5,0), (-0.5,0.8), (0.4,0.6), (-0.8,0)
+
+    @classmethod
     def draw(cls, sprite):
         x0, y0 = sprite.worldpos()
         (hx, hy), (vx, vy) = sprite.orientation()
-        pos0 = camera.screenpos((x0, y0))
-        pos1 = camera.screenpos((x0 + hx * 15, y0 + hy * 15))
-        pos2 = camera.screenpos((x0 + vx * 30, y0 + vy * 30))
-        draw.line(screen, (255, 0, 0), pos0, pos1, 1)
-        draw.line(screen, (255, 0, 0), pos0, pos2, 1)
-        draw.circle(screen, (255, 128, 0), pos0, 3, 1)
+        def f((a,b)): 
+            px = x0 + hx * a * 14 + vx * b * 30
+            py = y0 + hy * a * 14 + vy * b * 30
+            return camera.screenpos((px, py))
+        cls.drawshape(map(f, cls.bodyshape()), f((0, 1)))
 
     @classmethod
     def xmotion(cls, sprite, dt):
@@ -165,8 +175,8 @@ class Standing(State):
             d = sqrt(x ** 2 + y **2)
             return x/d, y/d
         dx, dy = norm(sprite.parent.dx, sprite.parent.dy)
-        v = sqrt(abs(sprite.vx)) * 0.04 * k
-        dx2, dy2 = norm(-dy + v, dx + 2)
+        v = sqrt(abs(sprite.vx)) * 0.02 * k
+        dx2, dy2 = norm(-dy+v, dx)
         return (dx*k, dy*k), (dx2, dy2)
 
 
@@ -255,6 +265,21 @@ class Clinging(State):
             sprite.nextstate = Falling
         elif keytracker.pressed[K_UP]:
             sprite.nextstate = Leaping
+        if not sprite.parent.holds(sprite):
+            sprite.nextstate = Falling
+
+    @classmethod
+    def orientation(cls, sprite):
+        k = 1 if sprite.parent.facingright else -1
+        def norm(x, y):
+            d = sqrt(x ** 2 + y **2)
+            return x/d, y/d
+        dx, dy = norm(sprite.parent.dy, sprite.parent.dx)
+        return (-dx, dy), (dy*k, dx*k)
+    
+    @classmethod
+    def bodyshape(cls):
+        return (-0.4,0.8), (0.5,0.6), (-0.4,0.3), (-0.3,-0.3), (0.3,-0.1), (0.2,0.2), (-0.3,0.5)
 
     @classmethod
     def exit(cls, sprite):
@@ -263,6 +288,48 @@ class Clinging(State):
         sprite.x += cls.dropx * k
         if keytracker.pressed[K_UP]:
             sprite.vx = cls.launchvx * k
+
+class Hanging(State):
+    hangheight = 42
+    @classmethod
+    def enter(cls, sprite):
+        sprite.theta = 0  #sprite.vx / 200
+        sprite.omega = -3 if sprite.parent.facingright else 3
+
+    @classmethod
+    def think(cls, sprite, dt):
+        if keytracker.pressed[K_DOWN]:
+            sprite.nextstate = Falling
+        elif keytracker.pressed[K_UP]:
+            sprite.nextstate = Leaping
+        sprite.omega -= 12 * sprite.theta * dt
+        sprite.omega *= exp(-0.5 * dt)
+        sprite.theta += sprite.omega * dt
+
+    @classmethod
+    def draw(cls, sprite):
+        x0, y0 = sprite.worldpos()
+        (hx, hy), (vx, vy) = sprite.orientation()
+        dx, dy = -vx * cls.hangheight, -vy * cls.hangheight
+        x0 += dx ; y0 += dy
+        def f((a,b)):
+            px = x0 + hx * a * 14 + vx * b * 30
+            py = y0 + hy * a * 14 + vy * b * 30
+            return camera.screenpos((px, py))
+        cls.drawshape(map(f, cls.bodyshape()), f((0, 1)))
+
+    @classmethod
+    def orientation(cls, sprite):
+        k = 1 if sprite.facingright else -1
+        S, C = sin(sprite.theta), cos(sprite.theta)
+        return (C*k, -S*k), (S, C)
+
+    @classmethod
+    def exit(cls, sprite):
+        S, C = sin(sprite.theta), cos(sprite.theta)
+        sprite.x -= S * cls.hangheight
+        sprite.y -= C * cls.hangheight
+        
 
 
 class Wall(Entity):
@@ -294,7 +361,7 @@ class Wall(Entity):
         if not wasabove: return False
         return y0 <= sy0 < y0 + self.dy or y0 > sy0 >= y0 + self.dy
     def holds(self, sprite):
-        return 0 <= sprite.y <= self.dy
+        return 0 <= sprite.y <= self.dy or self.dy <= sprite.y <= 0
     def constrain(self, sprite):
         sprite.x = sprite.y * self.dx / self.dy
         sprite.vx = sprite.vy * self.dx / self.dy
@@ -320,6 +387,53 @@ class Wall(Entity):
         x0, y0 = self.worldpos()
         xa = x0 + (x - y0) * self.dx / self.dy
         return 5, xa
+
+class Hook(Entity):
+    color = 255, 255, 0
+    spritestate = Hanging
+    catchheight = 30
+    def __init__(self, (x0, y0), facingright = True):
+        Entity.__init__(self)
+        self.x, self.y = x0, y0
+        self.facingright = facingright
+        self.color = (255, 255, 0) if self.facingright else (255, 0, 0)
+    def think(self, dt):
+        self.lastpos = self.worldpos()
+        Entity.think(self, dt)
+    def draw(self):
+        x0, y0 = self.worldpos()
+        draw.circle(screen, self.color, camera.screenpos((x0, y0)), 4)
+    def catches(self, sprite):
+        sx0, sy0 = sprite.worldpos()
+        x0, y0 = self.worldpos()
+        isabove = (sx0 - x0 < 0) == self.facingright
+        if isabove: return False
+        sx1, sy1 = sprite.lastpos
+        x1, y1 = self.lastpos
+        wasabove = (sx1 - x1 < 0) == self.facingright
+        if not wasabove: return False
+        return sy0 <= y0 <= sy0 + self.catchheight
+    def holds(self, sprite):
+        return True
+    def constrain(self, sprite):
+        sprite.x = 0
+        sprite.y = 0
+        sprite.vx = 0
+        sprite.vy = 0
+    def restrict(self, sprite):
+        pass
+    def catchpriority(self, sprite):
+        return 2, self.y
+
+class EdgedPlatform(Platform):
+    color = 255, 0, 0
+    def __init__(self, (x0, y0), (x1, y1)):
+        Platform.__init__(self, (x0, y0), (x1, y1))
+        Hook((x0, y0)).attachto(self)
+        Hook((x1, y1), False).attachto(self)
+
+
+
 
 # Under the influence of gravity (may still be going up)
 class Falling(State):
@@ -347,7 +461,6 @@ class Falling(State):
         for platform in platforms:
             if platform.catches(sprite):
                 sprite.attachto(platform)
-
 
     @classmethod
     def orientation(cls, sprite):
@@ -454,17 +567,14 @@ class Flipping(Falling):
         k = 1 if sprite.facingright else -1
         theta = -2 * pi * sprite.vy / FlipLeaping.yspeed * k
         S, C = sin(theta), cos(theta)
-        def f(a,b):
-            b -= 15
-            a, b = a*C + b*S, -a*S + b*C
-            b += 15
-            return x0 + a, y0 + b
-        pos0 = camera.screenpos(f(0, 0))
-        pos1 = camera.screenpos(f(15*k, 0))
-        pos2 = camera.screenpos(f(0, 30))
-        draw.line(screen, (255, 0, 0), pos0, pos1, 1)
-        draw.line(screen, (255, 0, 0), pos0, pos2, 1)
-        draw.circle(screen, (255, 128, 0), pos0, 3, 1)
+        def f((a,b)):
+            b -= 0.5
+            px = x0 + C * a * 14 + S * b * 30
+            py = y0 + -S * a * 14 + C * b * 30
+            py += 0.5 * 30
+            return camera.screenpos((px, py))
+        cls.drawshape(map(f, [(0.5,0),(-0.5,0.8),(0.4,0.6),(-0.8,0)]), f((0, 1)))
+
 
 class FlipLeaping(Leaping):
     yspeed = 240
@@ -506,7 +616,6 @@ class You(Entity):
         if not catchers: return
         if self.parent not in catchers: catchers.append(self.parent)
         catcher = max(catchers, key = lambda p: p.catchpriority(self))
-        print [(p, p.catchpriority(self)) for p in catchers]
         if catcher is not self.parent:
             self.attachto(catcher)
     def orientation(self):
@@ -629,33 +738,36 @@ platforms.append(Wall((550, -10), (550, 80)))
 platforms.append(Platform((550, 80), (770, 130)))
 platforms.append(Wall((770, 130), (770, -10)))
 
+platforms.append(Wall((530, -10), (530, 40)))
+
+platforms.append(EdgedPlatform((-220, 120), (-20, 120)))
+platforms.extend(platforms[-1].children)
+
 keytracker.think(0)
 slomo = False
 clock = time.Clock()
+accumdt = 0
 while not keytracker.keys[K_ESCAPE]:
-    dt = clock.tick(60) * 0.001
-    dt = 0.016
-    event.pump()
-    keytracker.think(dt)
-
-#    arrows = ("up", K_UP), ("left", K_LEFT), ("right", K_RIGHT), ("down", K_DOWN)
-#    print dt, you.state.__name__, int(you.vx), int(you.vy), " ".join(k for k,v in arrows if keytracker.keys[v])
-
-
+    dt = min(clock.tick(60) * 0.001, 0.1)
     if keytracker.pressed[K_CAPSLOCK]:
         slomo = not slomo
     if slomo or keytracker.keys[K_LSHIFT] or keytracker.keys[K_RSHIFT]:
         dt /= 3
-    
 
-    entities.think(dt)
-    camera.lookat(you.lookat())
-    camera.think(dt)
-    you.checkcatch(platforms)
-    you.transition()
-    for platform in platforms:
-        platform.restrict(you)
+    accumdt += dt
 
+    while accumdt > 0:
+        dt = 0.004
+        accumdt -= dt
+        event.pump()
+        keytracker.think(dt)
+        entities.think(dt)
+        camera.lookat(you.lookat())
+        camera.think(dt)
+        you.checkcatch(platforms)
+        you.transition()
+        for platform in platforms:
+            platform.restrict(you)
 
     camera.draw()
     entities.draw()
