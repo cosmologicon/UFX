@@ -156,17 +156,17 @@ class Standing(State):
             sprite.nextstate = Falling
         elif keytracker.pressed[K_UP]:
             xmove = keytracker.keys[K_RIGHT] - keytracker.keys[K_LEFT]
-            if xmove == 1 and keytracker.keydt(K_LEFT) < 0.25:
+            if xmove == 1 and keytracker.keydt(K_LEFT) < 0.35:
                 sprite.nextstate = FlipLeaping
-            elif xmove == -1 and keytracker.keydt(K_RIGHT) < 0.25:
+            elif xmove == -1 and keytracker.keydt(K_RIGHT) < 0.35:
                 sprite.nextstate = FlipLeaping
             else:
                 sprite.nextstate = Leaping
         elif keytracker.pressed[K_RIGHT]:
-            if keytracker.prevpressdt(K_RIGHT) < 0.4 <= keytracker.pressdt(K_LEFT):
+            if keytracker.prevpressdt(K_RIGHT) < 0.3 <= keytracker.pressdt(K_LEFT):
                 sprite.nextstate = Sprinting
         elif keytracker.pressed[K_LEFT]:
-            if keytracker.prevpressdt(K_LEFT) < 0.4 <= keytracker.pressdt(K_RIGHT):
+            if keytracker.prevpressdt(K_LEFT) < 0.3 <= keytracker.pressdt(K_RIGHT):
                 sprite.nextstate = Sprinting
 
     @classmethod

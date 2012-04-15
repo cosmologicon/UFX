@@ -1,11 +1,13 @@
 settings = {
     dramatictilt: false,
-    walkspeed: 200,
-    jumpspeed: 220,
+    walkspeed: 140,
+    walkaccel: 400,
+//    slidefactor: 2,
+    jumpspeed: 180,
     hoptime: 0.2,
     
-    canvaswidth: 540,
-    canvasheight: 640,
+    canvaswidth: 480,
+    canvasheight: 480,
     
     
 }

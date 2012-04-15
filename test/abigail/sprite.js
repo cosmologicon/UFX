@@ -23,8 +23,10 @@ FeelGravity = {
             this.y += (this.vy - 0.5 * this.g * dt) * dt
             this.vy -= this.g * dt
         }
+        this.vx = Math.min(Math.max(-settings.walkspeed, this.vx), settings.walkspeed)
+        this.x += this.vx * dt
+//        this.vx *= Math.exp(-settings.slidefactor * dt)
     },
-
 }
 
 CanLand = {
@@ -74,7 +76,10 @@ FacePosition = {
     },
     
     lookingat: function () {
-        return [this.x + (this.facingright ? 1 : -1) * this.tower.r * 0.4, this.y]
+        return [this.x + (this.facingright ? 1 : -1) * this.tower.r * 0.6,
+                this.y]
+        return [this.x + (this.facingright ? 1 : -1) * this.tower.r * 0.2 + this.vx * 0.4,
+                this.y + this.vy * Math.abs(this.vy) * 0.0008]
     },
 }
 
@@ -108,8 +113,17 @@ Controlled = {
     },
     controlstep: function (ds) {
 //        if self.outtimer: return
-        if (ds == 0) return
-        this.x += settings.walkspeed * ds
+        if (ds == 0) {
+            if (this.parent === this.tower) {
+                this.vx *= 0.9
+            } else {
+                this.vx = 0
+            }
+            return
+        }
+        if (this.vx * ds < 0) this.vx = 0
+        this.vx += settings.walkaccel * ds
+//        this.x += settings.walkspeed * ds
         this.facingright = ds > 0
         //.stepped = True
     },
