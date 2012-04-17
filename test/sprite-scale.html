@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Canvas sprite scaling performance test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+input {
+    background: inherit; color: inherit; border: none;
+    font-family: inherit; font-size: inherit;
+    width: 20em;
+}
+table {
+    margin: auto;
+}
+td {
+    text-align: right
+}
+</style>
+
+<script src="../src/ticker.js"></script>
+<script src="../src/resource.js"></script>
+<body>
+<h1>Canvas sprite scaling performance test</h1>
+<canvas id=canvas style="border: thin blue solid"></canvas>
+
+<input type=checkbox onclick="rotate = this.checked">Rotate sprites</input>
+<input type=checkbox onclick="usemini = this.checked">Use pre-scaled images</input>
+<button type=button onclick="n = Math.max(n/2, 1)">Less heads please</button>
+<button type=button onclick="n = Math.min(n*2,nmax)">More heads please</button>
+
+
+<tr><td><input type=text id=fps readonly></input>
+
+
+<script>
+UFX.resource.onload = function () {
+    UFX.ticker.register(think, null, {maxups: 60})
+}
+UFX.resource.base = "data"
+UFX.resource.load({head420: "mort-head-420.png",
+                   head84: "mort-head-84.png"})
+
+var canvas = document.getElementById("canvas")
+canvas.width = canvas.height = 400
+var context = canvas.getContext("2d")
+
+var rotate = false, usemini = false
+
+var n = 8, nmax = 2048
+var objs = new Array(nmax)
+for (var j = 0 ; j < nmax ; ++j) {
+    objs[j] = {
+        x: Math.random() * 400,
+        y: Math.random() * 400,
+        vx: Math.random() * 400 - 200,
+        vy: Math.random() * 400 - 200,
+    }
+}
+var angles = new Array(240)
+for (var j = 0 ; j < 240 ; ++j) angles[j] = 0.5 * Math.sin(j * 0.1)
+
+function think(dt) {
+    context.fillStyle = "white"
+    context.fillRect(0, 0, 400, 400)
+
+    for (var j = 0 ; j < n ; ++j) {
+        var obj = objs[j]
+        context.save()
+        obj.x += obj.vx * dt
+        obj.y += obj.vy * dt
+        if (obj.x < 42) obj.vx = Math.abs(obj.vx)
+        if (obj.x > 400-42) obj.vx = -Math.abs(obj.vx)
+        if (obj.y < 42) obj.vy = Math.abs(obj.vy)
+        if (obj.y > 400-42) obj.vy = -Math.abs(obj.vy)
+        context.translate(obj.x, obj.y)
+        if (rotate) {
+            context.rotate(angles[Math.floor(0.2*obj.x + 0.4*obj.y)])
+        }
+        if (usemini) {
+            context.drawImage(UFX.resource.images.head84, -42, -42)
+        } else {
+            context.scale(0.2, 0.2)
+            context.drawImage(UFX.resource.images.head420, -210, -210)
+        }
+        context.restore()
+    }
+    document.getElementById("fps").value = UFX.ticker.getupsstr()
+}
+
+</script>
+
+

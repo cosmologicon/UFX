@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Abigail's Descent test version</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+input {
+    background: inherit; color: inherit; border: none;
+    font-family: inherit; font-size: inherit;
+    width: 20em;
+}
+table {
+    margin: auto;
+}
+td {
+    text-align: right
+}
+</style>
+
+<script src="../../src/Thing.js"></script>
+<script src="../../src/ticker.js"></script>
+<script src="../../src/scene.js"></script>
+<script src="../../src/pause.js"></script>
+<script src="../../src/key.js"></script>
+<script src="../../src/mouse.js"></script>
+<script src="../../src/random.js"></script>
+<script src="../../src/noise.js"></script>
+
+<script src="settings.js"></script>
+<script src="tower.js"></script>
+<script src="portal.js"></script>
+<script src="platform.js"></script>
+<script src="sprite.js"></script>
+<script src="play.js"></script>
+
+<body>
+<h1>Abigail's Descent test version</h1>
+<canvas id=canvas style="border: thin blue solid"></canvas>
+<p><input type=text id=fps readonly></input>
+
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = settings.canvaswidth
+canvas.height = settings.canvasheight
+var context = canvas.getContext("2d")
+
+// polyfill, boo!
+window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||  
+                               window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
+
+
+//UFX.ticker.animsync = true
+UFX.scene.init()
+//UFX.ticker.register(UFX.scene.think, UFX.scene.draw, {maxfps: 90, delay: 20})
+UFX.key.init()
+UFX.mouse.init("canvas")
+UFX.pause.init()
+
+UFX.scene.push(PlayScene)
+
+/*
+var i = blocktexture(200, 200)
+context.drawImage(i, 0, 0)
+context.drawImage(i, 200, 0)
+context.drawImage(i, 0, 200)
+context.drawImage(i, 200, 200)
+*/
+
+</script>
+
