@@ -27,11 +27,9 @@ canvas.width = 854
 canvas.height = 480
 var context = canvas.getContext("2d")
 
-var grad = context.createLinearGradient(0, 0, 854, 480)
-grad.addColorStop(0, "#060")
-grad.addColorStop(1, "#006")
+var grad = UFX.draw.lingrad(context, 0, 0, 854, 480, 0, "#060", 1, "#006")
 
-// UFX.draw(context, "fs #333 fr 0 0 854 480")
+UFX.draw(context, "fs #333 fr 0 0 854 480")
 UFX.draw(context, "fs", grad, "fr 0 0 854 480")
 
 UFX.draw(context, "ss white lw 4")
@@ -45,11 +43,10 @@ UFX.draw.extend(context)
 context.draw("[ t 550 300 ( m 0 -100 q 100 -50 100 50 q 0 100 -100 50 q -100 -50 0 -100 ) fs cyan al 0.4 f s ]")
 
 UFX.draw.circle(700, 100, 80, null, "gray")
-context.draw.circle(700, 100, 60, null, "black")
+context.draw.circle(700, 100, 60, null, "white")
 
-
-//UFX.draw.circle(700, 100, 40, null, "yellow")
-//UFX.draw("b o 700 100 40 ss yellow s")
+UFX.draw.circle(700, 100, 40, null, "yellow")
+UFX.draw("b o 700 100 20 ss pink s")
 // window.open(canvas.toDataURL())
 
 </script>

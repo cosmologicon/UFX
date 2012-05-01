@@ -116,6 +116,13 @@ UFX._draw.circle = function (x, y, r, fs, ss, lw) {
     }
     this.restore()
 }
+UFX._draw.lingrad = function (x0, y0, x1, y1) {
+    var grad = this.createLinearGradient(x0, y0, x1, y1)
+    for (var j = 4 ; j < arguments.length ; j += 2) {
+        grad.addColorStop(arguments[j], arguments[j+1])
+    }
+    return grad
+}
 
 
 UFX.draw = function (context) {
@@ -127,16 +134,18 @@ UFX.draw = function (context) {
         throw "UFX.draw must be called with context as first argument"
     }
 }
-for (var method in UFX._draw) {
-    UFX.draw[method] = function (context) {
-        if (context.beginPath) {
-            return UFX._draw[method].apply(context, Array.prototype.slice.call(arguments, 1))
-        } else if (UFX.draw._context) {
-            return UFX._draw[method].apply(UFX.draw._context, arguments)
-        } else {
-            throw "UFX.draw." + method + " must be called with context as first argument"
+for (var mname in UFX._draw) {
+    UFX.draw[mname] = (function (method, mname) {
+        return function (context) {
+            if (context.beginPath) {
+                return method.apply(context, Array.prototype.slice.call(arguments, 1))
+            } else if (UFX.draw._context) {
+                return method.apply(UFX.draw._context, arguments)
+            } else {
+                throw "UFX.draw." + mname + " must be called with context as first argument"
+            }
         }
-    }
+    })(UFX._draw[mname], mname)
 }
 UFX.draw.setcontext = function (context) {
     UFX.draw._context = context
@@ -145,10 +154,10 @@ UFX.draw.setcontext = function (context) {
 // Wow this is really inelegant. Is there any better way to do this? I should ask on SO sometime.
 UFX.draw.extend = function(context) {
     context.draw = function () { UFX._draw.apply(context, arguments) }
-    for (var method in UFX._draw) {
-        context.draw[method] = function () {
-            UFX._draw[method].apply(context, arguments)
-        }
+    for (var mname in UFX._draw) {
+        context.draw[mname] = (function (method) {
+            return function () { return method.apply(context, arguments) }
+        })(UFX._draw[mname])
     }
 }
 
