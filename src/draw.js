@@ -1,0 +1,158 @@
+// draw module - some convenience functions for invoking context methods
+// The basic UFX.draw() function takes a string based on the SVG path string specification,
+//   but with some important differences
+
+// Three ways to invoke the function here.
+// UFX.draw(context, drawstring)
+// UFX.draw.setcontext(context) ; UFX.draw(drawstring)
+// UFX.draw.extend(context) ; context.draw(drawstring)
+
+// The drawstring can also be a series of strings or values.
+// UFX.draw(context, "( m 0 0 l", x, y, ") s")
+
+if (typeof UFX == "undefined") UFX = {}
+
+UFX._draw = function () {
+    var t = []  // Draw tokens
+    for (var argj = 0 ; argj < arguments.length ; ++argj) {
+        var arg = arguments[argj]
+        if (arg.split)
+            t = t.concat(arg.split(" "))
+        else
+            t.push(arg)
+    }
+    for (var j = 0 ; j < t.length ; ++j) {
+        switch (t[j].toLowerCase()) {
+            case "b": case "(": case "beginpath":
+                this.beginPath()
+                break
+            case ")": case "closepath":
+                this.closePath()
+                break
+            case "m": case "moveto":
+                this.moveTo(+t[++j], +t[++j])
+                break
+            case "l": case "lineto":
+                this.lineTo(+t[++j], +t[++j])
+                break
+            case "q": case "quadraticcurveto":
+                this.quadraticCurveTo(+t[++j], +t[++j], +t[++j], +t[++j])
+                break
+            case "c": case "beziercurveto":
+                this.bezierCurveTo(+t[++j], +t[++j], +t[++j], +t[++j], +t[++j], +t[++j])
+                break
+            case "a": case "arc":
+                this.arc(+t[++j], +t[++j], +t[++j], +t[++j], +t[++j])
+                break
+            case "aa": case "antiarc":
+                this.arc(+t[++j], +t[++j], +t[++j], +t[++j], +t[++j], true)
+                break
+            case "o": case "circle":
+                this.arc(+t[++j], +t[++j], +t[++j], 0, 2*Math.PI)
+                break
+            case "t": case "translate":
+                this.translate(+t[++j], +t[++j])
+                break
+            case "r": case "rotate":
+                this.rotate(+t[++j])
+                break
+            case "z": case "scale":
+                this.scale(+t[++j], +t[++j])
+                break
+            case "x": case "transform":
+                this.transfrom(+t[++j], +t[++j], +t[++j], +t[++j], +t[++j], +t[++j])
+                break
+            case "f": case "fill":
+                this.fill()
+                break
+            case "s": case "stroke":
+                this.stroke()
+                break
+            case "fr": case "fillrect":
+                this.fillRect(+t[++j], +t[++j], +t[++j], +t[++j])
+                break
+            case "sr": case "strokerect":
+                this.fillRect(+t[++j], +t[++j], +t[++j], +t[++j])
+                break
+            case "cr": case "clearrect":
+                this.fillRect(+t[++j], +t[++j], +t[++j], +t[++j])
+                break
+            case "fs": case "fillStyle":
+                this.fillStyle = t[++j]
+                break
+            case "ss": case "strokeStyle":
+                this.strokeStyle = t[++j]
+                break
+            case "al": case "alpha": case "globalalpha":
+                this.globalAlpha = +t[++j]
+                break
+            case "lw": case "lineWidth":
+                this.lineWidth = +t[++j]
+                break
+            case "[": case "save":
+                this.save()
+                break
+            case "]": case "restore":
+                this.restore()
+                break
+            default:
+                throw "Unrecognized draw token " + t[j]
+        
+        }
+    }
+}
+UFX._draw.circle = function (x, y, r, fs, ss, lw) {
+    this.save()
+    this.beginPath()
+    this.arc(x, y, r, 0, 2*Math.PI)
+    if (fs) {
+        this.fillStyle = fs
+        this.fill()
+    }
+    if (ss || lw) {
+        if (ss) this.strokeStyle = ss
+        if (lw) this.lineWidth = lw
+        this.stroke()
+    }
+    this.restore()
+}
+
+
+UFX.draw = function (context) {
+    if (context.beginPath) {
+        return UFX._draw.apply(context, Array.prototype.slice.call(arguments, 1))
+    } else if (UFX.draw._context) {
+        return UFX._draw.apply(UFX.draw._context, arguments)
+    } else {
+        throw "UFX.draw must be called with context as first argument"
+    }
+}
+for (var method in UFX._draw) {
+    UFX.draw[method] = function (context) {
+        if (context.beginPath) {
+            return UFX._draw[method].apply(context, Array.prototype.slice.call(arguments, 1))
+        } else if (UFX.draw._context) {
+            return UFX._draw[method].apply(UFX.draw._context, arguments)
+        } else {
+            throw "UFX.draw." + method + " must be called with context as first argument"
+        }
+    }
+}
+UFX.draw.setcontext = function (context) {
+    UFX.draw._context = context
+}
+
+// Wow this is really inelegant. Is there any better way to do this? I should ask on SO sometime.
+UFX.draw.extend = function(context) {
+    context.draw = function () { UFX._draw.apply(context, arguments) }
+    for (var method in UFX._draw) {
+        context.draw[method] = function () {
+            UFX._draw[method].apply(context, arguments)
+        }
+    }
+}
+
+
+
+
+
