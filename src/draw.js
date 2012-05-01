@@ -77,17 +77,20 @@ UFX._draw = function () {
             case "cr": case "clearrect":
                 this.fillRect(+t[++j], +t[++j], +t[++j], +t[++j])
                 break
-            case "fs": case "fillStyle":
+            case "fs": case "fillstyle":
                 this.fillStyle = t[++j]
                 break
-            case "ss": case "strokeStyle":
+            case "ss": case "strokestyle":
                 this.strokeStyle = t[++j]
                 break
             case "al": case "alpha": case "globalalpha":
                 this.globalAlpha = +t[++j]
                 break
-            case "lw": case "lineWidth":
+            case "lw": case "linewidth":
                 this.lineWidth = +t[++j]
+                break
+            case "lc": case "linecap":
+                this.lineCap = t[++j]
                 break
             case "[": case "save":
                 this.save()
@@ -119,6 +122,13 @@ UFX._draw.circle = function (x, y, r, fs, ss, lw) {
 UFX._draw.lingrad = function (x0, y0, x1, y1) {
     var grad = this.createLinearGradient(x0, y0, x1, y1)
     for (var j = 4 ; j < arguments.length ; j += 2) {
+        grad.addColorStop(arguments[j], arguments[j+1])
+    }
+    return grad
+}
+UFX._draw.radgrad = function (x0, y0, r0, x1, y1, r1) {
+    var grad = this.createRadialGradient(x0, y0, r0, x1, y1, r1)
+    for (var j = 6 ; j < arguments.length ; j += 2) {
         grad.addColorStop(arguments[j], arguments[j+1])
     }
     return grad
