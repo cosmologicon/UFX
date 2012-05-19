@@ -75,9 +75,13 @@ UFX.random.rdisk = function () {
 // dfac = 1 : very non-random, regular spacing
 // dfac = 0.01 : pretty much like a random distribution
 // defaults to 0.15
-UFX.random.spread = function (n, dfac) {
+UFX.random.spread = function (n, dfac, scalex, scaley, x0, y0) {
     n = n || 100
     dfac = dfac || 0.15
+    scalex = scalex || 1.0
+    scaley = scaley || scalex
+    x0 = x0 || 0
+    y0 = y0 || x0
     var r = [], d2min = 1.
     while (r.length < n) {
         var x = UFX.random(), y = UFX.random(), valid = true
@@ -96,6 +100,10 @@ UFX.random.spread = function (n, dfac) {
         } else {
             d2min *= 0.9
         }
+    }
+    for (var j = 0 ; j < n ; ++j) {
+        r[j][0] = x0 + r[j][0] * scalex
+        r[j][1] = y0 + r[j][1] * scaley
     }
     return r
 }
