@@ -83,6 +83,9 @@ UFX._draw = function () {
             case "ss": case "strokestyle":
                 this.strokeStyle = t[++j]
                 break
+            case "clip":
+                this.clip()
+                break
             case "al": case "alpha": case "globalalpha":
                 this.globalAlpha = +t[++j]
                 break
