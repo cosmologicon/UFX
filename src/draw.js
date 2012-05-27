@@ -59,8 +59,26 @@ UFX._draw = function () {
             case "z": case "scale":
                 this.scale(+t[++j], +t[++j])
                 break
+            case "zx": case "xscale":
+                this.scale(+t[++j], 1)
+                break
+            case "zy": case "yscale":
+                this.scale(1, +t[++j])
+                break
+            case "hflip":
+                this.scale(-1, 1)
+                break
+            case "vflip":
+                this.scale(1, -1)
+                break
             case "x": case "transform":
-                this.transfrom(+t[++j], +t[++j], +t[++j], +t[++j], +t[++j], +t[++j])
+                this.transform(+t[++j], +t[++j], +t[++j], +t[++j], +t[++j], +t[++j])
+                break
+            case "xshear":
+                this.transform(1, 0, +t[++j], 1, 0, 0)
+                break
+            case "yshear":
+                this.transform(1, +t[++j], 0, 1, 0, 0)
                 break
             case "f": case "fill":
                 this.fill()
