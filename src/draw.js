@@ -17,7 +17,9 @@ UFX._draw = function () {
     for (var argj = 0 ; argj < arguments.length ; ++argj) {
         var arg = arguments[argj]
         if (arg.split)
-            t = t.concat(arg.split(" "))
+            t.push.apply(t, arg.split(" "))
+        else if (arg instanceof Array)
+            t.push.apply(t, arg)
         else
             t.push(arg)
     }
