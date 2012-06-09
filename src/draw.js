@@ -115,6 +115,12 @@ UFX._draw = function () {
             case "lc": case "linecap":
                 this.lineCap = t[++j]
                 break
+            case "textalign":
+                this.textAlign = t[++j]
+                break
+            case "textbaseline":
+                this.textBaseline = t[++j]
+                break
             case "[": case "save":
                 this.save()
                 break
