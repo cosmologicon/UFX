@@ -7,6 +7,7 @@ UFX.scene.init = function (maxups, minups) {
     maxups = maxups || 300
     minups = minups || 10
     UFX.ticker.registersync(UFX.scene.think, UFX.scene.draw, maxups, minups)
+    UFX.scene.record = []
 }
 
 UFX.scene.top = function () {
@@ -31,6 +32,9 @@ UFX.scene.think = function (dt) {
     UFX.scene._lastthinker = c
     if (c) {
         var args = c.thinkargs(dt)
+        UFX.scene.record.push(args)
+        if (UFX.scene.record.length == 20)
+            console.log(JSON.stringify(UFX.scene.record))
         c.think.apply(c, args)
     }
 }

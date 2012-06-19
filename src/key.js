@@ -54,6 +54,28 @@ UFX.key.clearcombos = function () {
     UFX.key._combos = []
 }
 
+// Return a lightweight summary of the current keys being pressed and the
+//   pending events on the event queue. Also clears the event queue.
+UFX.key.state = function () {
+    var state = { pressed: {}, }
+    for (var key in UFX.key.ispressed) {
+        if (UFX.key.ispressed[key])
+            state.pressed[key] = 1
+    }
+    if (UFX.key.qdown) state.down = {}
+    if (UFX.key.qup) state.up = {}
+    UFX.key.events().forEach(function (event) {
+        state[event.type][event.name] = 1
+    })
+    if (UFX.key.qcombo) {
+        state.combo = {}
+        UFX.key.combos().forEach(function (combo) {
+            state.combo[combo.kstring] = 1
+        })
+    }
+    return state
+}
+
 
 // Call this to start capturing key presses
 // key presses will be captured when the element in question has focus (defaults to document)
@@ -61,26 +83,54 @@ UFX.key.init = function(element) {
     UFX.key._captureevents(element)
 }
 
-// TODO: complete this mapping
 // TODO: add alternate key names
 UFX.key.map = {
     8: "backspace", 9: "tab", 13: "enter", 16: "shift", 17: "ctrl", 18: "alt", 20: "caps",
     27: "esc", 32: "space", 33: "pgup", 34: "pgdn", 35: "end", 36: "home",
     37: "left", 38: "up", 39: "right", 40: "down", 45: "ins", 46: "del",
     48: "0", 49: "1", 50: "2", 51: "3", 52: "4", 53: "5", 54: "6", 55: "7", 56: "8", 57: "9",
+    59: "semicolon", 61: "equals",
     65: "A", 66: "B", 67: "C", 68: "D", 69: "E", 70: "F", 71: "G", 72: "H", 73: "I", 74: "J",
     75: "K", 76: "L", 77: "M", 78: "N", 79: "O", 80: "P", 81: "Q", 82: "R", 83: "S", 84: "T",
     85: "U", 86: "V", 87: "W", 88: "X", 89: "Y", 90: "Z",
     96: "np0", 97: "np1", 98: "np2", 99: "np3", 100: "np4",
     101: "np5", 102: "np6", 103: "np7", 104: "np8", 105: "np9",
-    106: "star", 107: "plus", 109: "dash", 110: "dot", 111: "slash",
+    106: "star", 107: "plus", 109: "hyphen", 110: "period", 111: "slash",
     112: "F1", 113: "F2", 114: "F3", 115: "F4", 116: "F5", 117: "F6",
     118: "F7", 119: "F8", 120: "F9", 121: "F10", 122: "F11", 123: "F12",
-    144: "num", 
-    219: "openbracket", 221: "closebracket",
+    144: "num", 188: "comma", 190: "period", 
+    191: "slash", 192: "backtick",
+    219: "openbracket", 220: "backslash", 221: "closebracket", 222: "apostrophe",
 }
 
+// TODO: properly handle overlapping events for different keys mapped to the same name
+UFX.key.remap = function () {
+    for (var j = 0 ; j < arguments.length ; ++j) {
+        var kmap = arguments[j]
+        for (var k in kmap) {
+            var v = kmap[k]
+            for (var code in UFX.key.map) {
+                if (UFX.key.map[code] === k) {
+                    UFX.key.map[code] = v
+                }
+            }
+        }
+    }
+}
 
+UFX.key.remaparrows = function (dvorakToo) {
+    UFX.key.remap({ A: "left", S: "down", D: "left", W: "up", })
+    if (dvorakToo) {
+        UFX.key.remap({ O: "down", comma: "up", ",": "up", E: "right", })
+    }
+}
+
+UFX.key.remappunct = function () {
+    UFX.key.remap({ semicolon: ";", equals: "=", star: "*", plus: "+", hyphen: "-", period: ".",
+        slash: "/", comma: ",", backtick: "`", openbracket: "[", backslash: "\\",
+        closebracket: "]", apostrophe: "'",
+    })
+}
 
 
 
@@ -96,6 +146,7 @@ UFX.key._currentcombo = null
 UFX.key._captureevents = function (element) {
     element = element || document
     if (typeof element == "String") element = document.getElementById(element)
+    // TODO: use addEventListener for all event types
     element.addEventListener("blur", UFX.key._onblur, true)
     element.onkeypress = UFX.key._onkeypress
     element.onkeyup = UFX.key._onkeyup
