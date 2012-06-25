@@ -3,6 +3,9 @@
 if (typeof UFX == "undefined") UFX = {}
 UFX.scene = {}
 
+UFX.scene.recording = false
+UFX.scene.replaying = false
+
 UFX.scene.init = function (maxups, minups) {
     maxups = maxups || 300
     minups = minups || 10
@@ -31,10 +34,15 @@ UFX.scene.think = function (dt) {
     var c = UFX.scene.top()
     UFX.scene._lastthinker = c
     if (c) {
-        var args = c.thinkargs(dt)
-        UFX.scene.record.push(args)
-        if (UFX.scene.record.length == 20)
-            console.log(JSON.stringify(UFX.scene.record))
+        if (UFX.scene.replaying) {
+            var args = UFX.scene.record[0]
+            UFX.scene.record = UFX.scene.record.splice(1)
+        } else {
+            var args = c.thinkargs(dt)
+            if (UFX.scene.recording) {
+                UFX.scene.record.push(args)
+            }
+        }
         c.think.apply(c, args)
     }
 }
