@@ -11,6 +11,7 @@ UFX.scene.init = function (maxups, minups) {
     minups = minups || 10
     UFX.ticker.registersync(UFX.scene.think, UFX.scene.draw, maxups, minups)
     UFX.scene.record = []
+    UFX.scene.jrecord = 0
 }
 
 UFX.scene.top = function () {
@@ -35,8 +36,12 @@ UFX.scene.think = function (dt) {
     UFX.scene._lastthinker = c
     if (c) {
         if (UFX.scene.replaying) {
-            var args = UFX.scene.record[0]
-            UFX.scene.record = UFX.scene.record.splice(1)
+            var args = UFX.scene.record[UFX.scene.jrecord]
+//            UFX.scene.record = UFX.scene.record.splice(1)
+            UFX.scene.jrecord++
+            if (UFX.scene.jrecord >= UFX.scene.record.length) {
+                UFX.scene.replaying = false
+            }
         } else {
             var args = c.thinkargs(dt)
             if (UFX.scene.recording) {
