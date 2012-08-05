@@ -157,7 +157,7 @@ UFX.noise.wrapslice = function (s, zoff, ngrid, soff, noff) {
 // Fractalize a noise map
 // TODO: handle non-power-of-2 sizes
 UFX.noise.fractalize = function (v, s, levels) {
-    var sx = s[0], sy = s[1]
+    var sx = s[0], sy = s[1]  // TODO: assume sqrt sizes if s is not given
     var sx2 = sx/2, sy2 = sy/2, s2 = sx2 * sy2
     if (sx2 < 2 || sy2 < 2) return
     var v2 = new Array(sx2 * sy2)
