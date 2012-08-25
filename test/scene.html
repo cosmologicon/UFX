@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>UFX.scene test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+input {
+    background: inherit; color: inherit; border: none;
+    font-family: inherit; font-size: inherit;
+    width: 20em;
+}
+table {
+    margin: auto;
+}
+td {
+    text-align: right
+}
+</style>
+
+<script src="../src/ticker.js"></script>
+<script src="../src/scene.js"></script>
+<script src="../src/pause.js"></script>
+<script src="../src/mouse.js"></script>
+<body>
+<h1>UFX.scene test</h1>
+<canvas id=canvas style="border: thin blue solid"></canvas>
+
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 400
+canvas.height = 300
+var context = canvas.getContext("2d")
+
+var BallScene = Object.create(UFX.scene.Scene)
+BallScene.start = function () {
+    this.balls = []
+    for (var j = 0 ; j < 20 ; ++j) {
+        var color = "red green blue yellow white pink purple".split(" ")[Math.floor(Math.random() * 7)]
+        var ball = {
+            x: Math.random() * 400,
+            y: Math.random() * 300,
+            vx: Math.random() * 200 - 100,
+            vy: Math.random() * 200 - 100,
+            r: Math.random() * 5 + 5,
+            color: color,
+        }
+        this.balls.push(ball)
+    }
+}
+
+BallScene.think = function (dt) {
+    for (var j = 0 ; j < this.balls.length ; ++j) {
+        var ball = this.balls[j]
+        ball.x += ball.vx * dt
+        ball.y += ball.vy * dt
+        if (ball.x < 0) ball.vx = Math.abs(ball.vx)
+        if (ball.x > 400) ball.vx = -Math.abs(ball.vx)
+        if (ball.y < 0) ball.vy = Math.abs(ball.vy)
+        if (ball.y > 300) ball.vy = -Math.abs(ball.vy)
+    }
+}
+
+BallScene.draw = function () {
+    context.fillStyle = "black"
+    context.fillRect(0, 0, 400, 300)
+    for (var j = 0 ; j < this.balls.length ; ++j) {
+        var ball = this.balls[j]
+        context.fillStyle = ball.color
+        context.beginPath()
+        context.arc(ball.x, ball.y, ball.r, 0, 2 * Math.PI, true); 
+        context.closePath()
+        context.fill()
+    }
+}
+
+// polyfill, boo!
+window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||  
+                               window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
+
+UFX.ticker.animsync = true
+UFX.scene.push(BallScene)
+UFX.scene.init()
+//setTimeout(UFX.pause, 1000)
+//setTimeout(UFX.pause.unpause, 2000)
+UFX.pause.init()
+UFX.mouse.init("canvas")
+
+</script>
+
+

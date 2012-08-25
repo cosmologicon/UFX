@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>UFX.ticker test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+input {
+    background: inherit; color: inherit; border: none;
+    font-family: inherit; font-size: inherit;
+    width: 20em;
+}
+table {
+    margin: auto;
+}
+td {
+    text-align: right
+}
+</style>
+
+<script src="../src/ticker.js"></script>
+<body>
+<h1>UFX.ticker test</h1>
+<canvas id=canvas style="border: thin blue solid"></canvas>
+
+<table>
+<tr><td><input type=text id=fps readonly></input>
+<td><input type=text id=ups readonly></input>
+<tr><td><button type=button onclick="mballs(1./1.5)">Less dots please</button>
+<td><input type=text id=nballs readonly style="width:3em"></input>
+<td><button type=button onclick="mballs(1.5)">More dots please</button>
+</table>
+
+<input type=checkbox onclick="UFX.ticker.animsync = this.checked">
+Sync to animation frames</input>
+<input type=checkbox onclick="interact = this.checked">
+O(n<sup>2</sup>) interactions (slow thinking)</input>
+
+
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 400
+canvas.height = 300
+var context = canvas.getContext("2d")
+
+var interact = false
+
+var balls = []
+function setballs(n) {
+    balls.n = n
+    while (balls.length < n) {
+        var color = "rgb(" + Math.floor(Math.random() * 100 + 155) + "," +
+                             Math.floor(Math.random() * 100 + 155) + "," +
+                             Math.floor(Math.random() * 100 + 155) + ")"
+        var ball = {
+            x: Math.random() * 400,
+            y: Math.random() * 300,
+            vx: Math.random() * 200 - 100,
+            vy: Math.random() * 200 - 100,
+            r: Math.random() * 5 + 2,
+            color: color,
+        }
+        balls.push(ball)
+    }
+    document.getElementById("nballs").value = n
+}
+function mballs(fac) {
+    setballs(Math.max(Math.round(fac * balls.n), 1))
+}
+setballs(10)
+
+function think(dt) {
+    for (var j = 0 ; j < balls.n ; ++j) {
+        var ball = balls[j]
+        ball.ax = 0
+        ball.ay = 0
+    }
+    if (interact) {
+        for (var j = 0 ; j < balls.n ; ++j) {
+            var ball0 = balls[j]
+            for (var i = 0 ; i < j ; ++i) {
+                var ball1 = balls[i]
+                var dx = ball0.x - ball1.x, dy = ball0.y - ball1.y
+                var d = Math.sqrt(dx * dx + dy * dy)
+                var a = Math.min(10000.0 / (d * d), 100.0)
+                var ax = a * dx / d
+                var ay = a * dy / d
+                ball0.ax += ax
+                ball0.ay += ay
+                ball1.ax -= ax
+                ball1.ay -= ay
+            }
+        }
+    }
+    for (var j = 0 ; j < balls.n ; ++j) {
+        var ball = balls[j]
+        ball.x += ball.vx * dt + 0.5 * ball.ax * dt * dt
+        ball.y += ball.vy * dt + 0.5 * ball.ay * dt * dt
+        ball.vx += ball.ax * dt
+        ball.vy += ball.ay * dt
+        if (ball.x < 0) ball.vx = Math.abs(ball.vx)
+        if (ball.x > 400) ball.vx = -Math.abs(ball.vx)
+        if (ball.y < 0) ball.vy = Math.abs(ball.vy)
+        if (ball.y > 300) ball.vy = -Math.abs(ball.vy)
+    }
+    document.getElementById("ups").value = UFX.ticker.getupsstr()
+}
+
+function draw() {
+    context.fillStyle = "black"
+    context.fillRect(0, 0, 400, 300)
+    for (var j = 0 ; j < balls.n ; ++j) {
+        var ball = balls[j]
+        context.fillStyle = ball.color
+        context.beginPath()
+        context.arc(ball.x, ball.y, ball.r, 0, 2 * Math.PI, true); 
+        context.closePath()
+        context.fill()
+    }
+    document.getElementById("fps").value = UFX.ticker.getfpsstr()
+}
+
+// polyfill, boo!
+window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||  
+                               window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
+
+// UFX.ticker.animsync = true
+UFX.ticker.registersync(think, draw, 300, 10)
+
+</script>
+
+
