@@ -108,6 +108,31 @@ UFX.random.spread = function (n, dfac, scalex, scaley, x0, y0) {
     return r
 }
 
+UFX.random.spread1d = function (n, dfac) {
+    n = n || 100
+    dfac = dfac || 0.15
+    var r = [], dmin = 1
+    while (r.length < n) {
+        var x = UFX.random(), valid = true
+        for (var j = 0 ; j < r.length ; ++j) {
+            var dx = Math.abs(x - r[j])
+            if (dx > 0.5) dx = 1 - dx
+            if (dx < dmin) {
+                valid = false
+                break
+            }
+        }
+        if (valid) {
+            r.push(x)
+            dmin = 0.5 * dfac / r.length
+        } else {
+            dmin *= 0.95
+        }
+    }
+//    var scalex = 1, x0 = 0
+    return r
+}
+
 // Gaussian normal variable
 // http://www.taygeta.com/random/gaussian.html
 UFX.random.normal = function (mu, sigma) {

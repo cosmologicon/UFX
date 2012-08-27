@@ -1,34 +1,81 @@
 // Thing - component-based game object
+// Basic usage is very simple. Use UFX.Thing as a factory/constructor
+// Components are simply a collection of named methods.
 
 if (typeof UFX == "undefined") UFX = {}
 
 // Thing factory/constructor. Give it a Component or a list of Components
-UFX.Thing = function (comps) {
+UFX.Thing = function () {
     var thing = Object.create(UFX.Thing.prototype)
-    thing._comps = []
-    if (comps) {
-        thing.addcomp(comps)
+    for (var j = 0 ; j < arguments.length ; ++j) {
+        thing.addcomp(arguments[j])
     }
     return thing
 }
 UFX.Thing.prototype = {
-    definemethod: function (mname) {
-        if (this[mname]) return
-        var mlist = []
-        this[mname] = function () {
-            var ret
-            for (var j = 0 ; j < mlist.length ; ++j) {
-                ret = mlist[j].apply(this, arguments)
+    _createmethod: function (mname, mtype, mlist) {
+        mlist = mlist || []
+        var f
+        if (!mtype) {
+            f = function () {
+                var r
+                for (var j = 0 ; j < mlist.length ; ++j) {
+                    r = mlist[j].apply(this, arguments)
+                }
+                return r
             }
-            return ret
+        } else if (mtype === "any") {
+            f = function () {
+                var r
+                for (var j = 0 ; j < mlist.length ; ++j) {
+                    r = mlist[j].apply(this, arguments)
+                    if (r) return r
+                }
+                return r
+            }
+        } else if (mtype === "all") {
+            f = function () {
+                var r
+                for (var j = 0 ; j < mlist.length ; ++j) {
+                    r = mlist[j].apply(this, arguments)
+                    if (!r) return r
+                }
+                return r
+            }
+        } else if (mtype === "getarray") {
+            f = function () {
+                var r = []
+                for (var j = 0 ; j < mlist.length ; ++j) {
+                    r.push(mlist[j].apply(this, arguments))
+                }
+                return r
+            }
+        } else if (mtype === "putarray") {
+            f = function (arg) {
+                var r = []
+                for (var j = 0 ; j < mlist.length ; ++j) {
+                    r.push(mlist[j].apply(this, arg[j]))
+                }
+                return r
+            }
+        } else {
+            // TODO: throw an error
         }
-        this[mname].mlist = mlist
+        f.mlist = mlist
+        return f
+    },
+    definemethod: function (mname, mtype) {
+        if (this[mname]) return
+        this[mname] = this._createmethod(mname, mtype)
         return this
     },
     addcomp: function (comp) {
         if (comp instanceof Array) {
-            for (var j = 0 ; j < comp.length ; ++j) {
-                this.addcomp(comp[j])
+            // clone to avoid Chrome bug with assigning to arguments
+            var comps = comp.slice(0)
+            for (var j = 0 ; j < comps.length ; ++j) {
+                arguments[0] = comps[j]
+                this.addcomp.apply(this, arguments)
             }
             return this
         }
@@ -38,7 +85,6 @@ UFX.Thing.prototype = {
             this.definemethod(mname)
             this[mname].mlist.push(comp[mname])
         }
-        this._comps.push(comp)
         if (comp.init) {
             comp.init.apply(this, [].slice.call(arguments, 1))
         }
@@ -46,10 +92,12 @@ UFX.Thing.prototype = {
     },
     removecomp: function (comp) {
         if (comp instanceof Array) {
-            for (var j = 0 ; j < comp.length ; ++j) {
-                this.removecomp(comp[j])
+            var comps = comp.slice(0)
+            for (var j = 0 ; j < comps.length ; ++j) {
+                arguments[0] = comps[j]
+                this.removecomp.apply(this, arguments)
             }
-            return
+            return this
         }
         if (comp.remove) {
             comp.remove.apply(this, [].slice.call(arguments, 1))
@@ -59,7 +107,22 @@ UFX.Thing.prototype = {
             if (!(mname in this)) continue
             this[mname].mlist = this[mname].mlist.filter(function (m) { return m !== comp[mname] })
         }
-        this._comps.push(comp)
+        return this
+    },
+    reversemethods: function (mname) {
+        this[mname].mlist.reverse()
+        return this
+    },
+    setmethodmode: function (mname, mtype) {
+        this[mname] = this._createmethod(mname, mtype, (this[mname] ? this[mname].mlist : []))
+        return this
+    },
+    normalize: function () {
+        for (mname in this) {
+            if (this.hasOwnProperty(mname) && this[mname].mlist && this[mname].mlist.length == 1) {
+                this[mname] = this[mname].mlist[0]
+            }
+        }
     },
 }
 
@@ -90,11 +153,12 @@ UFX.Component.HasChildren = {
             this.children[j].die()
         }
     },
-    think: function (dt) {
+    think: function () {
         for (var j = 0 ; j < this.children.length ; ++j) {
-            this.children[j].think(dt)
+            this.children[j].think.apply(this.children[j], arguments)
         }
     },
+    // TODO: is this what we want?
     draw: function (context) {
         for (var j = 0 ; j < this.children.length ; ++j) {
             context.save()
@@ -105,9 +169,12 @@ UFX.Component.HasChildren = {
 }
 
 UFX.Component.SortChildren = {
+    init: function (func) {
+        this.childsortfunc = func || function(a,b) { return a.z - b.z }
+    },
     addchild: function (child) {
-        this.children.sort(function(a,b) { return a.z - b.z })
-    }
+        this.children.sort(this.childsortfunc)
+    },
 }
 
 UFX.Component.HasParent = {
