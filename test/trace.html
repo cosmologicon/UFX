@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<title>UFX.trace test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+</style>
+
+<script src="../src/draw.js"></script>
+<script src="../src/mouse.js"></script>
+<script src="../src/random.js"></script>
+<body>
+<h1>UFX.trace test</h1>
+<canvas id=canvas style="border: 3px gray outset; margin: 10px"></canvas>
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 854
+canvas.height = 480
+var context = canvas.getContext("2d")
+
+var usepath = true
+
+function tracer(spec) {
+    this.spec = spec
+    this.x0 = -100
+    this.x1 = 100
+    this.y0 = -100
+    this.y1 = 100
+    this.img = []
+    this.z = []
+    this.makeimg(0.125)
+    this.makeimg(0.25)
+    this.makeimg(0.5)
+    this.makeimg(1)
+    this.makeimg(2)
+    this.makeimg(4)
+}
+tracer.prototype = {
+    trace: function () {
+        UFX.draw(this.spec)
+    },
+    draw: function (zoom) {
+        zoom = zoom || 1
+        if (zoom == 1) return context.drawImage(this.img0, this.x0, this.y0)
+        var j = 0
+        while (j < this.z.length && this.z[j] < zoom) ++j
+        if (j == this.z.length) return this.trace()
+        var z = this.z[j]
+        UFX.draw("[ z", 1/z, 1/z)
+        context.drawImage(this.img[j], this.x0*z, this.y0*z)
+        UFX.draw("]")
+    },
+    makeimg: function (z) {
+        z = z || 1
+        var img = document.createElement("canvas")
+        img.width = (this.x1 - this.x0) * z
+        img.height = (this.y1 - this.y0) * z
+        var con = img.getContext("2d")
+        UFX.draw(con, "[ z", z, z, "t", -this.x0, -this.y0, this.spec, "]")
+        this.img.push(img)
+        this.z.push(z)
+        if (z == 1) this.img0 = img
+    },
+}
+
+var path = "[ b o 0 0 98 clip "
+for (var j = 0 ; j < 100 ; ++j) {
+    var color = "rgb(" + UFX.random.rand(100, 250) + "," + UFX.random.rand(100,250) + "," + UFX.random.rand(100,250) + ")"
+    path += "[ t " + UFX.random(-100, 100) + " " + UFX.random(-100, 100) + " " +
+            "r " + UFX.random(1000) + " z " + UFX.random(10, 40) + " " + UFX.random(10, 40) +
+            " b o 0 0 1 ] ss white lw 1 fs " + color + " f s "
+}
+path += "] b o 0 0 98 ss white lw 2 s"
+console.log(path)
+
+
+var t = new tracer(path)
+
+UFX.draw.setcontext(context)
+UFX.mouse.init(canvas)
+UFX.mouse.capture.wheel = true
+zoom = 1
+var ttrace = 0, ntrace = 0, tdraw = 0, ndraw = 0
+function round3(x) { return Math.floor(x * 1000) / 1000 }
+function drawtext(t, x, y) {
+    context.fillText(t, x, y)
+    context.strokeText(t, x, y)
+}
+
+function draw() {
+    UFX.mouse.events()
+    var dy = UFX.mouse.getwheeldy()
+    zoom *= Math.exp(0.01 * dy)
+    if (dy) {
+        ttrace = 0, ntrace = 0, tdraw = 0, ndraw = 0
+    }
+    usepath = Math.floor(Date.now() / 1000) % 2 < 1
+    UFX.draw("fs black fr 0 0 854 480 [ t 427 240 z", zoom, zoom)
+    var t0 = Date.now()
+    if (usepath) {
+        t.trace()
+        ttrace += Date.now() - t0 ; ntrace++
+    } else {
+        t.draw(zoom)
+        tdraw += Date.now() - t0 ; ndraw++
+    }
+    UFX.draw("] ss white fs blue lw 1")
+    context.font = "48px 'Arial'"
+    drawtext("zoom: " + round3(zoom), 10, 40)
+    drawtext("trace time: " + round3(ttrace / ntrace) + "ms", 10, 80)
+    drawtext("draw time: " + round3(tdraw / ndraw) + "ms", 10, 120)
+}
+setInterval(draw, 20)
+</script>
+
