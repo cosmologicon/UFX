@@ -16,6 +16,7 @@ h1 {
 </style>
 
 <script src="../src/draw.js"></script>
+<script src="../src/tracer.js"></script>
 <script src="../src/mouse.js"></script>
 <script src="../src/random.js"></script>
 <body>
@@ -29,49 +30,6 @@ var context = canvas.getContext("2d")
 
 var usepath = true
 
-function tracer(spec) {
-    this.spec = spec
-    this.x0 = -100
-    this.x1 = 100
-    this.y0 = -100
-    this.y1 = 100
-    this.img = []
-    this.z = []
-    this.makeimg(0.125)
-    this.makeimg(0.25)
-    this.makeimg(0.5)
-    this.makeimg(1)
-    this.makeimg(2)
-    this.makeimg(4)
-}
-tracer.prototype = {
-    trace: function () {
-        UFX.draw(this.spec)
-    },
-    draw: function (zoom) {
-        zoom = zoom || 1
-        if (zoom == 1) return context.drawImage(this.img0, this.x0, this.y0)
-        var j = 0
-        while (j < this.z.length && this.z[j] < zoom) ++j
-        if (j == this.z.length) return this.trace()
-        var z = this.z[j]
-        UFX.draw("[ z", 1/z, 1/z)
-        context.drawImage(this.img[j], this.x0*z, this.y0*z)
-        UFX.draw("]")
-    },
-    makeimg: function (z) {
-        z = z || 1
-        var img = document.createElement("canvas")
-        img.width = (this.x1 - this.x0) * z
-        img.height = (this.y1 - this.y0) * z
-        var con = img.getContext("2d")
-        UFX.draw(con, "[ z", z, z, "t", -this.x0, -this.y0, this.spec, "]")
-        this.img.push(img)
-        this.z.push(z)
-        if (z == 1) this.img0 = img
-    },
-}
-
 var path = "[ b o 0 0 98 clip "
 for (var j = 0 ; j < 100 ; ++j) {
     var color = "rgb(" + UFX.random.rand(100, 250) + "," + UFX.random.rand(100,250) + "," + UFX.random.rand(100,250) + ")"
@@ -83,7 +41,7 @@ path += "] b o 0 0 98 ss white lw 2 s"
 console.log(path)
 
 
-var t = new tracer(path)
+var t = UFX.Tracer(path, [-100, -100, 200, 200])
 
 UFX.draw.setcontext(context)
 UFX.mouse.init(canvas)
