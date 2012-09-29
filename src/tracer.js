@@ -18,6 +18,7 @@ UFX.Tracer = function (spec, rect, zmax) {
     tracer.h = rect[3]
     tracer.zmax = zmax || 4
     tracer.imgs = {}
+    tracer.showbox = false
     return tracer
 }
 UFX.Tracer.prototype = {
@@ -42,6 +43,10 @@ UFX.Tracer.prototype = {
         } else {
             if (!(z in this.imgs)) this.makeimg(z)
             context = context || UFX.draw._context
+            if (this.showbox) {
+                context.fillStyle = "rgba(255,128,0,0.3)"
+                context.fillRect(this.x0, this.y0, this.w, this.h)
+            }
             if (z == 1) {
                 context.drawImage(this.imgs[1], this.x0, this.y0)
             } else {
