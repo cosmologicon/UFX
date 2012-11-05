@@ -37,6 +37,9 @@ UFX.resource.load = function () {
         var res = resnames[j]
         UFX.resource._load(res[0], res[1])
     }
+    if (UFX.resource._toload === 0) {
+        setTimeout(UFX.resource.onload, 0)
+    }
 }
 
 // Calling loadimage or loadsound is recommended when the resource type cannot be auto-detected
@@ -156,9 +159,9 @@ UFX.resource._toload = 0
 UFX.resource._loaded = 0
 UFX.resource._onload = function () {
     ++UFX.resource._loaded
-    var f = 1. * UFX.resource._loaded / UFX.resource._toload    
+    var f = 1. * UFX.resource._loaded / UFX.resource._toload
     UFX.resource.onloading(f)
-    if (f == 1) {
+    if (UFX.resource._loaded === UFX.resource._toload) {
         UFX.resource.onload()
     }
 }

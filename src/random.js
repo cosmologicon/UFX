@@ -70,6 +70,20 @@ UFX.random.rdisk = function () {
     return [x, y]
 }
 
+// A random point on the unit sphere
+UFX.random.rsphere = function () {
+    var x, y, z
+    do {
+        x = UFX.random(-1, 1)
+        y = UFX.random(-1, 1)
+        z = UFX.random(-1, 1)
+    } while (x * x + y * y + z * z > 1)
+    var d = Math.sqrt(x*x + y*y + z*z)
+    if (d === 0) return [0, 0, 1]
+    return [x/d, y/d, z/d]
+}
+
+
 // N points in the unit square that avoid clustering
 // setting dfac will affect how non-random it appears
 // dfac = 1 : very non-random, regular spacing
