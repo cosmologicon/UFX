@@ -31,6 +31,13 @@ UFX.scene.pop = function () {
     if (n) n.resume()
     return c
 }
+UFX.scene.swap = function (c) {
+	var c0 = UFX.scene._stack.pop()
+	c0.stop()
+	UFX.scene._stack.push(c)
+	c.start()
+	return c0
+}
 UFX.scene.think = function (dt) {
     var c = UFX.scene.top()
     UFX.scene._lastthinker = c
