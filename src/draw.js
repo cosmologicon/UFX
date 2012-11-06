@@ -95,11 +95,17 @@ UFX._draw = function () {
                 this.fillRect(+t[++j], +t[++j], +t[++j], +t[++j])
                 break
             case "sr": case "strokerect":
-                this.fillRect(+t[++j], +t[++j], +t[++j], +t[++j])
+                this.strokeRect(+t[++j], +t[++j], +t[++j], +t[++j])
                 break
             case "cr": case "clearrect":
-                this.fillRect(+t[++j], +t[++j], +t[++j], +t[++j])
+                this.clearRect(+t[++j], +t[++j], +t[++j], +t[++j])
                 break
+            case "f0": case "fillall":
+            	this.fillRect(0, 0, this.canvas.width, this.canvas.height)
+            	break
+            case "c0": case "clearall":
+            	this.clearRect(0, 0, this.canvas.width, this.canvas.height)
+            	break
             case "fs": case "fillstyle":
                 this.fillStyle = t[++j]
                 break
