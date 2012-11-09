@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>UFX.random test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+input {
+    background: inherit; color: inherit; border: none;
+    font-family: inherit; font-size: inherit;
+    width: 20em;
+}
+table {
+    margin: auto;
+}
+td {
+    text-align: right
+}
+</style>
+
+<script src="../src/random.js"></script>
+<body>
+<h1>Random starfields</h1>
+<table>
+<tr><td>Uniform distribution
+<td>dfac = 0.05
+<td>dfac = 0.15
+<td>dfac = 0.5
+<tr><td><canvas id=star0 style="border: thin blue solid"></canvas>
+<td><canvas id=star1 style="border: thin blue solid"></canvas>
+<td><canvas id=star2 style="border: thin blue solid"></canvas>
+<td><canvas id=star3 style="border: thin blue solid"></canvas>
+</table>
+
+<h1>Points on the unit disk</h1>
+<table>
+<tr><td><canvas id=disk0 style="border: thin blue solid"></canvas>
+</table>
+
+<h1>Nomally distributed points</h1>
+<table>
+<tr><td><canvas id=gdisk style="border: thin blue solid"></canvas>
+</table>
+
+<h1>Chi-square shuffle test (should be normally distributed)</h1>
+<table>
+<tr><td><input type=text id=chisq0></input>
+<td><input type=text id=chisq1></input>
+<td><input type=text id=chisq2></input>
+<tr><td><input type=text id=chisq3></input>
+<td><input type=text id=chisq4></input>
+<td><input type=text id=chisq5></input>
+<tr><td><input type=text id=chisq6></input>
+<td><input type=text id=chisq7></input>
+<td><input type=text id=chisq8></input>
+<tr><td><input type=text id=chisq9></input>
+<td><input type=text id=chisq10></input>
+<td><input type=text id=chisq11></input>
+</table>
+
+
+<script>
+// Set a context to white on black and set its size to 300x300
+var s = 200, n = 120
+function getcontext(name) {
+    var canvas = document.getElementById(name)
+    canvas.width = s
+    canvas.height = s
+    var context = canvas.getContext("2d")
+    context.fillStyle = "black"
+    context.fillRect(0, 0, s, s)
+    context.fillStyle = "white"
+    return context
+}
+
+context0 = getcontext("star0")
+for (var j = 0 ; j < n ; ++j) {
+    var x = UFX.random.rand(s), y = UFX.random.rand(s)
+    context0.beginPath()
+    context0.arc(x, y, 4, 0, 2 * Math.PI, true); 
+    context0.closePath()
+    context0.fill()
+}
+
+context1 = getcontext("star1")
+stars = UFX.random.spread(n, 0.05)
+for (var j = 0 ; j < n ; ++j) {
+    var x = Math.floor(stars[j][0] * s), y = Math.floor(stars[j][1] * s)
+    context1.beginPath()
+    context1.arc(x, y, 4, 0, 2 * Math.PI, true); 
+    context1.closePath()
+    context1.fill()
+}
+
+context2 = getcontext("star2")
+stars = UFX.random.spread(n, 0.15)
+for (var j = 0 ; j < n ; ++j) {
+    var x = Math.floor(stars[j][0] * s), y = Math.floor(stars[j][1] * s)
+    context2.beginPath()
+    context2.arc(x, y, 4, 0, 2 * Math.PI, true); 
+    context2.closePath()
+    context2.fill()
+}
+
+context3 = getcontext("star3")
+stars = UFX.random.spread(n, 0.5)
+for (var j = 0 ; j < n ; ++j) {
+    var x = Math.floor(stars[j][0] * s), y = Math.floor(stars[j][1] * s)
+    context3.beginPath()
+    context3.arc(x, y, 4, 0, 2 * Math.PI, true); 
+    context3.closePath()
+    context3.fill()
+}
+
+
+context4 = getcontext("disk0")
+for (var j = 0 ; j < 100 * n ; ++j) {
+    var p = UFX.random.rdisk()
+    var x = Math.floor(s/2 * (1 + p[0])), y = Math.floor(s/2 * (1 + p[1]))
+    context4.beginPath()
+    context4.arc(x, y, 1, 0, 2 * Math.PI, true); 
+    context4.closePath()
+    context4.fill()
+}
+
+context5 = getcontext("gdisk")
+for (var j = 0 ; j < 100 * n ; ++j) {
+    var x = Math.floor(UFX.random.normal(s/2, s/6)), y = Math.floor(UFX.random.normal(s/2, s/6))
+    context5.beginPath()
+    context5.arc(x, y, 1, 0, 2 * Math.PI, true); 
+    context5.closePath()
+    context5.fill()
+}
+
+// Chi-square test for shuffling
+
+function testshuffle(N) {
+    N = N || 50000
+    var pcount = {}
+    for (var j = 0 ; j < N ; ++j) {
+        var a = [1, 2, 3, 4, 5]
+        var perm = UFX.random.shuffle(a).join("")
+        if (typeof pcount[perm] != "number") pcount[perm] = 0
+        pcount[perm] += 1
+    }
+    var chi2 = 0, nperm = 0, E = N / 120.0
+    for (var perm in pcount) {
+        var O = pcount[perm]
+        chi2 += (E - O) * (E - O) / E
+        nperm += 1
+    }
+    chi2 += (120 - nperm) * E
+    return Math.sqrt(2 * chi2) - Math.sqrt(2 * 119.0 - 1)
+}
+
+for (var k = 0 ; k < 12 ; ++k) {
+    document.getElementById("chisq" + k).value = testshuffle()
+}
+
+
+</script>
+
+
