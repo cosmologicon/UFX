@@ -112,6 +112,12 @@ UFX._draw = function () {
             case "ss": case "strokestyle":
                 this.strokeStyle = t[++j]
                 break
+            case "drawimage":
+                this.drawImage(t[++j], +t[++j], +t[++j])
+                break
+            case "drawimage0":
+                this.drawImage(t[++j], 0, 0)
+                break
             case "clip":
                 this.clip()
                 break
