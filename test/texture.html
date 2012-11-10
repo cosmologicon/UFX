@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>UFX.texture test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+input {
+    background: inherit; color: inherit; border: none;
+    font-family: inherit; font-size: inherit;
+}
+table {
+    margin: auto;
+}
+td {
+    vertical-align: top;
+}
+ul {
+    margin-top: 0;
+}
+li {
+    list-style-type: none;
+}
+input[type="text"] {
+    min-width: 20em;
+}
+</style>
+
+<script src="../src/random.js"></script>
+<script src="../src/noise.js"></script>
+<script src="../src/texture.js"></script>
+<h1>UFX.texture test</h1>
+<canvas id=canvas></canvas>
+
+<script>
+
+var canvas = document.getElementById("canvas")
+canvas.width = 512
+canvas.height = 512
+var context = canvas.getContext("2d")
+context.fillStyle = "rgb(0,0,100)"
+context.fillRect(0, 0, 512, 512)
+
+context.translate(256, 256)
+context.scale(2, 2)
+
+context.drawImage(UFX.texture.marble(), -128, -128)
+//context.drawImage(UFX.texture.dirt(), -128, -128)
+//context.drawImage(UFX.texture.roughshade({ascale: 40, alpha0: 40, scale: 64}), -128, -128)
+
+//context.drawImage(UFX.texture.spots({amin: 0, amax: 20}), -128, -128)
+
+
+</script>
+
+
