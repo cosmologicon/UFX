@@ -40,17 +40,17 @@ UFX.texture = {
         var obj = this.reduceargs(arguments)
         var w = obj.width || obj.size || 256
         var h = obj.height || obj.size || 256
-        var rmin = obj.rmin || 0, rmax = obj.rmax || 256
-        var gmin = obj.gmin || 0, gmax = obj.gmax || 256
-        var bmin = obj.bmin || 0, bmax = obj.bmax || 256
+        var rmin = obj.rmin || 0, rmax = "rmax" in obj ? obj.rmax : 256
+        var gmin = obj.gmin || 0, gmax = "gmax" in obj ? obj.gmax : 256
+        var bmin = obj.bmin || 0, bmax = "bmax" in obj ? obj.bmax : 256
         var wmin = obj.wmin || 0, wmax = obj.wmax || 0
         if (obj.seed) UFX.random.setseed(obj.seed)
         var canvas = this.makecanvas(w, h), data = canvas.data
         for (var j = 0 ; j < w*h*4 ; j += 4) {
             var white = wmax && UFX.random.rand(wmin, wmax)
-            data[j] = white + UFX.random.rand(rmin, rmax)
-            data[j+1] = white + UFX.random.rand(gmin, gmax)
-            data[j+2] = white + UFX.random.rand(bmin, bmax)
+            data[j] = white + (rmax && UFX.random.rand(rmin, rmax))
+            data[j+1] = white + (gmax && UFX.random.rand(gmin, gmax))
+            data[j+2] = white + (bmax && UFX.random.rand(bmin, bmax))
             data[j+3] = 255
         }
         canvas.applydata()
@@ -58,9 +58,17 @@ UFX.texture = {
     },
     grass: function () {
         return this.stat(this.reduceargs(arguments), {
-            rmin: 40, rmax: 80,
-            gmin: 80, gmax: 120,
-            bmin: 0, bmax: 10,
+            rmin: 20, rmax: 60,
+            gmin: 100, gmax: 140,
+            bmin: 0, bmax: 20,
+        })
+    },
+    deadgrass: function () {
+        return this.stat(this.reduceargs(arguments), {
+            wmin: 100, wmax: 120,
+            rmin: 80, rmax: 100,
+            gmin: 80, gmax: 100,
+            bmin: 0, bmax: 0,
         })
     },
     dirt: function () {
@@ -119,8 +127,10 @@ UFX.texture = {
         var fraclevel = obj.fraclevel || 0
         if (obj.seed) UFX.random.setseed(obj.seed)
         var zscale = 256
+        var xoffset = ("xoffset" in obj) ? obj.xoffset : UFX.random(xscale)
+        var yoffset = ("yoffset" in obj) ? obj.yoffset : UFX.random(yscale)
         var zoffset = ("zoffset" in obj) ? obj.zoffset : UFX.random(zscale)
-        var ndata = UFX.noise.wrapslice([w, h], zoffset, [xscale, yscale, zscale], [0, 0])
+        var ndata = UFX.noise.wrapslice([w, h], zoffset, [xscale, yscale, zscale], [xoffset, yoffset])
         if (fraclevel) UFX.noise.fractalize(ndata, [w, h], fraclevel)
         return ndata
     },
@@ -189,6 +199,32 @@ UFX.texture = {
         }
         canvas.applydata()
         return canvas
+    },
+    
+    overcast: function () {
+        var obj = this.reduceargs(arguments)
+        var w = obj.width || obj.size || 256
+        var h = obj.height || obj.size || 256
+        var r0 = "r0" in obj ? obj.r0 : 160, dr = "dr" in obj ? obj.dr : 80
+        var g0 = "g0" in obj ? obj.g0 : 160, dg = "dg" in obj ? obj.dg : 80
+        var b0 = "b0" in obj ? obj.b0 : 160, db = "db" in obj ? obj.db : 80
+        var canvas = this.makecanvas(w, h), data = canvas.data
+        var ndata = this.noisedata(obj, {fraclevel: 2, scale: 8})
+        for (var j = 0, k = 0 ; k < w*h ; j += 4, ++k) {
+            var v = ndata[k]
+            data[j] = r0 + v*dr
+            data[j+1] = g0 + v*dg
+            data[j+2] = b0 + v*db
+            data[j+3] = 255
+        }
+        canvas.applydata()
+        return canvas
+    },
+    // needs work
+    ocean: function () {
+        return this.overcast(this.reduceargs(arguments), {
+            r0: 40, dr: 30, g0: 40, dg: 30, b0: 160, db: 60,
+        })
     },
 
     marble: function () {
