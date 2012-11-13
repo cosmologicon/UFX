@@ -255,6 +255,44 @@ UFX.texture = {
         canvas.applydata()
         return canvas
     },
+    
+    
+    // Perlin noise + static
+    noisestat: function () {
+        var obj = this.reduceargs(arguments)
+        var w = obj.width || obj.size || 256
+        var h = obj.height || obj.size || 256
+        var rmin = obj.rmin || 0, rmax = "rmax" in obj ? obj.rmax : 256
+        var gmin = obj.gmin || 0, gmax = "gmax" in obj ? obj.gmax : 256
+        var bmin = obj.bmin || 0, bmax = "bmax" in obj ? obj.bmax : 256
+        var wmin = obj.wmin || 0, wmax = obj.wmax || 0
+        var dr = "dr" in obj ? obj.dr : 0
+        var dg = "dg" in obj ? obj.dg : 0
+        var db = "db" in obj ? obj.db : 0
+        var dw = "dw" in obj ? obj.dw : 0
+        if (obj.seed) UFX.random.setseed(obj.seed)
+        var ndata = this.noisedata(obj)
+        var canvas = this.makecanvas(w, h), data = canvas.data
+        for (var j = 0, k = 0 ; k < w*h ; j += 4, ++k) {
+            var white = wmax && UFX.random.rand(wmin, wmax) + v*dw
+            var v = ndata[k]
+            data[j] = white + (rmax && UFX.random.rand(rmin, rmax)) + v*dr
+            data[j+1] = white + (gmax && UFX.random.rand(gmin, gmax)) + v*dg
+            data[j+2] = white + (bmax && UFX.random.rand(bmin, bmax)) + v*db
+            data[j+3] = 255
+        }
+        canvas.applydata()
+        return canvas
+    },
+    
+    patchygrass: function () {
+        return this.noisestat(this.reduceargs(arguments), {
+            wmin: 40, wmax: 80, dw: -40,
+            rmin: 0, rmax: 20, dr: -40,
+            gmin: 60, gmax: 90, dg: 40,
+            bmin: 0, bmax: 10,
+        })
+    },
 
 }
 
