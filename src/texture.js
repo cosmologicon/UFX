@@ -293,6 +293,14 @@ UFX.texture = {
             bmin: 0, bmax: 10,
         })
     },
+    patchydirt: function () {
+        return this.noisestat(this.reduceargs(arguments), {
+            wmin: 40, wmax: 80, dw: -20,
+            rmin: 60, rmax: 80, dr: 60,
+            gmin: 20, gmax: 40, dg: 80,
+            bmin: 0, bmax: 4,
+        })
+    },
 
 }
 
