@@ -60,6 +60,21 @@ UFX.resource.loadsound = function () {
     }
 }
 
+// Load Google web fonts
+UFX.resource.loadwebfonts = function () {
+    WebFontConfig = {
+        google: { families: Array.prototype.slice.call(arguments) },
+        active: UFX.resource._onload,
+    }
+    var wf = document.createElement("script")
+    wf.src = ("https:" === document.location.protocol ? "https" : "http") + "://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js"
+    wf.type = "text/javascript"
+    wf.async = "true"
+    document.getElementsByTagName("head")[0].appendChild(wf)
+    ++UFX.resource._toload
+}
+
+
 // Firefox won't let me play a sound more than once every 10 seconds or so.
 // Use this class to create a set of identical sounds if you want to play in rapid succession
 // url can be a sound or a sound.src attribute. Multisound doesn't participate in the loading
