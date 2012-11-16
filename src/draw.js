@@ -52,8 +52,21 @@ UFX._draw = function () {
             case "aa": case "antiarc":
                 this.arc(+t[++j], +t[++j], +t[++j], +t[++j], +t[++j], true)
                 break
+            case "arcto":
+                this.arcTo(+t[++j], +t[++j], +t[++j], +t[++j], +t[++j])
+                break
             case "o": case "circle":
                 this.arc(+t[++j], +t[++j], +t[++j], 0, 2*Math.PI)
+                break
+            case "rr": case "roundedrect":
+                var x = +t[++j], y = +t[++j], w = +t[++j], h = +t[++j], r = +t[++j]
+                this.beginPath()
+                this.moveTo(x+r, y)
+                this.arcTo(x+w, y, x+w, y+h, r)
+                this.arcTo(x+w, y+h, x, y+h, r)
+                this.arcTo(x, y+h, x, y, r)
+                this.arcTo(x, y, x+w, y, r)
+                this.closePath()
                 break
             case "t": case "translate":
                 this.translate(+t[++j], +t[++j])
@@ -193,10 +206,9 @@ for (var mname in UFX._draw) {
         return function (context) {
             if (context.beginPath) {
                 return method.apply(context, Array.prototype.slice.call(arguments, 1))
-            } else if (UFX.draw._context) {
-                return method.apply(UFX.draw._context, arguments)
             } else {
-                throw "UFX.draw." + mname + " must be called with context as first argument"
+                if (!UFX.draw._context) UFX.draw._context = document.createElement("canvas").getContext("2d")
+                return method.apply(UFX.draw._context, arguments)
             }
         }
     })(UFX._draw[mname], mname)
