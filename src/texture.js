@@ -301,6 +301,14 @@ UFX.texture = {
             bmin: 0, bmax: 4,
         })
     },
+    cement: function () {
+        return this.noisestat(this.reduceargs(arguments), {
+            wmin: 120, wmax: 160, dw: 40,
+            rmin: 0, rmax: 10,
+            gmin: 0, gmax: 10,
+            bmin: 0, bmax: 10,
+        })
+    },
 
 }
 
