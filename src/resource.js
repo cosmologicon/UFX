@@ -112,6 +112,38 @@ UFX.resource.Multisound.prototype = {
     },
 }
 
+// Sometimes when you've got a sound that plays over and over again (like gunshots) you want to
+// add a small amount of variation. Pass a list of closely-related sounds to this class to get an
+// object that lets you play one at random. Requires UFX.random.
+UFX.resource.SoundRandomizer = function (slist, nskip) {
+    if (!(this instanceof UFX.resource.SoundRandomizer))
+        return new UFX.resource.SoundRandomizer(slist, nskip)
+    this._sounds = []
+    for (var j = 0 ; j < slist.length ; ++j) {
+        this._sounds.push(typeof slist[j] == "string" ? UFX.resource.sounds[slist[j]] : slist[j])
+    }
+    this._nskip = Math.min(this._sounds.length - 1, (nskip || 3))
+    this._played = []
+    this.volume = 1.0
+}
+UFX.resource.SoundRandomizer.prototype = {
+    play: function () {
+        do {
+            var k = UFX.random(this._sounds.length)
+        } while (this._played.indexOf(k) > -1)
+        var s = this._sounds[k]
+        s.volume = this.volume
+        s.play()
+        this._played.push(k)
+        while (this._played.length >= this._nskip)
+            this._played = this._played.slice(1)
+    },
+    pause: function () {
+        for (var j = 0 ; j < this._sounds.length ; ++j) {
+            this._sounds[j].pause()
+        }
+    },
+}
 
 UFX.resource._seturl = function (url) {
     if (!UFX.resource.base) return url
