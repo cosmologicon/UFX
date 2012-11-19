@@ -52,7 +52,7 @@ UFX.scene._resolveq = function () {
     }
     UFX.scene._actionq = []
 }
-UFX.scene.think = function (dt) {
+UFX.scene.think = function () {
     var c = UFX.scene.top()
     UFX.scene._lastthinker = c
     if (c) {
@@ -64,7 +64,7 @@ UFX.scene.think = function (dt) {
                 UFX.scene.replaying = false
             }
         } else {
-            var args = c.thinkargs(dt)
+            var args = c.thinkargs.apply(c, arguments)
             if (UFX.scene.recording) {
                 UFX.scene.record.push(args)
             }
@@ -81,8 +81,8 @@ UFX.scene.draw = function (f) {
 
 // Use this as a prototype for your own scenes
 UFX.scene.Scene = {
-    thinkargs: function (dt) {
-        return [dt]
+    thinkargs: function () {
+        return arguments
     },
     think: function (dt) {
     },
