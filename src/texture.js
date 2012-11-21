@@ -256,6 +256,25 @@ UFX.texture = {
         return canvas
     },
     
+    nightsky: function () {
+        var obj = this.reduceargs(arguments)
+        var canvas = this.overcast(obj, {
+            r0: 0, dr: 0, g0: 0, dg: 10, b0: 20, db: 20,
+        })
+        var w = canvas.width, h = canvas.height
+        var nstars = Math.floor(("density" in obj ? obj.density : 1) * w * h / 500)
+        var spread = "spread" in obj ? obj.spread : 0.15
+        var rstar0 = "rstar0" in obj ? obj.rstar0 : 0.0
+        var rstar1 = "rstar1" in obj ? obj.rstar1 : 0.8
+        var c = canvas.context
+        c.beginPath()
+        UFX.random.spread(nstars, spread).forEach(function (star) {
+            c.arc(star[0]*w, star[1]*h, UFX.random(rstar0, rstar1), 0, 2*Math.PI)
+        })
+        c.fillStyle = "white"
+        c.fill()
+        return canvas
+    },    
     
     // Perlin noise + static
     noisestat: function () {
