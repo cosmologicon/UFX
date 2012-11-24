@@ -125,6 +125,22 @@ UFX._draw = function () {
             case "ss": case "strokestyle":
                 this.strokeStyle = t[++j]
                 break
+            case "shadowblur":
+                this.shadowBlur = +t[++j]
+                break
+            case "shadowcolor":
+                this.shadowColor = t[++j]
+                break
+            case "shadowoffsetx": case "shadowx":
+                this.shadowOffsetX = +t[++j]
+                break
+            case "shadowoffsety": case "shadowy":
+                this.shadowOffsetY = +t[++j]
+                break
+            case "shadowoffsetxy": case "shadowxy":
+                this.shadowOffsetX = +t[++j]
+                this.shadowOffsetY = +t[++j]
+                break
             case "drawimage":
                 this.drawImage(t[++j], +t[++j], +t[++j])
                 break
@@ -154,6 +170,31 @@ UFX._draw = function () {
                 break
             case "]": case "restore":
                 this.restore()
+                break
+            case "font":
+                this.font = t[++j].replace(/~/g, " ")
+                break
+            case "filltext": case "ft":
+                this.fillText(t[++j].replace(/~/g, " "), +t[++j], +t[++j])
+                break
+            case "filltext0": case "ft0":
+                this.fillText(t[++j].replace(/~/g, " "), 0, 0)
+                break
+            case "stroketext": case "st":
+                this.strokeText(t[++j].replace(/~/g, " "), +t[++j], +t[++j])
+                break
+            case "stroketext0": case "st0":
+                this.strokeText(t[++j].replace(/~/g, " "), 0, 0)
+                break
+            case "fillstroketext": case "fst":
+                var s = t[++j].replace(/~/g, " "), x = +t[++j], y = +t[++j]
+                this.fillText(s, x, y)
+                this.strokeText(s, x, y)
+                break
+            case "fillstroketext0": case "fst0":
+                var s = t[++j].replace(/~/g, " ")
+                this.fillText(s, 0, 0)
+                this.strokeText(s, 0, 0)
                 break
             default:
                 throw "Unrecognized draw token " + t[j]
