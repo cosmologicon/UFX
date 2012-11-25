@@ -129,7 +129,7 @@ UFX.resource.SoundRandomizer = function (slist, nskip) {
 UFX.resource.SoundRandomizer.prototype = {
     play: function () {
         do {
-            var k = UFX.random(this._sounds.length)
+            var k = UFX.random.rand(this._sounds.length)
         } while (this._played.indexOf(k) > -1)
         var s = this._sounds[k]
         s.volume = this.volume
@@ -144,6 +144,18 @@ UFX.resource.SoundRandomizer.prototype = {
         }
     },
 }
+UFX.resource.mergesounds = function () {
+	for (var j = 0 ; j < arguments.length ; ++j) {
+		var slist = [], sname = arguments[j]
+		for (var s in UFX.resource.sounds) {
+			if (s.indexOf(sname) == 0) {
+				slist.push(s)
+			}
+		}
+		UFX.resource.sounds[sname] = UFX.resource.SoundRandomizer(slist)
+	}
+}
+
 
 UFX.resource._seturl = function (url) {
     if (!UFX.resource.base) return url
