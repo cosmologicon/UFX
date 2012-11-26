@@ -3,18 +3,15 @@
 if (typeof UFX == "undefined") UFX = {}
 UFX.scene = {}
 
-UFX.scene.recording = false
-UFX.scene.replaying = false
-
 UFX.scene.init = function (maxups, minups) {
     maxups = maxups || 300
     minups = minups || 10
     UFX.ticker.registersync(UFX.scene.think, UFX.scene.draw, maxups, minups)
-    UFX.scene.record = []
-    UFX.scene.jrecord = 0
 }
 
 UFX.scene._actionq = []
+UFX.scene._stack = []
+
 UFX.scene.top = function () {
     var n = UFX.scene._stack.length
     return n ? UFX.scene._stack[n-1] : null
@@ -23,7 +20,8 @@ UFX.scene.ipush = function (c) {
     var old = UFX.scene.top()
     if (old) old.suspend()
     UFX.scene._stack.push(c)
-    c.start()
+    var args = UFX.scene.playback.resolvestartargs(c, Array.prototype.slice.call(arguments, 1))
+    c.start.apply(c, args)
 }
 UFX.scene.ipop = function () {
     var c = UFX.scene._stack.pop()
@@ -36,7 +34,8 @@ UFX.scene.iswap = function (c) {
 	var c0 = UFX.scene._stack.pop()
 	c0.stop()
 	UFX.scene._stack.push(c)
-	c.start()
+    var args = UFX.scene.playback.resolvestartargs(c, Array.prototype.slice.call(arguments, 1))
+	c.start.apply(c, args)
 	return c0
 }
 UFX.scene.push = function (c) { UFX.scene._actionq.push(["push", c]) }
@@ -53,22 +52,11 @@ UFX.scene._resolveq = function () {
     UFX.scene._actionq = []
 }
 UFX.scene.think = function () {
+    UFX.scene._resolveq()
     var c = UFX.scene.top()
     UFX.scene._lastthinker = c
     if (c) {
-        if (UFX.scene.replaying) {
-            var args = UFX.scene.record[UFX.scene.jrecord]
-//            UFX.scene.record = UFX.scene.record.splice(1)
-            UFX.scene.jrecord++
-            if (UFX.scene.jrecord >= UFX.scene.record.length) {
-                UFX.scene.replaying = false
-            }
-        } else {
-            var args = c.thinkargs.apply(c, arguments)
-            if (UFX.scene.recording) {
-                UFX.scene.record.push(args)
-            }
-        }
+        var args = UFX.scene.playback.resolvethinkargs(c, arguments)
         c.think.apply(c, args)
     }
 }
@@ -76,7 +64,6 @@ UFX.scene.draw = function (f) {
     if (UFX.scene._lastthinker) {
         UFX.scene._lastthinker.draw(f)
     }
-    UFX.scene._resolveq()
 }
 
 // Use this as a prototype for your own scenes
@@ -94,7 +81,62 @@ UFX.scene.Scene = {
     stop: function () { }, // called when this scene is popped off the stack
 }
 
-UFX.scene._stack = []
+UFX.scene.playback = {
+    seq: [],
+    playing: false,
+    recording: false,
+    trimempty: false,
+    
+    resolvestartargs: function (c, args) {
+        if (this.playing) return this.pop()
+        if (c.startargs) args = c.startargs.apply(c, args)
+        if (this.recording) this.push(args)
+        return args
+    },
+    resolvethinkargs: function (c, args) {
+        if (this.playing) return this.pop()
+        if (c.thinkargs) args = c.thinkargs.apply(c, args)
+        if (this.recording) this.push(args)
+        return args
+    },
+    reset: function () {
+        this.seq = []
+        this.jrecord = 0
+        this.playing = false
+        this.recording = false
+    },
+    record: function () {
+        this.reset()
+        this.recording = true
+    },
+    play: function (state, callback) {
+        this.reset()
+        this.seq = toString.call(state) == "[Object String]" ? JSON.parse(state) : state
+        this.playing = true
+        this.playcallback = callback
+    },
+    stop: function () {
+        if (this.playing) {
+            this.playing = false
+        }
+        if (this.recording) {
+            this.recording = false
+            return this.seq
+        }
+    },
+    pop: function () {
+        var r = this.seq[this.jrecord]
+        this.jrecord++
+        if (this.jrecord >= this.seq.length) {
+            this.replaying = false
+            if (this.playcallback) this.playcallback()
+        }
+    },
+    push: function (args) {
+        this.seq.push(args)
+    },
+}
+
 
 
 
