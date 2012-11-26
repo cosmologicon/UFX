@@ -187,15 +187,30 @@ UFX.texture = {
         var r = color[0], g = color[1], b = color[2]
         var sharpness = obj.sharpness || 0
         var coverage = (obj.coverage || 0.4) - 0.5
+        var shadecolor = obj.shadecolor || [0, 0, 0]
+        var sr = shadecolor[0], sg = shadecolor[1], sb = shadecolor[2]
+        var shadex = obj.shadex || 0, shadey = obj.shadey || 0
+        var shadefactor = (shadex || shadey) && 0.002 * Math.exp(obj.shadefactor || 0) / Math.sqrt(shadex*shadex + shadey*shadey)
         var afactor = 4000 * Math.exp(sharpness)
         var canvas = this.makecanvas(w, h), data = canvas.data
         var ndata = this.noisedata(obj, {fraclevel: 2})
-        for (var j = 0, k = 0 ; k < w*h ; j += 4, ++k) {
-            var a = (ndata[k] + coverage) * afactor + 128
-            data[j] = r
-            data[j+1] = g
-            data[j+2] = b
-            data[j+3] = a
+        for (var y = 0, j = 0, k = 0 ; y < h ; ++y) {
+            for (var x = 0 ; x < w; ++x, j += 4, ++k) {
+                var a = (ndata[k] + coverage) * afactor + 128
+                data[j+3] = a
+                if (shadefactor) {
+                    var a2 = (ndata[((x+shadex)%w) + ((y+shadey)%h)*w] + coverage) * afactor + 128
+                    var f = Math.min(Math.max(shadefactor * (a - a2), 0), 1)
+                    var d = 1 - f
+                    data[j] =   r*d + sr*f
+                    data[j+1] = g*d + sg*f
+                    data[j+2] = b*d + sb*f
+                } else {
+                    data[j] =   r
+                    data[j+1] = g
+                    data[j+2] = b
+                }
+            }
         }
         canvas.applydata()
         return canvas

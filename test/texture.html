@@ -46,13 +46,13 @@ var canvas = document.getElementById("canvas")
 canvas.width = 512
 canvas.height = 512
 var context = canvas.getContext("2d")
-context.fillStyle = "rgb(0,0,100)"
+context.fillStyle = "rgb(80,80,140)"
 context.fillRect(0, 0, 512, 512)
 
 context.translate(256, 256)
-context.scale(4, 4)
+context.scale(4, 2)
 
-context.drawImage(UFX.texture.nightsky(), -128, -128)
+context.drawImage(UFX.texture.clouds({shadey: 2, shadecolor: [150,0,0]}), -128, -128)
 //context.drawImage(UFX.texture.dirt(), -128, -128)
 //context.drawImage(UFX.texture.roughshade({ascale: 40, alpha0: 40, scale: 64}), -128, -128)
 
