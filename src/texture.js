@@ -284,7 +284,9 @@ UFX.texture = {
         var c = canvas.context
         c.beginPath()
         UFX.random.spread(nstars, spread).forEach(function (star) {
-            c.arc(star[0]*w, star[1]*h, UFX.random(rstar0, rstar1), 0, 2*Math.PI)
+        	var x = star[0]*w, y = star[1]*h
+        	c.moveTo(x, y)
+            c.arc(x, y, UFX.random(rstar0, rstar1), 0, 2*Math.PI)
         })
         c.fillStyle = "white"
         c.fill()
