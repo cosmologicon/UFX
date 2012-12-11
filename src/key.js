@@ -50,8 +50,9 @@ UFX.key.clearevents = function () {
     UFX.key._downevents = []
     UFX.key._upevents = []
 }
-UFX.key.clearcombos = function () {
+UFX.key.clearcombos = function (clearpending) {
     UFX.key._combos = []
+    if (clearpending) UFX.key._currentcombo = null
 }
 
 // Return a lightweight summary of the current keys being pressed and the
@@ -119,7 +120,7 @@ UFX.key.remap = function () {
 }
 
 UFX.key.remaparrows = function (dvorakToo) {
-    UFX.key.remap({ A: "left", S: "down", D: "left", W: "up", })
+    UFX.key.remap({ A: "left", S: "down", D: "right", W: "up", })
     if (dvorakToo) {
         UFX.key.remap({ O: "down", comma: "up", ",": "up", E: "right", })
     }
