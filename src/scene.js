@@ -86,16 +86,19 @@ UFX.scene.playback = {
     playing: false,
     recording: false,
     trimempty: false,
+    seqlimit: 10000000,
     
     resolvestartargs: function (c, args) {
         if (this.playing) return this.pop()
         if (c.startargs) args = c.startargs.apply(c, args)
+        if (this.trimempty) args = this.trim(args)
         if (this.recording) this.push(args)
         return args
     },
     resolvethinkargs: function (c, args) {
         if (this.playing) return this.pop()
         if (c.thinkargs) args = c.thinkargs.apply(c, args)
+        if (this.trimempty) args = this.trim(args)
         if (this.recording) this.push(args)
         return args
     },
@@ -106,8 +109,10 @@ UFX.scene.playback = {
         this.recording = false
     },
     record: function () {
+        var s = this.seq
         this.reset()
         this.recording = true
+        return s
     },
     play: function (state, callback) {
         this.reset()
@@ -133,7 +138,19 @@ UFX.scene.playback = {
         }
     },
     push: function (args) {
+        if (this.seqlimit && this.seq.length >= this.seqlimit) return
         this.seq.push(args)
+    },
+    // Eliminate empty/falsy statements from the end of a list
+    trim: function (list) {
+        for (var j = list.length - 1 ; j >= 0 ; --j) {
+            var x = list[j]
+            if (!x) continue
+            var s = JSON.stringify(x)
+            if (s === "{}" || s === "[]") continue
+            return j == list.length - 1 ? list : list.slice(0, j+1)
+        }
+        return []
     },
 }
 
