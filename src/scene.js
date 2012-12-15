@@ -21,22 +21,22 @@ UFX.scene.ipush = function (c) {
     if (old) old.suspend()
     UFX.scene._stack.push(c)
     var args = UFX.scene.playback.resolvestartargs(c, Array.prototype.slice.call(arguments, 1))
-    c.start.apply(c, args)
+    if (c.start) c.start.apply(c, args)
 }
 UFX.scene.ipop = function () {
     var c = UFX.scene._stack.pop()
-    c.stop()
+    if (c.stop) c.stop()
     var n = UFX.scene.top()
-    if (n) n.resume()
+    if (n && n.resume) n.resume()
     return c
 }
 UFX.scene.iswap = function (c) {
-	var c0 = UFX.scene._stack.pop()
-	c0.stop()
-	UFX.scene._stack.push(c)
+    var c0 = UFX.scene._stack.pop()
+    if (c0.stop) c0.stop()
+    UFX.scene._stack.push(c)
     var args = UFX.scene.playback.resolvestartargs(c, Array.prototype.slice.call(arguments, 1))
-	c.start.apply(c, args)
-	return c0
+    if (c.start) c.start.apply(c, args)
+    return c0
 }
 UFX.scene.push = function (c) { UFX.scene._actionq.push(["push", c]) }
 UFX.scene.pop = function (c) { UFX.scene._actionq.push(["pop"]) }
@@ -57,12 +57,13 @@ UFX.scene.think = function () {
     UFX.scene._lastthinker = c
     if (c) {
         var args = UFX.scene.playback.resolvethinkargs(c, arguments)
-        c.think.apply(c, args)
+        if (c.think) c.think.apply(c, args)
     }
 }
-UFX.scene.draw = function (f) {
-    if (UFX.scene._lastthinker) {
-        UFX.scene._lastthinker.draw(f)
+UFX.scene.draw = function () {
+	var c = UFX.scene._lastthinker
+    if (c && c.draw) {
+        c.draw.apply(c, arguments)
     }
 }
 
