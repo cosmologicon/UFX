@@ -26,6 +26,15 @@ UFX.mouse.events = function () {
     return r
 }
 
+UFX.mouse.getclicks = function () {
+    var r = {}
+    UFX.mouse._events.forEach(function (event) {
+        r[event.type] = event.pos
+    })
+    UFX.mouse.clearevents()
+    return r
+}
+
 UFX.mouse.clearevents = function () {
     UFX.mouse._events = []
 }
