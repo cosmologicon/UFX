@@ -26,12 +26,17 @@ UFX.mouse.events = function () {
     return r
 }
 
-UFX.mouse.getclicks = function () {
+UFX.mouse.state = function () {
     var r = {}
+    if (UFX.mouse.capture.left) r.left = {}
+    if (UFX.mouse.capture.middle) r.middle = {}
+    if (UFX.mouse.capture.right) r.right = {}
     UFX.mouse._events.forEach(function (event) {
-        r[event.type] = event.pos
+        r[UFX.mouse._buttonmap[event.button]][event.type] = event.pos
     })
     UFX.mouse.clearevents()
+    if (UFX.mouse.capture.wheel) r.wheeldy = UFX.mouse.getwheeldy()
+    r.pos = UFX.mouse.pos
     return r
 }
 
