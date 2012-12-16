@@ -134,9 +134,11 @@ UFX.resource.SoundRandomizer.prototype = {
         var s = this._sounds[k]
         s.volume = this.volume
         s.play()
-        this._played.push(k)
-        while (this._played.length >= this._nskip)
-            this._played = this._played.slice(1)
+        if (this._nskip) {
+            this._played.push(k)
+            while (this._played.length >= this._nskip)
+                this._played = this._played.slice(1)
+        }
     },
     pause: function () {
         for (var j = 0 ; j < this._sounds.length ; ++j) {
