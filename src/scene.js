@@ -1,160 +1,107 @@
 // The scene module - keeps track of the scene stack
 
 if (typeof UFX == "undefined") UFX = {}
-UFX.scene = {}
 
-UFX.scene.init = function (maxups, minups) {
-    maxups = maxups || 300
-    minups = minups || 10
-    UFX.ticker.registersync(UFX.scene.think, UFX.scene.draw, maxups, minups)
+UFX.SceneStack = function () {
+    if (!(this instanceof UFX.SceneStack)) return new UFX.SceneStack()
+	this._actionq = []
+	this._stack = []
+	this.resolveargs = true
+	this.recorder = null
+	this.frozen = false
 }
-
-UFX.scene._actionq = []
-UFX.scene._stack = []
-
-UFX.scene.top = function () {
-    var n = UFX.scene._stack.length
-    return n ? UFX.scene._stack[n-1] : null
-}
-UFX.scene.ipush = function (c) {
-    var old = UFX.scene.top()
-    if (old) old.suspend()
-    UFX.scene._stack.push(c)
-    var args = UFX.scene.playback.resolvestartargs(c, Array.prototype.slice.call(arguments, 1))
-    if (c.start) c.start.apply(c, args)
-}
-UFX.scene.ipop = function () {
-    var c = UFX.scene._stack.pop()
-    if (c.stop) c.stop()
-    var n = UFX.scene.top()
-    if (n && n.resume) n.resume()
-    return c
-}
-UFX.scene.iswap = function (c) {
-    var c0 = UFX.scene._stack.pop()
-    if (c0.stop) c0.stop()
-    UFX.scene._stack.push(c)
-    var args = UFX.scene.playback.resolvestartargs(c, Array.prototype.slice.call(arguments, 1))
-    if (c.start) c.start.apply(c, args)
-    return c0
-}
-UFX.scene.push = function (c) { UFX.scene._actionq.push(["push", c]) }
-UFX.scene.pop = function (c) { UFX.scene._actionq.push(["pop"]) }
-UFX.scene.swap = function (c) { UFX.scene._actionq.push(["swap", c]) }
-UFX.scene._resolveq = function () {
-    for (var j = 0 ; j < UFX.scene._actionq.length ; ++j) {
-        switch (UFX.scene._actionq[j][0]) {
-            case "push": UFX.scene.ipush(UFX.scene._actionq[j][1]) ; break
-            case "pop": UFX.scene.ipop() ; break
-            case "swap": UFX.scene.iswap(UFX.scene._actionq[j][1]) ; break
-        }
-    }
-    UFX.scene._actionq = []
-}
-UFX.scene.think = function () {
-    UFX.scene._resolveq()
-    var c = UFX.scene.top()
-    UFX.scene._lastthinker = c
-    if (c) {
-        var args = UFX.scene.playback.resolvethinkargs(c, arguments)
-        if (c.think) c.think.apply(c, args)
-    }
-}
-UFX.scene.draw = function () {
-	var c = UFX.scene._lastthinker
-    if (c && c.draw) {
-        c.draw.apply(c, arguments)
-    }
-}
-
-// Use this as a prototype for your own scenes
-UFX.scene.Scene = {
-    thinkargs: function () {
-        return arguments
+UFX.SceneStack.prototype = {
+	init: function (maxups, minups) {
+		maxups = maxups || 300
+		minups = minups || 10
+		var scenestack = this
+		UFX.ticker.registersync(
+			function () { return scenestack.think.apply(scenestack, arguments) },
+			function () { return scenestack.draw.apply(scenestack, arguments) },
+			maxups, minups
+		)
+	},
+	top: function () {
+		var n = this._stack.length
+		return n ? this._stack[n-1] : null
+	},
+	getscene: function (c) {
+		if (typeof c === "string") {
+			if (!(c in UFX.scenes)) throw "Unrecognized scene: " + c
+			return UFX.scenes[c]
+		}
+		return c
+	},
+	ipush: function (cname) {
+	    if (this.frozen) return
+		var old = this.top()
+		if (old && old.suspend) old.suspend()
+		var c = this.getscene(cname)
+		this._stack.push(c)
+		var args = Array.prototype.slice.call(arguments, 1)
+		if (this.resolveargs && c.startargs) args = c.startargs.apply(c, args)
+		if (this.recorder) this.recorder.addpush(cname, args)
+		if (c.start) c.start.apply(c, args)
+	},
+	ipop: function () {
+	    if (this.frozen) return
+		var c = this._stack.pop()
+		if (c.stop) c.stop()
+		var n = this.top()
+		if (n && n.resume) n.resume()
+		if (this.recorder) this.recorder.addpop()
+		return c
+	},
+	iswap: function (cname) {
+	    if (this.frozen) return
+		var c0 = this._stack.pop()
+		if (c0 && c0.stop) c0.stop()
+		var c = this.getscene(cname)
+		this._stack.push(c)
+		var args = Array.prototype.slice.call(arguments, 1)
+		if (this.resolveargs && c.startargs) args = c.startargs.apply(c, args)
+		if (this.recorder) this.recorder.addswap(cname, args)
+		if (c.start) c.start.apply(c, args)
+		return c0
+	},
+	push: function () {
+	    this._actionq.push(["push", Array.prototype.slice.call(arguments, 0)])
     },
-    think: function (dt) {
+	pop: function () {
+	    this._actionq.push(["pop"])
     },
-    draw: function (f) {
+	swap: function () {
+	    this._actionq.push(["swap", Array.prototype.slice.call(arguments, 0)])
     },
-    start: function () { }, // called when the scene is pushed onto the stack
-    suspend: function () { }, // called when another scene is pushed onto this one
-    resume: function () { },  // called when another scene is popped off of this one
-    stop: function () { }, // called when this scene is popped off the stack
-}
-
-UFX.scene.playback = {
-    seq: [],
-    playing: false,
-    recording: false,
-    trimempty: false,
-    seqlimit: 10000000,
-    
-    resolvestartargs: function (c, args) {
-        if (this.playing) return this.pop()
-        if (c.startargs) args = c.startargs.apply(c, args)
-        if (this.trimempty) args = this.trim(args)
-        if (this.recording) this.push(args)
-        return args
-    },
-    resolvethinkargs: function (c, args) {
-        if (this.playing) return this.pop()
-        if (c.thinkargs) args = c.thinkargs.apply(c, args)
-        if (this.trimempty) args = this.trim(args)
-        if (this.recording) this.push(args)
-        return args
-    },
-    reset: function () {
-        this.seq = []
-        this.jrecord = 0
-        this.playing = false
-        this.recording = false
-    },
-    record: function () {
-        var s = this.seq
-        this.reset()
-        this.recording = true
-        return s
-    },
-    play: function (state, callback) {
-        this.reset()
-        this.seq = toString.call(state) == "[Object String]" ? JSON.parse(state) : state
-        this.playing = true
-        this.playcallback = callback
-    },
-    stop: function () {
-        if (this.playing) {
-            this.playing = false
-        }
-        if (this.recording) {
-            this.recording = false
-            return this.seq
+	_resolveq: function () {
+		for (var j = 0 ; j < this._actionq.length ; ++j) {
+		    switch (this._actionq[j][0]) {
+		        case "push": this.ipush.apply(this, this._actionq[j][1]) ; break
+		        case "pop": this.ipop() ; break
+		        case "swap": this.iswap.apply(this, this._actionq[j][1]) ; break
+		    }
+		}
+		this._actionq = []
+	},
+    think: function () {
+        this._resolveq()
+        var c = this.top()
+        this._lastthinker = c
+        if (c) {
+            var args = arguments
+            if (this.resolveargs && c.thinkargs) args = c.thinkargs.apply(c, args)
+            if (this.recorder) this.recorder.addthink(args)
+            if (c.think) c.think.apply(c, args)
         }
     },
-    pop: function () {
-        var r = this.seq[this.jrecord]
-        this.jrecord++
-        if (this.jrecord >= this.seq.length) {
-            this.replaying = false
-            if (this.playcallback) this.playcallback()
+    draw: function () {
+	    var c = this._lastthinker
+        if (c && c.draw) {
+            c.draw.apply(c, arguments)
         }
-    },
-    push: function (args) {
-        if (this.seqlimit && this.seq.length >= this.seqlimit) return
-        this.seq.push(args)
-    },
-    // Eliminate empty/falsy statements from the end of a list
-    trim: function (list) {
-        for (var j = list.length - 1 ; j >= 0 ; --j) {
-            var x = list[j]
-            if (!x) continue
-            var s = JSON.stringify(x)
-            if (s === "{}" || s === "[]") continue
-            return j == list.length - 1 ? list : list.slice(0, j+1)
-        }
-        return []
     },
 }
-
-
-
+// The default for your basic scene stack needs
+UFX.scene = new UFX.SceneStack()
+UFX.scenes = {}
 
