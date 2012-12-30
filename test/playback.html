@@ -41,9 +41,9 @@ var context = canvas.getContext("2d")
 UFX.draw.setcontext(context)
 UFX.mouse.init(canvas)
 UFX.key.init()
-UFX.key.watchlist = "space esc 1 2 3 P".split(" ")
+UFX.key.watchlist = "space esc 1 2 3 P tab".split(" ")
 
-var session = null
+var recorder = null, session = null
 
 function Ball(x, y, vx, vy) {
 	this.x = x ; this.y = y
@@ -161,6 +161,46 @@ Block.prototype = {
 	},
 }
 
+function loadlevel(level) {
+	this.balls = []
+	this.paddles = []
+	this.blocks = []
+	for (var j = 0 ; j < 10 ; ++j) {
+		this.balls.push(new Ball(UFX.random(600), UFX.random(600), UFX.random(-300, 300), UFX.random(-300, 300)))
+	}
+	for (var j = 0 ; j < 30 ; ++j) {
+		this.blocks.push(new Block(UFX.random(50,550), UFX.random(50,550), UFX.random(10,20)))
+	}
+	if (level == 0) {
+		this.paddles.push(new Hpaddle(10))
+		this.paddles.push(new Hpaddle(590))
+		this.paddles.push(new Vpaddle(10))
+		this.paddles.push(new Vpaddle(590))
+	} else if (level == 1) {
+		this.paddles.push(new Hpaddle(10))
+		this.paddles.push(new Hpaddle(150, null, 150, 0.5))
+		this.paddles.push(new Hpaddle(450, null, 150, 0.5))
+		this.paddles.push(new Hpaddle(590))
+		this.paddles.push(new Vpaddle(10))
+		this.paddles.push(new Vpaddle(150, null, 150, 0.5))
+		this.paddles.push(new Vpaddle(450, null, 150, 0.5))
+		this.paddles.push(new Vpaddle(590))
+	} else if (level == 2) {
+		this.paddles.push(new Hpaddle(10, null, 0, 0.5))
+		this.paddles.push(new Hpaddle(10, null, 300, 0.5))
+		this.paddles.push(new Hpaddle(590, null, 0, 0.5))
+		this.paddles.push(new Hpaddle(590, null, 300, 0.5))
+		this.paddles.push(new Hpaddle(150, null, 600, -1))
+		this.paddles.push(new Hpaddle(450, null, 600, -1))
+		this.paddles.push(new Vpaddle(10, null, 0, 0.5))
+		this.paddles.push(new Vpaddle(10, null, 300, 0.5))
+		this.paddles.push(new Vpaddle(590, null, 0, 0.5))
+		this.paddles.push(new Vpaddle(590, null, 300, 0.5))
+		this.paddles.push(new Vpaddle(150, null, 600, -1))
+		this.paddles.push(new Vpaddle(450, null, 600, -1))
+	}
+}
+
 
 UFX.scenes = {
 	menu: {
@@ -170,13 +210,18 @@ UFX.scenes = {
 		},
 		think: function (dt, mstate, kstate) {
 			if (mstate.left.up || kstate.down.space) {
-				UFX.scene.push("action")
+				UFX.scene.push("action", 0)
 			} else if (kstate.down[1]) {
-				session = UFX.Recorder({
+				recorder = UFX.Recorder({
 					gamename: "breakintestgame",
 					version: 0,
-					tetherscene: "action",
-				}).session
+					tethered: true,
+					tetherswap: true,
+					keepchapters: true,
+					receiverscript: "http://universefactory.net/tools/playback-receiver.py",
+				})
+				session = recorder.session
+				UFX.scene.push("action", 0)
 			} else if (kstate.down[2] && session) {
 				playback = UFX.Playback(session, {
 					syncfactor: 0.5,
@@ -197,28 +242,17 @@ UFX.scenes = {
 		},
 	},
 	action: {
-		startargs: function () {
-			return [UFX.random.setseed()]
+		startargs: function (level) {
+			if (recorder) {
+				var chapter = recorder.checkpoint()
+				if (chapter) console.log(JSON.stringify(chapter).length)
+			}
+			return [level, UFX.random.setseed()]
 		},
-		start: function (seed) {
+		start: function (level, seed) {
+			this.level = level
 			UFX.random.setseed(seed)
-			this.balls = []
-			for (var j = 0 ; j < 10 ; ++j) {
-				this.balls.push(new Ball(UFX.random(600), UFX.random(600), UFX.random(-300, 300), UFX.random(-300, 300)))
-			}
-			this.paddles = []
-			this.paddles.push(new Hpaddle(10))
-			this.paddles.push(new Hpaddle(150, null, 150, 0.5))
-			this.paddles.push(new Hpaddle(450, null, 150, 0.5))
-			this.paddles.push(new Hpaddle(590))
-			this.paddles.push(new Vpaddle(10))
-			this.paddles.push(new Vpaddle(150, null, 150, 0.5))
-			this.paddles.push(new Vpaddle(450, null, 150, 0.5))
-			this.paddles.push(new Vpaddle(590))
-			this.blocks = []
-			for (var j = 0 ; j < 30 ; ++j) {
-				this.blocks.push(new Block(UFX.random(200,400), UFX.random(200,400), UFX.random(10,20)))
-			}
+			loadlevel.call(this, level)
 			this.n = 0
 		},
 		thinkargs: function (dt) {
@@ -246,12 +280,17 @@ UFX.scenes = {
 			})
 			this.balls = this.balls.filter(function (ball) { return !ball.dead })
 			this.blocks = this.blocks.filter(function (block) { return !block.dead })
+			if (kstate.down.tab || !this.blocks.length) {
+				if (this.level >= 2) UFX.scene.pop()
+				else UFX.scene.swap("action", this.level + 1)
+			}
 		},
 		draw: function () {
 			UFX.draw("fs #222 f0")
 			this.blocks.forEach(function (block) { block.draw() })
 			this.paddles.forEach(function (paddle) { paddle.draw() })
 			this.balls.forEach(function (ball) { ball.draw() })
+			UFX.draw("fs white font 30px~'sans~serif' ft Level:~" + this.level + " 20 20")
 		},
 	},
 	pause: {

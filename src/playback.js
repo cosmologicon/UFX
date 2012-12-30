@@ -8,17 +8,19 @@ UFX.Recorder = function (obj) {
 UFX.Recorder.prototype = {
     init: function (obj) {
         obj = obj || {}
-        this.setnames(obj.gamename, obj.version, obj.who, obj.sessionname)
+        this.setnames(obj.gamename, obj.version, obj.playername, obj.sessionname)
         this.setstatefuncs(obj.getprestate, obj.getstate, obj.getpoststate)
         this.sethandler(obj.handler)
-        this.setscene(obj.scene || UFX.scene, obj.tetherscene)
+        this.setscene(obj.scene || UFX.scene, obj.tethered, obj.tetherswap)
+        this.receiverscript = obj.receiverscript
+        this.keepchapters = obj.keepchapters
         return this.session
     },
     // Register to record with a scene stack (pass in null in order to de-register)
-    setnames: function (gamename, version, who, sessionname) {
+    setnames: function (gamename, version, playername, sessionname) {
         this.gamename = gamename
         this.version = version
-        this.who = who
+        this.playername = playername
         this.sessionname = sessionname || "" + Date.now()
     },
     setstatefuncs: function (getprestate, getstate, getpoststate) {
@@ -29,7 +31,7 @@ UFX.Recorder.prototype = {
     sethandler: function (handler) {
         this.handler = handler
     },
-    setscene: function (scene, tetherscenename) {
+    setscene: function (scene, tethered, tetherswap) {
         if (this.scene) this.scene.recorder = null
         this.scene = scene
         this.nchapters = 0
@@ -43,25 +45,21 @@ UFX.Recorder.prototype = {
             this.chapters = []
             this.sessionstart = Date.now()
             this.startchapter()
-            if (tetherscenename) {
-                this.tethered = true
-                this.scene.push(tetherscenename)
-            }
+            this.tethered = tethered
+            this.tetherswap = tetherswap
         }
         this.session = {
             gamename: this.gamename,
             version: this.version,
-            who: this.who,
+            playername: this.playername,
             name: this.sessionname,
             chapters: this.chapters,
             nchapters: this.nchapters,
             t: this.sessionstart,
         }
     },
-    tether: function (scenename) {
-        
-    },
     stop: function () {
+        this.completechapter()
         var session = this.session
         this.setscene()
         return session
@@ -82,6 +80,23 @@ UFX.Recorder.prototype = {
         this.lastdatum = null
         return chapter
     },
+    completechapter: function () {
+        var jchapter = this.nchapters - 1
+        if (this.receiverscript) {
+            this.pushchapter(jchapter)
+            if (!this.keepchapters) {
+                this.chapters[jchapter] = null
+            }
+        } else {
+            return this.chapters[jchapter]
+        }
+    },
+    checkpoint: function () {
+        if (!this.chapter.data.length) return
+        var chapter = this.completechapter()
+        this.startchapter()
+        return chapter
+    },
     addpush: function (scenename, args) {
         this.lastdatum = [Date.now(), "push", scenename, args]
         this.data.push(this.lastdatum)
@@ -99,7 +114,7 @@ UFX.Recorder.prototype = {
         this.data.push(this.lastdatum)
         var state = this.getstate && this.getstate()
         this.state.pop()
-        if (!this.state.length && this.tethered) this.stop()
+        if (!this.state.length && this.tethered && !this.tetherswap) this.stop()
         this.state.push([scenename, args, state])
     },
     addthink: function (args) {
@@ -137,6 +152,22 @@ UFX.Recorder.prototype = {
                 }
         }
     },
+    pushchapter: function (jchapter) {
+        var req = new XMLHttpRequest()
+        req.open("POST", this.receiverscript)
+        req.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
+        var qstring = [
+            "gamename=" + encodeURIComponent(this.session.gamename),
+            "gameversion=" + encodeURIComponent(this.session.version),
+            "sessionname=" + encodeURIComponent(this.session.name),
+            "sessiontime=" + encodeURIComponent(this.session.t),
+            "chapternumber=" + encodeURIComponent(jchapter),
+            "chapterdata=" + encodeURIComponent(JSON.stringify(this.chapters[jchapter])),
+        ]
+        if (this.playername) qstring.push("playername=" + encodeURIComponent(this.playername))
+
+        req.send(qstring.join("&"))
+    },
 }
 
 UFX.Playback = function (session, obj) {
@@ -156,6 +187,7 @@ UFX.Playback.prototype = {
         this.setscene(obj.scene || UFX.scene)
         this.syncfactor = obj.syncfactor || 1
         this.sync = obj.sync
+        this.cancelcallback = obj.cancelcallback
     },
     setstatefuncs: function (setprestate, setstate, setpoststate) {
         this.setprestate = setprestate
@@ -173,7 +205,7 @@ UFX.Playback.prototype = {
         this.t = 0
         this.playing = true
         this.loadchapter()
-        this.scene.ipush(this.PlayScene, this)
+        this.scene.ipush(Object.create(this.PlayScene), this)
         this.scene.frozen = true
     },
     complete: function () {
@@ -264,7 +296,7 @@ UFX.Playback.prototype = {
         },
         draw: function () {
             this.playback.stack.draw()
-        }
+        },
     },
 }
 
