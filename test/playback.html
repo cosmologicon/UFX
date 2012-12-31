@@ -213,12 +213,12 @@ UFX.scenes = {
 				UFX.scene.push("action", 0)
 			} else if (kstate.down[1]) {
 				recorder = UFX.Recorder({
-					gamename: "breakintestgame",
+					gamename: "examplegame",
 					version: 0,
 					tethered: true,
 					tetherswap: true,
 					keepchapters: true,
-					receiverscript: "http://universefactory.net/tools/playback-receiver.py",
+					postscript: "http://universefactory.net/tools/playback/post",
 				})
 				session = recorder.session
 				UFX.scene.push("action", 0)

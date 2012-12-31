@@ -12,7 +12,7 @@ UFX.Recorder.prototype = {
         this.setstatefuncs(obj.getprestate, obj.getstate, obj.getpoststate)
         this.sethandler(obj.handler)
         this.setscene(obj.scene || UFX.scene, obj.tethered, obj.tetherswap)
-        this.receiverscript = obj.receiverscript
+        this.postscript = obj.postscript
         this.keepchapters = obj.keepchapters
         return this.session
     },
@@ -70,6 +70,7 @@ UFX.Recorder.prototype = {
         this.chapter = {
             n: this.nchapters++,
             t: Date.now(),
+            duration: 0,
             prestate: this.prestate,
             state: this.state.slice(0),
             poststate: this.poststate,
@@ -82,7 +83,8 @@ UFX.Recorder.prototype = {
     },
     completechapter: function () {
         var jchapter = this.nchapters - 1
-        if (this.receiverscript) {
+        this.chapters[jchapter].duration = Date.now() - this.chapters[jchapter].t
+        if (this.postscript) {
             this.pushchapter(jchapter)
             if (!this.keepchapters) {
                 this.chapters[jchapter] = null
@@ -153,20 +155,26 @@ UFX.Recorder.prototype = {
         }
     },
     pushchapter: function (jchapter) {
+        console.log("posting....")
+        console.log(this.postscript)
         var req = new XMLHttpRequest()
-        req.open("POST", this.receiverscript)
+        req.open("POST", this.postscript, true)
         req.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
         var qstring = [
+            "act=postchapter",
             "gamename=" + encodeURIComponent(this.session.gamename),
-            "gameversion=" + encodeURIComponent(this.session.version),
-            "sessionname=" + encodeURIComponent(this.session.name),
+            "gameversion=" + encodeURIComponent(this.session.version || ""),
+            "sessionname=" + encodeURIComponent(this.session.name || ""),
             "sessiontime=" + encodeURIComponent(this.session.t),
+            "playername=" + encodeURIComponent(this.playername || ""),
             "chapternumber=" + encodeURIComponent(jchapter),
+            "chaptertime=" + encodeURIComponent(this.chapters[jchapter].t),
+            "chapterlength=" + encodeURIComponent(this.chapters[jchapter].duration),
             "chapterdata=" + encodeURIComponent(JSON.stringify(this.chapters[jchapter])),
         ]
-        if (this.playername) qstring.push("playername=" + encodeURIComponent(this.playername))
-
-        req.send(qstring.join("&"))
+//        req.send(qstring.join("&"))
+        req.send("act=whatever")
+        greq = req
     },
 }
 
