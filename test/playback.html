@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<link href='http://fonts.googleapis.com/css?family=Contrail+One' rel='stylesheet' type='text/css'>
 
 <title>Playback game test</title>
 <!-- UFX libraries -->
@@ -14,11 +15,10 @@
 <style type="text/css">
 p { margin: 0.3em }
 header * { margin: 0 }
-header { margin: 0.8em }
+header { margin: 0.8em ; font-family: 'Contrail One', sans-serif ; text-shadow: 0.1em 0.1em black }
 h1, h2 { font-weight: normal }
 body { background: #222 ; color: white ; text-align: center ; font-size: 150% }
 a { color: #AAF ; text-decoration: none }
-* { font-family: 'Contrail One' ; text-shadow: 0.1em 0.1em black }
 button, label { font-size: 100% ; border: medium white outset ; background: rgba(255,255,255,0.1) ; color: inherit ; cursor: pointer }
 label { padding-right: 0.3em }
 input { cursor: pointer }
@@ -30,18 +30,57 @@ li.cheat { display: none }
 <header>
 <h1>Playback game test</h1>
 </header>
+<p>
+<select id=sessionnames onchange="loadsession(this.value)">
+	<option value="">Select remote session....</option>
+</select>
+<p>
 <canvas id=canvas style="border: thick white outset"></canvas>
-<ul class="controls">
-</ul>
 
 <script>
+function getplayback(get, qobj) {
+	var url = "http://universefactory.net/tools/playback/get/"
+	var qstring = ["get=" + get]
+	for (var a in qobj) {
+		qstring.push(a + "=" + encodeURIComponent(qobj[a]))
+	}
+	var req = new XMLHttpRequest()
+	req.open("GET", url + "?" + qstring.join("&"), false)
+	req.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
+	req.send()
+	console.log(req.responseText)
+	return JSON.parse(req.responseText)
+}
+var sselect = document.getElementById("sessionnames")
+getplayback("sessions", { gamename: "examplegame", gameversion: 0 }).forEach(function (sinfo) {
+	var text = sinfo.sessionname + " (" + sinfo.nchapters + " chapter, " + Math.floor(sinfo.sessionduration/1000) + "s)"
+	sselect.options[sselect.options.length] = new Option(text, sinfo.sessionname)
+})
+function loadsession(sname) {
+	if (sname && sname.length) {
+		dbsession = getplayback("session", { gamename: "examplegame", gameversion: 0, sessionname: sname })
+	} else {
+		dbsession = null
+	}
+}
+loadsession()
+
+/*
+console.log(getplayback("gamenames"))
+console.log(getplayback("gameversions", { gamename: "examplegame" }))
+console.log(getplayback("chapters", { gamename: "examplegame", sessionname: "1357059822996" }))
+console.log(getplayback("chapter", { gamename: "examplegame", sessionname: "1357059822996", chapternumber: 0 }))
+console.log(getplayback("session", { gamename: "examplegame", sessionname: "1357059822996" }))
+*/
 var canvas = document.getElementById("canvas")
 canvas.width = 600 ; canvas.height = 600
 var context = canvas.getContext("2d")
 UFX.draw.setcontext(context)
 UFX.mouse.init(canvas)
 UFX.key.init()
-UFX.key.watchlist = "space esc 1 2 3 P tab".split(" ")
+UFX.key.watchlist = "space esc 1 2 3 4 P tab".split(" ")
+
+
 
 var recorder = null, session = null
 
@@ -190,14 +229,14 @@ function loadlevel(level) {
 		this.paddles.push(new Hpaddle(10, null, 300, 0.5))
 		this.paddles.push(new Hpaddle(590, null, 0, 0.5))
 		this.paddles.push(new Hpaddle(590, null, 300, 0.5))
-		this.paddles.push(new Hpaddle(150, null, 600, -1))
-		this.paddles.push(new Hpaddle(450, null, 600, -1))
+		this.paddles.push(new Hpaddle(150))
+		this.paddles.push(new Hpaddle(450))
 		this.paddles.push(new Vpaddle(10, null, 0, 0.5))
 		this.paddles.push(new Vpaddle(10, null, 300, 0.5))
 		this.paddles.push(new Vpaddle(590, null, 0, 0.5))
 		this.paddles.push(new Vpaddle(590, null, 300, 0.5))
-		this.paddles.push(new Vpaddle(150, null, 600, -1))
-		this.paddles.push(new Vpaddle(450, null, 600, -1))
+		this.paddles.push(new Vpaddle(150))
+		this.paddles.push(new Vpaddle(450))
 	}
 }
 
@@ -218,13 +257,27 @@ UFX.scenes = {
 					tethered: true,
 					tetherswap: true,
 					keepchapters: true,
-					postscript: "http://universefactory.net/tools/playback/post",
+				})
+				session = recorder.session
+				UFX.scene.push("action", 0)
+			} else if (kstate.down[3]) {
+				recorder = UFX.Recorder({
+					gamename: "examplegame",
+					version: 0,
+					tethered: true,
+					tetherswap: true,
+					keepchapters: true,
+					postscript: "http://universefactory.net/tools/playback/post/",
 				})
 				session = recorder.session
 				UFX.scene.push("action", 0)
 			} else if (kstate.down[2] && session) {
 				playback = UFX.Playback(session, {
-					syncfactor: 0.5,
+					sync: true,
+				})
+				playback.playall()
+			} else if (kstate.down[4] && dbsession) {
+				playback = UFX.Playback(dbsession, {
 					sync: true,
 				})
 				playback.playall()
@@ -232,11 +285,15 @@ UFX.scenes = {
 		},
 		draw: function () {
 			UFX.draw("fs #444 f0 [ t 300 240 textalign center fs white",
-				"font 30px~'sans-serif'")
+				"font 30px~'Contrail~One'")
 			UFX.draw("ft0 Space~or~click~to~begin t 0 40")
-			UFX.draw("ft0 1:~record t 0 40")
+			UFX.draw("ft0 1:~record~local~session t 0 40")
 			if (session) {
-				UFX.draw("ft0 2:~play~session~" + session.name + " t 0 40")
+				UFX.draw("ft0 2:~play~local~session~" + session.name + " t 0 40")
+			}
+			UFX.draw("ft0 3:~record~remote~session t 0 40")
+			if (dbsession) {
+				UFX.draw("ft0 4:~play~remote~session~" + dbsession.name + " t 0 40")
 			}
 			UFX.draw("]")
 		},
@@ -290,7 +347,10 @@ UFX.scenes = {
 			this.blocks.forEach(function (block) { block.draw() })
 			this.paddles.forEach(function (paddle) { paddle.draw() })
 			this.balls.forEach(function (ball) { ball.draw() })
-			UFX.draw("fs white font 30px~'sans~serif' ft Level:~" + this.level + " 20 20")
+			UFX.draw("fs rgba(255,255,255,0.3) font 30px~'Contrail~One' ft Level:~" + this.level + " 20 40")
+			UFX.draw("ft Tab:~next~level 20 70")
+			UFX.draw("ft Click:~new~ball 20 100")
+			UFX.draw("ft P:~pause 20 130")
 		},
 	},
 	pause: {
@@ -305,7 +365,7 @@ UFX.scenes = {
 		},
 		draw: function () {
 			UFX.draw("fs #444 f0 [ t 300 240 textalign center fs white",
-				"font 30px~'sans-serif' ft0 paused ]")
+				"font 30px~'Contrail~One' ft0 paused ]")
 		},
 	},
 }

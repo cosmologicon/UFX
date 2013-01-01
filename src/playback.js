@@ -8,6 +8,7 @@ UFX.Recorder = function (obj) {
 UFX.Recorder.prototype = {
     init: function (obj) {
         obj = obj || {}
+        this.sessionstart = Date.now()
         this.setnames(obj.gamename, obj.version, obj.playername, obj.sessionname)
         this.setstatefuncs(obj.getprestate, obj.getstate, obj.getpoststate)
         this.sethandler(obj.handler)
@@ -19,9 +20,9 @@ UFX.Recorder.prototype = {
     // Register to record with a scene stack (pass in null in order to de-register)
     setnames: function (gamename, version, playername, sessionname) {
         this.gamename = gamename
-        this.version = version
-        this.playername = playername
-        this.sessionname = sessionname || "" + Date.now()
+        this.version = version === undefined ? "" : version
+        this.playername = playername || ""
+        this.sessionname = sessionname || this.playername + "-" + this.sessionstart
     },
     setstatefuncs: function (getprestate, getstate, getpoststate) {
         this.getprestate = getprestate
@@ -43,7 +44,6 @@ UFX.Recorder.prototype = {
             this.prestate = this.getprestate && this.getprestate()
             this.state = []
             this.chapters = []
-            this.sessionstart = Date.now()
             this.startchapter()
             this.tethered = tethered
             this.tetherswap = tetherswap
@@ -155,26 +155,24 @@ UFX.Recorder.prototype = {
         }
     },
     pushchapter: function (jchapter) {
-        console.log("posting....")
-        console.log(this.postscript)
         var req = new XMLHttpRequest()
         req.open("POST", this.postscript, true)
         req.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
         var qstring = [
             "act=postchapter",
             "gamename=" + encodeURIComponent(this.session.gamename),
-            "gameversion=" + encodeURIComponent(this.session.version || ""),
-            "sessionname=" + encodeURIComponent(this.session.name || ""),
+            "gameversion=" + encodeURIComponent(this.session.version),
+            "sessionname=" + encodeURIComponent(this.session.name),
             "sessiontime=" + encodeURIComponent(this.session.t),
-            "playername=" + encodeURIComponent(this.playername || ""),
+            "playername=" + encodeURIComponent(this.playername),
             "chapternumber=" + encodeURIComponent(jchapter),
             "chaptertime=" + encodeURIComponent(this.chapters[jchapter].t),
-            "chapterlength=" + encodeURIComponent(this.chapters[jchapter].duration),
+            "chapterduration=" + encodeURIComponent(this.chapters[jchapter].duration),
             "chapterdata=" + encodeURIComponent(JSON.stringify(this.chapters[jchapter])),
         ]
-//        req.send(qstring.join("&"))
-        req.send("act=whatever")
-        greq = req
+        req.send(qstring.join("&"))
+        this.req = req
+        // TODO: add errback
     },
 }
 
