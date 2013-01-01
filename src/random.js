@@ -48,6 +48,16 @@ UFX.random.choice = function (arr) {
     return arr[UFX.random.rand(arr.length)]
 }
 
+// string of n random letters
+UFX.random.word = function (n, letters) {
+	var a = []
+	n = n || 8
+	letters = letters || "abcdefghijklmnopqrstuvwxyz"
+	for (var j = 0 ; j < n ; ++j)
+		a.push(UFX.random.choice(letters))
+	return a.join("")
+}
+
 // Fisher-Yates shuffle (in-place)
 UFX.random.shuffle = function (arr) {
     for (var i = arr.length - 1 ; i > 0 ; --i) {
