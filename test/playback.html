@@ -12,6 +12,9 @@
 <script src="../src/key.js"></script>
 <script src="../src/mouse.js"></script>
 
+<script src="../util/playback-reviewer.js"></script>
+
+
 <style type="text/css">
 p { margin: 0.3em }
 header * { margin: 0 }
@@ -48,7 +51,7 @@ function getplayback(get, qobj) {
 	req.open("GET", url + "?" + qstring.join("&"), false)
 	req.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
 	req.send()
-	console.log(req.responseText)
+//	console.log(req.responseText)
 	return JSON.parse(req.responseText)
 }
 var sselect = document.getElementById("sessionnames")
@@ -372,6 +375,7 @@ UFX.scenes = {
 
 window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame
 UFX.scene.init()
+reviewer.init("examplegame", 0)
 UFX.scene.push("menu")
 
 </script>
