@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<title>UFX.Thing mode test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+button {
+    background: darkblue; color: white;
+    border: thick silver outset; border-radius: 10px;
+    font-family: inherit; font-size: 120%;
+    width: 6em;
+}
+table {
+    margin: auto;
+}
+td {
+    padding: 0 1em;
+}
+</style>
+
+<script src="../src/Thing.js"></script>
+<body>
+<h1>UFX.Thing mode test</h1>
+<table><tr>
+<td><canvas id=canvas style="border: medium blue solid"></canvas>
+
+<td>
+<p><button onclick="generate()">Generate</button>
+<p><button onclick="save()">Save</button>
+<p><button onclick="load()">Load</button>
+</table>
+
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 400
+canvas.height = 300
+var context = canvas.getContext("2d")
+context.strokeStyle = "white"
+context.lineWidth = 2
+
+var HasPosition = {
+    draw: function () {
+        context.translate(this.x, this.y)
+    },
+    getstate: function () {
+        return [this.x, this.y]
+    },
+    setstate: function (x, y) {
+        this.x = x ; this.y = y
+    },
+}
+var HasColor = {
+    draw: function () {
+        context.fillStyle = this.color
+    },
+    getstate: function () {
+        return [this.color]
+    },
+    setstate: function (color) {
+        this.color = color
+    },
+}
+var IsEllipse = {
+    draw: function () {
+        context.beginPath()
+        context.save()
+        context.scale(this.a, this.b)
+        context.arc(0, 0, 1, 0, 6.283)
+        context.restore()
+        context.fill()
+        context.stroke()
+    },
+    getstate: function () {
+        return [this.a, this.b]
+    },
+    setstate: function (a, b) {
+        this.a = a ; this.b = b
+    },
+}
+
+
+function Ellipse (x, y, a, b, color) {
+    this.setstate([[x, y], [color], [a, b]])
+}
+Ellipse.prototype = UFX.Thing()
+                       .addcomp(HasPosition)
+                       .addcomp(HasColor)
+                       .addcomp(IsEllipse)
+                       .setmethodmode("getstate", "getarray")
+                       .setmethodmode("setstate", "putarray")
+function randellipse() {
+    return new Ellipse(Math.random() * 400, Math.random() * 300,
+                       Math.random() * 30 + 10, Math.random() * 30 + 10,
+                       ["red", "yellow", "orange", "blue", "green", "purple"][Math.floor(Math.random() * 6)])
+}
+
+
+
+function draw() {
+    context.clearRect(0, 0, 400, 300)
+    ellipses.forEach(function (ellipse) {
+        context.save()
+        ellipse.draw()
+        context.restore()
+    })
+}
+function generate() {
+    ellipses = []
+    while (ellipses.length < 100) {
+        ellipses.push(randellipse())
+    }
+    draw()
+}
+
+function save() {
+    var a = []
+    ellipses.forEach(function (ellipse) {
+        a.push(ellipse.getstate())
+    })
+    saved = JSON.stringify(a)
+}
+function load() {
+    ellipses = []
+    JSON.parse(saved).forEach(function (spec) {
+        var e = new Ellipse()
+        e.setstate(spec)
+        ellipses.push(e)
+    })
+    draw()
+}
+
+generate()
+
+</script>
+

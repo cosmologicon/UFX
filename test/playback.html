@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<title>Playback game test</title>
+<!-- UFX libraries -->
+<script src="../src/ticker.js"></script>
+<script src="../src/resource.js"></script>
+<script src="../src/scene.js"></script>
+<script src="../src/playback.js"></script>
+<script src="../src/random.js"></script>
+<script src="../src/draw.js"></script>
+<script src="../src/key.js"></script>
+<script src="../src/mouse.js"></script>
+
+<style type="text/css">
+p { margin: 0.3em }
+header * { margin: 0 }
+header { margin: 0.8em }
+h1, h2 { font-weight: normal }
+body { background: #222 ; color: white ; text-align: center ; font-size: 150% }
+a { color: #AAF ; text-decoration: none }
+* { font-family: 'Contrail One' ; text-shadow: 0.1em 0.1em black }
+button, label { font-size: 100% ; border: medium white outset ; background: rgba(255,255,255,0.1) ; color: inherit ; cursor: pointer }
+label { padding-right: 0.3em }
+input { cursor: pointer }
+ul { margin: 0 }
+.controls li { display: inline-block ; margin-left: 1em ; margin-right: 1em }
+li.cheat { display: none }
+</style>
+
+<header>
+<h1>Playback game test</h1>
+</header>
+<canvas id=canvas style="border: thick white outset"></canvas>
+<ul class="controls">
+</ul>
+
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 600 ; canvas.height = 600
+var context = canvas.getContext("2d")
+UFX.draw.setcontext(context)
+UFX.mouse.init(canvas)
+UFX.key.init()
+UFX.key.watchlist = "space esc 1 2 3 P tab".split(" ")
+
+var recorder = null, session = null
+
+function Ball(x, y, vx, vy) {
+	this.x = x ; this.y = y
+	this.vx = vx ; this.vy = vy
+	this.r = 4
+}
+Ball.prototype = {
+	think: function (dt) {
+		this.oldx = this.x
+		this.oldy = this.y
+		this.x += this.vx * dt
+		this.y += this.vy * dt
+		if ((this.x < 0 && this.vx < 0) || (this.x > 600 && this.vx > 0) ||
+			(this.y < 0 && this.vy < 0) || (this.y > 600 && this.vy > 0)) this.dead = true
+	},
+	draw: function () {
+		UFX.draw("[ t", this.x, this.y, "b o 0 0", this.r, "fs red ss white lw 1 f s ]")
+	},
+}
+
+function Hpaddle(y, w, dx, f) {
+	this.dx = dx || 0 ; this.y = y
+	this.x = 0
+	this.w = w || 50
+	this.t = 3
+	this.f = f || 1
+}
+Hpaddle.prototype = {
+	think: function (dt, mpos) {
+		this.oldx = this.x
+		this.x = mpos[0] * this.f + this.dx
+		this.vx = dt ? (this.x - this.oldx) / dt : 0
+	},
+	draw: function () {
+		UFX.draw("[ t", this.x, this.y, "b m", -this.w/2, "0 l", this.w/2, "0 lw", this.t, "ss white s ]")
+	},
+	bounce: function (ball) {
+		var dx = ball.x - this.x
+		if (Math.abs(dx) > this.w/2) return
+		if (ball.vy > 0) {
+			var ymax = this.y - this.t/2 - ball.r
+			if (ball.oldy <= ymax && ball.y > ymax) {
+				ball.y = ymax
+				ball.vy = -ball.vy
+				ball.vx += 100 * dx / this.w
+			}
+		} else {
+			var ymin = this.y + this.t/2 + ball.r
+			if (ball.oldy >= ymin && ball.y < ymin) {
+				ball.y = ymin
+				ball.vy = -ball.vy
+				ball.vx += 100 * dx / this.w
+			}
+		}
+	},
+}
+
+function Vpaddle(x, w, dy, f) {
+	this.dy = dy || 0 ; this.x = x
+	this.y = 0
+	this.w = w || 50
+	this.t = 3
+	this.f = f || 1
+}
+Vpaddle.prototype = {
+	think: function (dt, mpos) {
+		this.y = mpos[1] * this.f + this.dy
+	},
+	draw: function () {
+		UFX.draw("[ t", this.x, this.y, "b m 0", -this.w/2, "l 0", this.w/2, "lw", this.t, "ss white s ]")
+	},
+	bounce: function (ball) {
+		var dy = ball.y - this.y
+		if (Math.abs(dy) > this.w/2) return
+		if (ball.vx > 0) {
+			var xmax = this.x - this.t/2 - ball.r
+			if (ball.oldx <= xmax && ball.x > xmax) {
+				ball.x = xmax
+				ball.vx = -ball.vx
+				ball.vy += 100 * dy / this.w
+			}
+		} else {
+			var xmin = this.x + this.t/2 + ball.r
+			if (ball.oldx >= xmin && ball.x < xmin) {
+				ball.x = xmin
+				ball.vx = -ball.vx
+				ball.vy += 100 * dy / this.w
+			}
+		}
+	},
+}
+
+function Block (x, y, r) {
+	this.x = x
+	this.y = y
+	this.r = r
+	this.color = "#" + UFX.random.choice("3579BCF") + UFX.random.choice("3579BCF") + UFX.random.choice("3579BCF")
+}
+Block.prototype = {
+	think: function (dt) {
+	},
+	draw: function () {
+		UFX.draw("[ t", this.x, this.y, "b o 0 0", this.r, "fs", this.color, "ss", this.color,
+			"lw 1 [ alpha 0.3 f ] s ]")
+	},
+	bounce: function (ball) {
+		var dx = ball.x - this.x, dy = ball.y - this.y, d2 = dx * dx + dy * dy
+		if (d2 > this.r * this.r) return
+		var dot = ball.vx * dx + ball.vy * dy
+		if (dot > 0) return
+		var d = Math.sqrt(d2)
+		ball.vx -= 2 * dx * dot / d2
+		ball.vy -= 2 * dy * dot / d2
+		this.dead = true
+	},
+}
+
+function loadlevel(level) {
+	this.balls = []
+	this.paddles = []
+	this.blocks = []
+	for (var j = 0 ; j < 10 ; ++j) {
+		this.balls.push(new Ball(UFX.random(600), UFX.random(600), UFX.random(-300, 300), UFX.random(-300, 300)))
+	}
+	for (var j = 0 ; j < 30 ; ++j) {
+		this.blocks.push(new Block(UFX.random(50,550), UFX.random(50,550), UFX.random(10,20)))
+	}
+	if (level == 0) {
+		this.paddles.push(new Hpaddle(10))
+		this.paddles.push(new Hpaddle(590))
+		this.paddles.push(new Vpaddle(10))
+		this.paddles.push(new Vpaddle(590))
+	} else if (level == 1) {
+		this.paddles.push(new Hpaddle(10))
+		this.paddles.push(new Hpaddle(150, null, 150, 0.5))
+		this.paddles.push(new Hpaddle(450, null, 150, 0.5))
+		this.paddles.push(new Hpaddle(590))
+		this.paddles.push(new Vpaddle(10))
+		this.paddles.push(new Vpaddle(150, null, 150, 0.5))
+		this.paddles.push(new Vpaddle(450, null, 150, 0.5))
+		this.paddles.push(new Vpaddle(590))
+	} else if (level == 2) {
+		this.paddles.push(new Hpaddle(10, null, 0, 0.5))
+		this.paddles.push(new Hpaddle(10, null, 300, 0.5))
+		this.paddles.push(new Hpaddle(590, null, 0, 0.5))
+		this.paddles.push(new Hpaddle(590, null, 300, 0.5))
+		this.paddles.push(new Hpaddle(150, null, 600, -1))
+		this.paddles.push(new Hpaddle(450, null, 600, -1))
+		this.paddles.push(new Vpaddle(10, null, 0, 0.5))
+		this.paddles.push(new Vpaddle(10, null, 300, 0.5))
+		this.paddles.push(new Vpaddle(590, null, 0, 0.5))
+		this.paddles.push(new Vpaddle(590, null, 300, 0.5))
+		this.paddles.push(new Vpaddle(150, null, 600, -1))
+		this.paddles.push(new Vpaddle(450, null, 600, -1))
+	}
+}
+
+
+UFX.scenes = {
+	menu: {
+		clipplayback: true,
+		thinkargs: function (dt) {
+			return [dt, UFX.mouse.state(), UFX.key.state()]
+		},
+		think: function (dt, mstate, kstate) {
+			if (mstate.left.up || kstate.down.space) {
+				UFX.scene.push("action", 0)
+			} else if (kstate.down[1]) {
+				recorder = UFX.Recorder({
+					gamename: "breakintestgame",
+					version: 0,
+					tethered: true,
+					tetherswap: true,
+					keepchapters: true,
+					receiverscript: "http://universefactory.net/tools/playback-receiver.py",
+				})
+				session = recorder.session
+				UFX.scene.push("action", 0)
+			} else if (kstate.down[2] && session) {
+				playback = UFX.Playback(session, {
+					syncfactor: 0.5,
+					sync: true,
+				})
+				playback.playall()
+			}
+		},
+		draw: function () {
+			UFX.draw("fs #444 f0 [ t 300 240 textalign center fs white",
+				"font 30px~'sans-serif'")
+			UFX.draw("ft0 Space~or~click~to~begin t 0 40")
+			UFX.draw("ft0 1:~record t 0 40")
+			if (session) {
+				UFX.draw("ft0 2:~play~session~" + session.name + " t 0 40")
+			}
+			UFX.draw("]")
+		},
+	},
+	action: {
+		startargs: function (level) {
+			if (recorder) {
+				var chapter = recorder.checkpoint()
+				if (chapter) console.log(JSON.stringify(chapter).length)
+			}
+			return [level, UFX.random.setseed()]
+		},
+		start: function (level, seed) {
+			this.level = level
+			UFX.random.setseed(seed)
+			loadlevel.call(this, level)
+			this.n = 0
+		},
+		thinkargs: function (dt) {
+			return [dt, UFX.mouse.state(), UFX.key.state()]
+		},
+		think: function (dt, mstate, kstate) {
+			if (kstate.down.esc) UFX.scene.pop()
+			if (kstate.down.P) UFX.scene.push("pause")
+			var mpos = mstate.pos, mclick = mstate.left.up
+			if (mpos) {
+				this.paddles.forEach(function (paddle) { paddle.think(dt, mpos) })
+			}
+			if (mclick) {
+				this.balls.push(new Ball(UFX.random(600), UFX.random(600), UFX.random(-300, 300), UFX.random(-300, 300)))
+			}
+			var paddles = this.paddles, blocks = this.blocks
+			this.balls.forEach(function (ball) {
+				ball.think(dt)
+				paddles.forEach(function (paddle) {
+					paddle.bounce(ball)
+				})
+				blocks.forEach(function (block) {
+					block.bounce(ball)
+				})
+			})
+			this.balls = this.balls.filter(function (ball) { return !ball.dead })
+			this.blocks = this.blocks.filter(function (block) { return !block.dead })
+			if (kstate.down.tab || !this.blocks.length) {
+				if (this.level >= 2) UFX.scene.pop()
+				else UFX.scene.swap("action", this.level + 1)
+			}
+		},
+		draw: function () {
+			UFX.draw("fs #222 f0")
+			this.blocks.forEach(function (block) { block.draw() })
+			this.paddles.forEach(function (paddle) { paddle.draw() })
+			this.balls.forEach(function (ball) { ball.draw() })
+			UFX.draw("fs white font 30px~'sans~serif' ft Level:~" + this.level + " 20 20")
+		},
+	},
+	pause: {
+		clipplayback: true,
+		thinkargs: function (dt) {
+			return [dt, UFX.mouse.state(), UFX.key.state()]
+		},
+		think: function (dt, mstate, kstate) {
+			if (mstate.left.up || kstate.down.space || kstate.down.P) {
+				UFX.scene.pop()
+			}
+		},
+		draw: function () {
+			UFX.draw("fs #444 f0 [ t 300 240 textalign center fs white",
+				"font 30px~'sans-serif' ft0 paused ]")
+		},
+	},
+}
+
+window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame
+UFX.scene.init()
+UFX.scene.push("menu")
+
+</script>
+

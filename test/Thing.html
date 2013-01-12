@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>UFX.Thing test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+input {
+    background: inherit; color: inherit; border: none;
+    font-family: inherit; font-size: inherit;
+    width: 20em;
+}
+table {
+    margin: auto;
+}
+td {
+    text-align: right
+}
+</style>
+
+<script src="../src/ticker.js"></script>
+<script src="../src/Thing.js"></script>
+<body>
+<h1>UFX.Thing test</h1>
+<canvas id=canvas style="border: thin blue solid"></canvas>
+
+<table>
+<tr><td><input type=text id=fps readonly></input>
+<td><input type=text id=ups readonly></input>
+<tr><td><button type=button onclick="mballs(1./1.5)">Less dots please</button>
+<td><input type=text id=nballs readonly style="width:3em"></input>
+<td><button type=button onclick="mballs(1.5)">More dots please</button>
+</table>
+
+<input type=checkbox onclick="UFX.ticker.animsync = this.checked">
+Sync to animation frames</input>
+
+
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 400
+canvas.height = 300
+var context = canvas.getContext("2d")
+
+var interact = false
+
+
+
+InteractChildren = {
+    think: function (dt) {
+        for (var j = 1 ; j < this.children.length ; ++j) {
+            for (var i = 0 ; i < j ; ++i) {
+                this.children[i].interact(this.children[j])
+            }
+        }
+    },
+}
+
+var balls = UFX.Thing([InteractChildren, UFX.Component.HasChildren])
+
+MoveLinear = {
+    init: function (p, v) {
+        this.p = p || {x: 0, y: 0}
+        this.v = v || {x: Math.random() * 200 - 100, y: Math.random() * 200 - 100}
+    },
+    think: function (dt) {
+        this.p.x += this.v.x * dt
+        this.p.y += this.v.y * dt
+    },
+}
+
+MoveAccel = {
+    init: function (p, v) {
+        MoveLinear.init.call(this, p, v)
+        this.a = {x: 0, y: 0}
+    },
+    think: function (dt) {
+        this.p.x += (0.5 * this.a.x * dt + this.v.x) * dt
+        this.p.y += (0.5 * this.a.y * dt + this.v.y) * dt
+        this.v.x += this.a.x * dt
+        this.v.y += this.a.y * dt
+        this.a.x = this.a.y = 0
+    },
+}
+
+LinearDrag = {
+    init: function (beta) {
+        this.beta = typeof beta == "number" ? beta : 0.2
+    },
+    think: function () {
+        this.a.x -= this.beta * this.v.x
+        this.a.y -= this.beta * this.v.y
+    },
+}
+
+CubicDrag = {
+    init: function (beta) {
+        this.beta = typeof beta == "number" ? beta : 1e-6
+    },
+    think: function () {
+        var v2 = this.v.x * this.v.x + this.v.y * this.v.y
+        this.a.x -= this.beta * this.v.x * v2
+        this.a.y -= this.beta * this.v.y * v2
+    },
+}
+
+Attract = {
+    interact: function (that) {
+        var dx = this.p.x - that.p.x, dy = this.p.y - that.p.y
+        var d = Math.sqrt(dx * dx + dy * dy)
+        var a = Math.min(40000.0 / (d * d), 4000.0)
+        if (this.color == that.color) a = -a
+        var ax = a * dx / d
+        var ay = a * dy / d
+        this.a.x += ax
+        this.a.y += ay
+        that.a.x -= ax
+        that.a.y -= ay
+    },
+}
+
+DrawAt = {
+    draw: function (context) {
+        context.translate(this.p.x, this.p.y)
+    },
+}
+
+DrawSquish = {
+    draw: function (context) {
+        var v2 = this.v.x * this.v.x + this.v.y * this.v.y
+        if (v2 > 0.1) {
+            context.rotate(Math.atan2(this.v.y, this.v.x))
+        }
+        var f = 0.6 + 0.4 * Math.exp(-v2 / 10000.)
+        context.scale(1.0 / f, f)
+    },
+}
+
+DrawCircle = {
+    init: function (r, color) {
+        this.r = r || 5
+        this.color = color || "red"
+    },
+    draw: function (context) {
+        context.fillStyle = this.color
+        context.beginPath()
+        context.arc(0, 0, this.r, 0, 2 * Math.PI, true); 
+        context.closePath()
+        context.fill()
+    },
+}
+
+Bounce = {
+    think: function () {
+        if (this.p.x < 0) this.v.x = Math.abs(this.v.x)
+        if (this.p.x > 400) this.v.x = -Math.abs(this.v.x)
+        if (this.p.y < 0) this.v.y = Math.abs(this.v.y)
+        if (this.p.y > 300) this.v.y = -Math.abs(this.v.y)
+    },
+}
+
+Ball = function () {
+    var p = {x: Math.random() * 400, y: Math.random() * 300}
+    var r = 5 * Math.random() + 5
+    var color = ["red", "green", "blue", "yellow"][Math.floor(Math.random() * 4)]
+    return UFX.Thing(UFX.Component.HasParent).
+             addcomp(Attract).
+             addcomp(CubicDrag).
+             addcomp(MoveAccel, p).
+             addcomp(DrawAt).
+             addcomp(DrawSquish).
+             addcomp(DrawCircle, r, color).
+             addcomp(Bounce)
+}
+
+function setballs(n) {
+    while (balls.nchildren() < n) {
+        var ball = Ball()
+        ball.attachto(balls)
+    }
+    while (balls.nchildren() > n) {
+        balls.lastchild().die()
+    }
+    document.getElementById("nballs").value = n
+}
+function mballs(fac) {
+    setballs(Math.max(Math.round(fac * balls.nchildren()), 1))
+}
+setballs(10)
+
+function think(dt) {
+    balls.think(dt)
+    document.getElementById("ups").value = UFX.ticker.getupsstr()
+}
+
+function draw() {
+    context.fillStyle = "black"
+    context.fillRect(0, 0, 400, 300)
+    balls.draw(context)
+    document.getElementById("fps").value = UFX.ticker.getfpsstr()
+}
+
+// polyfill, boo!
+window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||  
+                               window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
+
+// UFX.ticker.animsync = true
+UFX.ticker.registersync(think, draw, 300, 10)
+
+</script>
+
