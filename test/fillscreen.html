@@ -5,79 +5,238 @@
 <script src="../src/ticker.js"></script>
 <script src="UFX.js"></script>
 <h1>fill screen test</h1>
-<canvas id="canvas" style="border: 40px gray outset"></canvas>
+<p><button type=button id=action onclick="cycleaction()">maximize</button>
+<button type=button id=mode onclick="cyclemode()">fixed</button>
+<p><canvas id="canvas" style="border: 40px gray outset"></canvas>
 <div style="height:1000px"></div>
 <br>test
+<style type="text/css">
+button {
+	font-size: 300%;
+	width: 5em;
+}
+</style>
 <script type="text/javascript">
+function cycleaction() {
+	var a = document.getElementById("action")
+	if (a.textContent == "maximize") {
+		a.textContent = "full"
+	} else if (a.textContent == "full") {
+		a.textContent = "fill"
+	} else {
+		a.textContent = "maximize"
+	}
+}
+function cyclemode() {
+	var a = document.getElementById("mode")
+	if (a.textContent == "fixed") {
+		a.textContent = "aspect"
+	} else if (a.textContent == "aspect") {
+		a.textContent = "total"
+	} else if (a.textContent == "total") {
+		a.textContent = "none"
+	} else {
+		a.textContent = "fixed"
+	}
+}
+
 var canvas = document.getElementById("canvas")
 canvas.width = 600 ; canvas.height = 400
 var context = canvas.getContext("2d")
 UFX.draw.setcontext(context)
 
 var fillscreen = {
-	resizeelement: false,
-	preventscroll: false,
-	borderstyle: "black solid",
+	resizemode: "fixed",
+	preventscroll: true,
+	fillcolor: "black",
+	onadjust: null,
 	init: function (element) {
 		this.element = element
-		var fs = this
-		window.onresize = function () { fs.fill() }
+		this.mode = null
+		function c(obj, method) { return function () { obj[method]() } }
+		this.calladjust = c(this, "adjust")
+		
+		this.getsettings()
+	},
+	setmode: function (mode) {
+		if (this.mode == mode) return
+		if (this.mode == "fill") window.removeEventListener("resize", this.calladjust)
+		if (this.mode == "full") {
+			document.cancelFullscreen()
+			window.removeEventListener("resize", this.calladjust)
+		}
+			
+		this.mode = mode
+		if (this.mode == "fill") window.addEventListener("resize", this.calladjust)
+		if (this.mode == "full") {
+			this.element.requestFullscreen()
+			window.addEventListener("resize", this.calladjust)
+		}
+	},
+	adjust: function () {
+		var wx = window.innerWidth, wy = window.innerHeight
+		var ex = this.element.width, ey = this.element.height
+		var dx, dy, gx, gy
+
+		if (this.resizemode == "none") {
+			
+		} else if (this.resizemode == "fixed") {
+			if (ex * wy > ey * wx) {
+				dx = wx
+				dy = Math.round(wx * ey / ex)
+			} else {
+				dx = Math.round(wy * ex / ey)
+				dy = wy
+			}
+		} else if (this.resizemode == "aspect") {
+			if (ex * wy > ey * wx) {
+				gx = dx = wx
+				gy = dy = Math.round(wx * ey / ex)
+			} else {
+				gx = dx = Math.round(wy * ex / ey)
+				gy = dy = wy
+			}
+		} else if (this.resizemode == "total") {
+			gx = dx = wx
+			gy = dy = wy
+		}
+		
+		var es = this.element.style
+		if (dx) {
+			es.width = dx + "px"
+			es.height = dy + "px"
+		}
+		if (gx) {
+			this.element.width = gx
+			this.element.height = gy
+		}
+		if (this.mode == "fill") {
+			var bx = wx - (dx || gx || this.element.width)
+			var by = wy - (dy || gy || this.element.height)
+			es.borderLeft = es.borderRight = bx > 0 ? (0.5 * bx + 1) + "px " + this.fillcolor + " solid" : "none"
+			es.borderTop = es.borderBottom = by > 0 ? (0.5 * by + 1) + "px " + this.fillcolor + " solid" : "none"
+		} else if (this.mode == "full") {
+			es.borderLeft = es.borderRight = "none"
+			es.borderTop = es.borderBottom = "none"
+		}
+		if (this.onadjust) {
+			this.onadjust(this.element, this.element.width, this.element.height)
+		}
 	},
 	fill: function () {
-		if (this.resizeelement) {
-			this.fillresize()
-		} else {
-			this.fillnoresize()
-		}
-
+		this.setmode("fill")
 		if (this.preventscroll) {
 			document.body.addEventListener('touchstart', this.preventdefault)
 			this.scrollprevented = true
 		}
-		UFX.draw("fs #400 f0 fs #800 fr 0 0 100 100")
-		UFX.draw("[ z", canvas.width, canvas.height, "( m 0.5 0 l 1 0.5 l 0.5 1 l 0 0.5 ) ] ss white lw 1 s")
-		UFX.draw("font 40px~'sans~serif' fs white textalign center textbaseline bottom ft",
-			canvas.width + "x" + canvas.height, 0.5 * canvas.width, 0.5 * canvas.height)
-		UFX.draw("textbaseline top ft", parseFloat(canvas.style.width) + "x" + parseFloat(canvas.style.height),
-			0.5 * canvas.width, 0.5 * canvas.height)
 		setTimeout(function () { window.scrollTo(0, 1) }, 1)
+		this.adjust()
+		var es = this.element.style
+		es.position = "absolute"
+		es.left = "0px"
+		es.top = "1px"
+		document.body.style.overflow = "hidden"
 	},
 	full: function () {
+		this.setmode("full")
+		var fs = this
+		setTimeout(function () {
+			if (fs.getfullscreenelement() === fs.element) {
+				console.log(window.innerWidth)
+				fs.adjust()
+			} else {
+				fs.restore()
+			}
+		}, 100)
+	},
+	maximize: function () {
+		if (!this.element.requestFullscreen) {
+			this.fill()
+			return
+		}
+		this.setmode("full")
+		var fs = this
+		setTimeout(function () {
+			if (fs.getfullscreenelement() === fs.element) {
+			} else {
+				fs.fill()
+			}
+		}, 100)
+	},
+	getfullscreenelement: function () {
+		return document.getFullscreenElement
 	},
 	restore: function () {
+		this.setmode()
 		if (this.scrollprevented) {
 			document.body.removeEventListener('touchstart', this.preventdefault)
 			this.scrollprevented = false
 		}
+		this.restoresettings()
+	},
+	getsettings: function () {
+		var es = this.element.style, ds = this.settings = {
+			width: this.element.width,
+			height: this.element.height,
+			overflow: document.body.style.overflow,
+			style: {},
+		}
+		var vars = "width height position left top borderLeft borderRight borderTop borderBottom border".split(" ")
+		vars.forEach(function (v) {
+			console.log([v, es[v]])
+			ds.style[v] = es[v]
+		})
+	},
+	restoresettings: function () {
+		var es = this.element.style, ds = this.settings
+		width: this.element.width = this.settings.width
+		height: this.element.height = this.settings.height
+		overflow: document.body.style.overflow = this.settings.overflow
+		var vars = "width height position left top borderLeft borderRight borderTop borderBottom border".split(" ")
+		vars.forEach(function (v) {
+			es[v] = ds.style[v]
+		})
 	},
 	fillnoresize: function () {
-		var wx = window.innerWidth, wy = window.innerHeight
-		var ex = this.element.width, ey = this.element.height
-		if (ex * wy > ey * wx) {
-			var px = wx, py = wx * ey / ex
-		} else {
-			var px = wy * ex / ey, py = wy
-		}
-		var es = this.element.style
-		es.width = px + "px"
-		es.height = py + "px"
 		es.position = "absolute"
 		es.left = "0px"
 		es.top = "1px"
 		this.setbordersizes(wx - px, wy - py)
 		document.body.style.overflow = "hidden"
 	},
-	setbordersizes: function (bx, by) {
-		var es = this.element.style
-		es.borderLeft = es.borderRight = bx > 0 ? (0.5 * bx + 1) + "px " + this.borderstyle : "none"
-		es.borderTop = es.borderBottom = by > 0 ? (0.5 * by + 1) + "px " + this.borderstyle : "none"
-	},
 	preventdefault: function (event) {
 		event.preventDefault()
 	},
 }
 
+canvas.requestFullscreen = canvas.requestFullscreen || canvas.mozRequestFullScreen || canvas.webkitRequestFullScreen
+document.cancelFullscreen = document.cancelFullscreen || document.mozCancelFullScreen || document.webkitCancelFullScreen
+fillscreen.getfullscreenelement = function () {
+	return document.fullScreenElement || document.webkitCurrentFullScreenElement || document.mozFullScreenElement
+}
+
+fillscreen.onadjust = function (e, w, h) {
+	UFX.draw("fs #400 f0 fs #800 fr 0 0 100 100")
+	UFX.draw("[ z", canvas.width, canvas.height, "( m 0.5 0 l 1 0.5 l 0.5 1 l 0 0.5 ) ] ss white lw 1 s")
+	UFX.draw("font 40px~'sans~serif' fs white textalign center textbaseline bottom ft",
+		canvas.width + "x" + canvas.height, 0.5 * canvas.width, 0.5 * canvas.height)
+	UFX.draw("textbaseline top ft", parseFloat(canvas.style.width) + "x" + parseFloat(canvas.style.height),
+		0.5 * canvas.width, 0.5 * canvas.height)
+}
 fillscreen.init(canvas)
-fillscreen.preventscroll = true
-fillscreen.fill()
+fillscreen.resizemode = "total"
+canvas.onclick = function (event) {
+//	console.log(fillscreen.full())
+//	console.log(fillscreen.getfullscreenelement())
+//	console.log(document.webkitCurrentFullScreenElement)
+	if (fillscreen.mode) {
+		fillscreen.restore()
+	} else {
+		var a = document.getElementById("action").textContent
+		fillscreen.resizemode = document.getElementById("mode").textContent
+		fillscreen[a]()
+	}
+//	setTimeout(function () { fillscreen.restore() }, 2000)
+	event.preventDefault()
+}
 </script>
