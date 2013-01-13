@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
+<title>fill screen testarooni</title>
+<script src="../src/draw.js"></script>
+<script src="../src/ticker.js"></script>
+<script src="UFX.js"></script>
+<h1>fill screen test</h1>
+<canvas id="canvas" style="border: 40px gray outset"></canvas>
+<div style="height:1000px"></div>
+<br>test
+<script type="text/javascript">
+var canvas = document.getElementById("canvas")
+canvas.width = 600 ; canvas.height = 400
+var context = canvas.getContext("2d")
+UFX.draw.setcontext(context)
+
+var fillscreen = {
+	resizeelement: false,
+	preventscroll: false,
+	borderstyle: "black solid",
+	init: function (element) {
+		this.element = element
+		var fs = this
+		window.onresize = function () { fs.fill() }
+	},
+	fill: function () {
+		if (this.resizeelement) {
+			this.fillresize()
+		} else {
+			this.fillnoresize()
+		}
+
+		if (this.preventscroll) {
+			document.body.addEventListener('touchstart', this.preventdefault)
+			this.scrollprevented = true
+		}
+		UFX.draw("fs #400 f0 fs #800 fr 0 0 100 100")
+		UFX.draw("[ z", canvas.width, canvas.height, "( m 0.5 0 l 1 0.5 l 0.5 1 l 0 0.5 ) ] ss white lw 1 s")
+		UFX.draw("font 40px~'sans~serif' fs white textalign center textbaseline bottom ft",
+			canvas.width + "x" + canvas.height, 0.5 * canvas.width, 0.5 * canvas.height)
+		UFX.draw("textbaseline top ft", parseFloat(canvas.style.width) + "x" + parseFloat(canvas.style.height),
+			0.5 * canvas.width, 0.5 * canvas.height)
+		setTimeout(function () { window.scrollTo(0, 1) }, 1)
+	},
+	full: function () {
+	},
+	restore: function () {
+		if (this.scrollprevented) {
+			document.body.removeEventListener('touchstart', this.preventdefault)
+			this.scrollprevented = false
+		}
+	},
+	fillnoresize: function () {
+		var wx = window.innerWidth, wy = window.innerHeight
+		var ex = this.element.width, ey = this.element.height
+		if (ex * wy > ey * wx) {
+			var px = wx, py = wx * ey / ex
+		} else {
+			var px = wy * ex / ey, py = wy
+		}
+		var es = this.element.style
+		es.width = px + "px"
+		es.height = py + "px"
+		es.position = "absolute"
+		es.left = "0px"
+		es.top = "1px"
+		this.setbordersizes(wx - px, wy - py)
+		document.body.style.overflow = "hidden"
+	},
+	setbordersizes: function (bx, by) {
+		var es = this.element.style
+		es.borderLeft = es.borderRight = bx > 0 ? (0.5 * bx + 1) + "px " + this.borderstyle : "none"
+		es.borderTop = es.borderBottom = by > 0 ? (0.5 * by + 1) + "px " + this.borderstyle : "none"
+	},
+	preventdefault: function (event) {
+		event.preventDefault()
+	},
+}
+
+fillscreen.init(canvas)
+fillscreen.preventscroll = true
+fillscreen.fill()
+</script>

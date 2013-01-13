@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>UFX.touch navigation test</title>
+<script src="../src/draw.js"></script>
+<script src="../src/ticker.js"></script>
+<script src="UFX.js"></script>
+<h1>UFX.touch navigation test</h1>
+<canvas id="canvas" style="border: 40px gray outset"></canvas>
+<script type="text/javascript">
+var canvas = document.getElementById("canvas")
+canvas.width = 600 ; canvas.height = 400
+var context = canvas.getContext("2d")
+UFX.draw.setcontext(context)
+
+function gofullscreen() {
+	if (canvas.webkitRequestFullScreen) {
+		canvas.webkitRequestFullScreen(true)
+	} else if (canvas.mozRequestFullScreen) {
+		canvas.mozRequestFullScreen()
+	} else if (canvas.requestFullScreen) {
+		canvas.requestFullScreen()
+	}
+}
+function setcanvassize() {
+	if ((document.webkitFullscreenElement || document.mozFullScreenElement) == canvas) {
+		canvas.style.border = "none"
+		canvas.style.width = document.width + "px"
+		canvas.style.height = (document.width * canvas.width / canvas.height) + "px"
+	} else {
+		canvas.style.border = "10px lightgrey outset"
+		canvas.style.width = ""
+		canvas.style.height = ""
+	}
+	UFX.draw("fs red f0")
+}
+window.onresize = setcanvassize
+setcanvassize()
+
+function startup() {
+//	UFX.draw("fs black f0 fs white textalign center font 40px~'sans-serif' ft Tapped 300 200")
+//	canvas.onclick = null
+	for (var s in canvas) if (s.indexOf("equest") > -1) document.write("<P>" + s)
+//	gofullscreen()
+/*	UFX.ticker.register(function (dt) {
+		UFX.draw("fs black f0")
+		touchmap.think(dt)
+		touchmap.draw()
+	})*/
+}
+canvas.onclick = function (event) {
+	startup()
+	event.preventDefault()
+}
+
+UFX.draw("fs black f0 fs white textalign center font 40px~'sans-serif' ft Tap~to~begin 300 200")
+
+
+function getids(touches) {
+	var ids = []
+	for (var j = 0 ; j < touches.length ; ++j) {
+		ids.push(touches[j].identifier)
+	}
+	return ids
+}
+
+function getps(touches) {
+	var ids = []
+	for (var j = 0 ; j < touches.length ; ++j) {
+		ids.push(touches[j].clientX + " " + touches[j].clientY)
+	}
+	return ids
+}
+
+function eventpos (event, elem) {
+	elem = elem || event.target
+    var rect = elem.getBoundingClientRect()
+    var ex = rect.left + elem.clientLeft - elem.scrollLeft
+    var ey = rect.top + elem.clientTop - elem.scrollTop
+    return [event.clientX - ex, event.clientY - ey]
+}
+
+
+var touchmap = {
+	colors: { 0: "red", 1: "orange", 2: "yellow", 3: "green", 4: "blue", 5: "purple" },
+	map: {},
+	lastpos: {},
+	flyins: {},
+	flylimit: 0.25,
+	update: function (touches) {
+		this.map = {}
+		for (var j = 0 ; j < touches.length ; ++j) {
+			var t = touches[j]
+			var id = t.identifier
+			this.lastpos[id] = this.map[id] = eventpos(t)
+			if (!(id in this.flyins)) {
+				this.flyins[id] = this.flylimit
+			}
+		}
+	},
+	clear: function (touches) {
+		for (var j = 0 ; j < touches.length ; ++j) {
+			var t = touches[j]
+			delete this.map[t.identifier]
+		}
+	},
+	think: function (dt) {
+		for (var t in this.flyins) {
+			if (t in this.map) {
+				this.flyins[t] = Math.max(0, this.flyins[t] - dt)
+			} else {
+				this.flyins[t] += dt
+				if (this.flyins[t] > this.flylimit) {
+					delete this.flyins[t]
+				}
+			}
+		}
+	},
+	draw: function () {
+		for (var t in this.map) {
+			var color = this.colors[t] || "white"
+			UFX.draw("[ t", this.map[t], "b o 0 0 30 fs", color, "f ]")
+		}
+		for (var t in this.flyins) {
+			var color = this.colors[t] || "white"
+			var f = this.flyins[t] / this.flylimit
+			UFX.draw("[ t", this.lastpos[t], "b o 0 0", 40 + 100 * f, "ss", color, "alpha", 1-f, "lw 4 s ]")
+		}
+	},
+}
+
+/*
+document.addEventListener("touchstart", function (event) {
+	touchmap.update(event.touches)
+	event.preventDefault()
+}, false)
+document.addEventListener("touchmove", function (event) {
+	touchmap.update(event.touches)
+	event.preventDefault()
+}, false)
+document.addEventListener("touchend", function (event) {
+	touchmap.clear(event.changedTouches)
+	event.preventDefault()
+}, false)
+*/
+    
+
+</script>
