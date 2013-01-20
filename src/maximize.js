@@ -136,6 +136,9 @@ UFX.maximize = {
 			this.scrollprevented = false
 		}
 		this.restoresettings()
+		if (this.onadjust) {
+			this.onadjust(this.element, this.element.width, this.element.height)
+		}
 	},
 	getsettings: function () {
 		var es = this.element.style, ds = this.settings = {
