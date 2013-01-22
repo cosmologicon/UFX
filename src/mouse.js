@@ -36,6 +36,14 @@ UFX.mouse.state = function () {
     })
     UFX.mouse.clearevents()
     if (UFX.mouse.capture.wheel) r.wheeldy = UFX.mouse.getwheeldy()
+    if (UFX.mouse.watchdrag && UFX.mouse.drag) {
+    	var drag = UFX.mouse.drag
+    	r[UFX.mouse._buttonmap[drag.button]].drag = {
+    		dx: drag.pos[0] - drag.opos[0],
+    		dy: drag.pos[1] - drag.opos[1],
+		}
+		drag.opos = drag.pos
+    }
     r.pos = UFX.mouse.pos
     return r
 }
@@ -134,6 +142,7 @@ UFX.mouse._onmousedown = function (event) {
             downevent: event,
             button: event.button,
             pos0: pos,
+            opos: pos,
             pos: pos,
             dx: 0,
             dy: 0,

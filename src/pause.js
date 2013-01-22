@@ -21,7 +21,7 @@ UFX.pause.init = function () {
 }
 
 
-UFX.pause.Pause = Object.create(UFX.scene.Scene)
+UFX.pause.Pause = {}
 UFX.pause.Pause.start = function () {
     var c0 = context.canvas
     this.x = c0.width

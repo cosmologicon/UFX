@@ -178,6 +178,63 @@ UFX.texture = {
         canvas.applydata()
         return canvas
     },
+
+	terrain: function () {
+        var obj = this.reduceargs(arguments)
+        var w = obj.width || obj.size || 256
+        var h = obj.height || obj.size || 256
+		// Terrain heightmap color gradient:
+		// http://libnoise.sourceforge.net/tutorials/tutorial3.html
+		var tgrad = obj.tgrad || [[-1.00, 0, 0, 192], // deeps
+		                          [-0.35, 0, 0, 255], // shallow
+		                          [-0.10, 0, 128, 255], // shore
+		                          [-0.04, 240, 240, 64], // sand
+		                          [0.08, 32, 160, 0], // grass
+		                          [0.35, 160, 160, 0], // dirt
+		                          [0.50, 128, 128, 128], // rock
+		                          [0.70, 255, 255, 255], // snow
+		], ngrad = tgrad.length
+		var sealevel = "sealevel" in obj ? obj.sealevel : -0.10
+		var shadecolor = obj.shadecolor || [0, 0, 0]
+		var sr = shadecolor[0], sg = shadecolor[1], sb = shadecolor[2]
+		var shadex = obj.shadex || 0, shadey = obj.shadey || 0
+		var shadefactor = (shadex || shadey) && 2 * Math.exp(obj.shadefactor || 0) / Math.sqrt(shadex*shadex + shadey*shadey)
+		var canvas = this.makecanvas(w, h), data = canvas.data
+		var ndata = this.noisedata(obj, {fraclevel: 3, scale: 8})
+		function terrainmap(v) {
+			if (v <= tgrad[0][0]) return [tgrad[0][1], tgrad[0][2], tgrad[0][3]]
+			for (var j = 0 ; j < ngrad - 1 ; ++j) {
+				var tgrad0 = tgrad[j], tgrad1 = tgrad[j+1]
+				if (v >= tgrad0[0] && v < tgrad1[0]) {
+				var f = (v - tgrad0[0]) / (tgrad1[0] - tgrad0[0]), g = 1 - f
+				return [tgrad1[1]*f + tgrad0[1]*g,
+						tgrad1[2]*f + tgrad0[2]*g,
+						tgrad1[3]*f + tgrad0[3]*g]
+				}
+			}
+			return [tgrad[ngrad-1][1], tgrad[ngrad-1][2], tgrad[ngrad-1][3]]
+		}
+		for (var y = 0, j = 0, k = 0 ; y < h ; ++y) {
+			for (var x = 0 ; x < w; ++x, j += 4, ++k) {
+				var v = ndata[k]
+				var color = terrainmap(v)
+				if (shadefactor && v > sealevel) {
+					var dx = ndata[y*w+(x+1)%w] - ndata[y*w+(x+w-1)%w]
+					var dy = ndata[(y+1)%h*w+x] - ndata[(y+h-1)%h*w+x]
+					var f = 1 + (shadex * dx + shadey * dy) * shadefactor, g = 1 - f
+					color[0] = f * color[0] + g * shadefactor
+					color[1] = f * color[1] + g * shadefactor
+					color[2] = f * color[2] + g * shadefactor
+				}
+				data[j] = color[0]
+				data[j+1] = color[1]
+				data[j+2] = color[2]
+				data[j+3] = 255
+			}
+		}
+		canvas.applydata()
+		return canvas
+	},
     
     clouds: function () {
         var obj = this.reduceargs(arguments)
@@ -346,6 +403,33 @@ UFX.texture = {
         })
     },
 
+	// Add a buffer around a canvas to avoid edge effects when tiling scaled
+	buffertile: function (canvas, buffersize) {
+		var b = buffersize || 20, w = canvas.width, h = canvas.height
+		var bcanvas = document.createElement("canvas")
+		bcanvas.width = w + 2 * b
+		bcanvas.height = h + 2 * b
+		bcanvas.context = bcanvas.getContext("2d")
+		for (var ix = -1 ; ix < 2 ; ++ix) {
+			for (var iy = -1 ; iy < 2 ; ++iy) {
+				bcanvas.context.drawImage(canvas, b + w * ix, b + h * iy)
+			}
+		}
+		bcanvas.drawclip = function (context, x, y) {
+			context.save()
+			context.translate(x || 0, y || 0)
+			context.beginPath()
+			context.moveTo(0, 0)
+			context.lineTo(w, 0)
+			context.lineTo(w, h)
+			context.lineTo(0, h)
+			context.closePath()
+			context.clip()
+			context.drawImage(bcanvas, -b, -b)
+			context.restore()
+		}
+		return bcanvas
+	},
 }
 
 
