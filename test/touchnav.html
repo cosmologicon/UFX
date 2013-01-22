@@ -29,6 +29,7 @@ canvas.onmousedown = function (event) {
 	init()
 }
 canvas.ontouchstart = function (event) {
+	UFX.touch.touchmax = 1
 	UFX.touch.init(canvas)
 	UFX.mouse.active = false
 	touching = true
@@ -60,7 +61,8 @@ function init() {
 	UFX.ticker.register(think)
 }
 
-var x0 = 0, y0 = 0, dragpos = null, cx0 = 0, cy0 = 0, cfactor = 2, reeling = null, rfactor = 1
+var x0 = 0, y0 = 0, zoom = 4, cx0 = 0, cy0 = 0, cfactor = 2
+var dragpos = null, reeling = null, rfactor = 1
 function think(dt) {
 	if (touching) {
 		var tstate = UFX.touch.state()
@@ -89,14 +91,14 @@ function think(dt) {
 	}
 
 	var x = Math.round(x0), y = Math.round(y0)
-	var sx2 = 0.5 * canvas.width, sy2 = 0.5 * canvas.height, z = 4, s = 256 * z
+	var sx2 = 0.5 * canvas.width, sy2 = 0.5 * canvas.height, z = zoom, s = 256 * z
 	UFX.draw("[ t", sx2 - x, sy2 - y)
 	var ix0 = Math.floor((x - sx2) / s)
-	var ix1 = Math.floor((x + sx2) / s) + 1
+	var ix1 = Math.floor((x + sx2) / s)
 	var iy0 = Math.floor((y - sy2) / s)
-	var iy1 = Math.floor((y + sy2) / s) + 1
-	for (var ix = ix0 ; ix < ix1 ; ++ix) {
-		for (var iy = iy0 ; iy < iy1 ; ++iy) {
+	var iy1 = Math.floor((y + sy2) / s)
+	for (var ix = ix0 ; ix <= ix1 ; ++ix) {
+		for (var iy = iy0 ; iy <= iy1 ; ++iy) {
 			UFX.draw("[ t", s*ix, s*iy, "z", z, z)
 			backdrop.drawclip(context)
 			UFX.draw("]")
@@ -107,16 +109,16 @@ function think(dt) {
 
 	cx0 += 10 * dt
 	cy0 += 12 * dt
-	z = z * cfactor
+	z = zoom * cfactor
 	s = 256 * z
 	var x = Math.round(cx0 + x0 * cfactor), y = Math.round(cy0 + y0 * cfactor)
 	UFX.draw("[ t", sx2 - x, sy2 - y)
 	var ix0 = Math.floor((x - sx2) / s)
-	var ix1 = Math.floor((x + sx2) / s) + 1
+	var ix1 = Math.floor((x + sx2) / s)
 	var iy0 = Math.floor((y - sy2) / s)
-	var iy1 = Math.floor((y + sy2) / s) + 1
-	for (var ix = ix0 ; ix < ix1 ; ++ix) {
-		for (var iy = iy0 ; iy < iy1 ; ++iy) {
+	var iy1 = Math.floor((y + sy2) / s)
+	for (var ix = ix0 ; ix <= ix1 ; ++ix) {
+		for (var iy = iy0 ; iy <= iy1 ; ++iy) {
 			UFX.draw("[ alpha 0.5 t", s*ix, s*iy, "z", z, z)
 			clouds.drawclip(context)
 			UFX.draw("]")

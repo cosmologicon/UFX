@@ -419,10 +419,12 @@ UFX.texture = {
 			context.save()
 			context.translate(x || 0, y || 0)
 			context.beginPath()
+			// Adding 0.01 to the control points seems to take care of some edge rounding issue in touchnav test
+			// 0.001 is not enough
 			context.moveTo(0, 0)
-			context.lineTo(w, 0)
-			context.lineTo(w, h)
-			context.lineTo(0, h)
+			context.lineTo(w + 0.01, 0)
+			context.lineTo(w + 0.01, h + 0.01)
+			context.lineTo(0, h + 0.01)
 			context.closePath()
 			context.clip()
 			context.drawImage(bcanvas, -b, -b)
