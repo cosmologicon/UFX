@@ -268,14 +268,21 @@ UFX.Playback.prototype = {
     },
     applypush: function (scenename, args, state) {
         if (this.setstate) this.setstate.apply(null, state)
-        this.stack.ipush.apply(this.stack, [scenename].concat(args))
+        return this.stack.ipush.apply(this.stack, [scenename].concat(args))
     },
     applypop: function () {
         this.stack.ipop()
     },
+    // Have to manually implement swap because we want the state to be updated
+    //   in between the pop and the push.
     applyswap: function (scenename, args, state) {
+		var c0 = this.stack_stack.pop()
+		if (c0 && c0.stop) c0.stop()
         if (this.setstate) this.setstate.apply(null, state)
-        this.stack.iswap.apply(this.stack, [scenename].concat(args))
+		var c = this.stack.getscene(cname)
+		this._stack.push(c)
+		if (c.start) c.start.apply(c, args)
+		return c0
     },
     applythink: function (args) {
         this.stack.think.apply(this.stack, args)

@@ -27,6 +27,15 @@ UFX.SceneStack.prototype = {
 	},
 	getscene: function (c) {
 		if (typeof c === "string") {
+			if (c.substr(0,4) == "new_") {
+				c = c.substr(4)
+				if (!(c in UFX.scenes)) throw "Unrecognized scene: " + c
+				return new UFX.scenes[c]()
+			} else if (c.substr(0,7) == "create_") {
+				c = c.substr(7)
+				if (!(c in UFX.scenes)) throw "Unrecognized scene: " + c
+				return Object.create(UFX.scenes[c])
+			}
 			if (!(c in UFX.scenes)) throw "Unrecognized scene: " + c
 			return UFX.scenes[c]
 		}

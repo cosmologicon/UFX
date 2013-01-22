@@ -116,6 +116,7 @@ var reviewer = {
 	},
 	thischapter: function () {
 		if (!this.playback) return
+		this.playback.jchapter = Math.min(Math.max(this.playback.jchapter, 0), this.session.nchapters - 1)
 		this.playback.loadchapter()
 		this.playback.playing = true
 	},
