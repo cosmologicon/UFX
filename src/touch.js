@@ -170,8 +170,6 @@ UFX.touch = {
 		if (!this._touches[id]) return
 //		this._handlemove(touch)
 		var tobj = this._touches[id]
-		delete this._touches[id]
-
 		var pos = this._eventpos(touch)
 		var t = Date.now(), dt = t - tobj.t0
 		this._addevent("end", tobj.id, tobj.touchid, {
@@ -194,10 +192,11 @@ UFX.touch = {
 				v: [tobj.vx, tobj.vy],
 			})
 		}
+		delete this._touches[id]
 	},
 	_settkeys: function () {
 		this._tkeys = []
-		for (var k in this._touches) this._tkeys.append(k)
+		for (var k in this._touches) this._tkeys.push(k)
 		this._tkeys.sort()
 	},
 	_checkhold: function () {
@@ -219,7 +218,6 @@ UFX.touch = {
 		for (var j = 0 ; j < event.changedTouches.length ; ++j) {
 			this._handlestart(event.changedTouches[j])
 		}
-		this._settkeys()
 		this._checkhold()
 		event.preventDefault()
 	},

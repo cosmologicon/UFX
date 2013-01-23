@@ -434,4 +434,52 @@ UFX.texture = {
 	},
 }
 
+// Something that lets you draw a tiled canvas zoomed in without seams or edge effects
+UFX.texture.tiler = function (canvas, buffer, nx0, ny0) {
+	if (!(this instanceof UFX.texture.tiler))
+		return new UFX.texture.tiler(canvas, buffer, nx0, ny0)
+	this.canvas = canvas
+	this.buffer = buffer || 2
+	this.nx = this.ny = 0
+	this.makechart(nx0 || 1, ny0 || 1)
+}
+UFX.texture.tiler.prototype = {
+	draw: function (context, x, y, w, h) {
+		if (w === undefined) {
+			w = x ; h = y ; x = 0 ; y = 0
+		}
+		var b = this.buffer, cx = this.canvas.width, cy = this.canvas.height
+		var x0 = ((x-b)%cx+cx)%cx+b, x1 = x0 + w
+		var y0 = ((y-b)%cy+cy)%cy+b, y1 = y0 + h
+		this.makechart(Math.floor((x1+b)/cx)+1, Math.floor((y1+b)/cy)+1)
+		context.save()
+		context.translate(x || 0, y || 0)
+		context.beginPath()
+		context.moveTo(0, 0)
+		context.lineTo(w, 0)
+		context.lineTo(w, h)
+		context.lineTo(0, h)
+		context.closePath()
+		context.clip()
+		context.drawImage(this.chart, -x0, -y0)
+		context.restore()
+	},
+	makechart: function (nx, ny) {
+		if (nx <= this.nx && ny <= this.ny) return
+		this.nx = Math.max(nx, this.nx)
+		this.ny = Math.max(ny, this.ny)
+		this.chart = document.createElement("canvas")
+		this.chart.width = this.canvas.width * this.nx
+		this.chart.height = this.canvas.height * this.ny
+		var context = this.chart.getContext("2d")
+		for (var j = 0 ; j < this.nx ; ++j) {
+			for (var k = 0 ; k < this.ny ; ++k) {
+				context.drawImage(this.canvas, j*this.canvas.width, k*this.canvas.height)
+			}
+		}
+	},	
+}
+
+
+
 

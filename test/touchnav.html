@@ -49,14 +49,8 @@ function init() {
 	UFX.draw(backdrop.context, "[ alpha 0.7 fs black f0 ]")
 	clouds = UFX.texture.clouds({xscale: 8, yscale: 8, sharpness: -2})
 
-	backdrop = UFX.texture.buffertile(backdrop)
-	clouds = UFX.texture.buffertile(clouds)
-
-//	UFX.draw("fs black f0")
-//	context.drawImage(clouds, 0, 0)
-//	clouds.drawclip(context, 300,20)
-//	clouds.drawclip(context, 556,20)
-//	clouds.drawclip(context, 300,276)
+	backdrop = UFX.texture.tiler(backdrop)
+	clouds = UFX.texture.tiler(clouds)
 
 	UFX.ticker.register(think)
 }
@@ -92,18 +86,8 @@ function think(dt) {
 
 	var x = Math.round(x0), y = Math.round(y0)
 	var sx2 = 0.5 * canvas.width, sy2 = 0.5 * canvas.height, z = zoom, s = 256 * z
-	UFX.draw("[ t", sx2 - x, sy2 - y)
-	var ix0 = Math.floor((x - sx2) / s)
-	var ix1 = Math.floor((x + sx2) / s)
-	var iy0 = Math.floor((y - sy2) / s)
-	var iy1 = Math.floor((y + sy2) / s)
-	for (var ix = ix0 ; ix <= ix1 ; ++ix) {
-		for (var iy = iy0 ; iy <= iy1 ; ++iy) {
-			UFX.draw("[ t", s*ix, s*iy, "z", z, z)
-			backdrop.drawclip(context)
-			UFX.draw("]")
-		}
-	}
+	UFX.draw("[ t", sx2 - x, sy2 - y, "z", z, z)
+	backdrop.draw(context, -(sx2-x)/z, -(sy2-y)/z, 2*sx2/z, 2*sy2/z)
 	UFX.draw("]")
 
 
@@ -112,18 +96,8 @@ function think(dt) {
 	z = zoom * cfactor
 	s = 256 * z
 	var x = Math.round(cx0 + x0 * cfactor), y = Math.round(cy0 + y0 * cfactor)
-	UFX.draw("[ t", sx2 - x, sy2 - y)
-	var ix0 = Math.floor((x - sx2) / s)
-	var ix1 = Math.floor((x + sx2) / s)
-	var iy0 = Math.floor((y - sy2) / s)
-	var iy1 = Math.floor((y + sy2) / s)
-	for (var ix = ix0 ; ix <= ix1 ; ++ix) {
-		for (var iy = iy0 ; iy <= iy1 ; ++iy) {
-			UFX.draw("[ alpha 0.5 t", s*ix, s*iy, "z", z, z)
-			clouds.drawclip(context)
-			UFX.draw("]")
-		}
-	}
+	UFX.draw("[ t", sx2 - x, sy2 - y, "z", z, z, "alpha 0.5")
+	clouds.draw(context, -(sx2-x)/z, -(sy2-y)/z, 2*sx2/z, 2*sy2/z)
 	UFX.draw("]")
 	
 	UFX.draw("fs orange font 60px~'Contrail~One' textalign left textbaseline top shadowx 2 shadowy 2 shadowcolor black")
