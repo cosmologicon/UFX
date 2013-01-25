@@ -13,7 +13,7 @@ UFX.touch = {
 		release: true,
 	},
 	active: true,
-	multi: false,
+	multi: true,
 	touchmax: 0,
 	tmulti: 100,
 	usetouchid: true,
@@ -50,7 +50,7 @@ UFX.touch = {
 			if (event.type == "tap") {
 				obj = { dt: event.dt }
 			} else if (event.type == "release") {
-				obj = { dt: event.dt, v: event.v }
+				obj = { dt: event.dt, v: event.v, multi: event.multi, }
 			} else {
 				obj = {}
 			}
@@ -59,16 +59,44 @@ UFX.touch = {
 			obj.t = event.t
 			state[event.type].push(obj)
 		})
+		state.ids = []
 		for (var id in this._touches) {
 			var touch = this._touches[id], tid = utid ? touch.touchid : id
 			if (!touch.followed) continue
+			state.ids.push(tid)
 			var pos = touch.pos, opos = touch.opos
 			state.ps[tid] = pos
 			state.deltas[tid] = [pos[0] - opos[0], pos[1] - opos[1]]
 			touch.ot = touch.t
 			touch.opos = pos
 		}
+		state.ids.sort()
 		return state
+	},
+	// static method. Pass it a state and get an object and get info about two-touch motions
+	twotouchstate: function (state) {
+		if (state.ids.length != 2) return null
+		// convention: lowercase is first finger, uppercase is second finger
+		var id = state.ids[0], ID = state.ids[1]
+		var x1 = state.ps[id][0], y1 = state.ps[id][1]
+		var X1 = state.ps[ID][0], Y1 = state.ps[ID][1]
+		var dx1 = X1-x1, dy1 = Y1-y1
+		var r1 = Math.sqrt(dx1*dx1+dy1*dy1)
+		var theta1 = r1 ? Math.atan2(dy1,dx1) : 0
+		var x0 = x1-state.deltas[id][0], y0 = y1-state.deltas[id][1]
+		var X0 = X1-state.deltas[ID][0], Y0 = Y1-state.deltas[ID][1]
+		var dx0 = X0-x0, dy0 = Y0-y0
+		var r0 = Math.sqrt(dx0*dx0+dy0*dy0)
+		var theta0 = r0 ? Math.atan2(dy0,dx0) : 0
+		return {
+			center: [(x1+X1)/2, (y1+Y1)/2],
+			dcenter: [(x1+X1-x0-X0)/2, (y1+Y1-y0-Y1)/2],
+			r: r1,
+			dr: r1-r0,
+			rratio: r0 ? r1/r0 : 1,
+			theta: theta1,
+			dtheta: theta1-theta0,
+		}
 	},
 	_captureevents: function (element, backdrop) {
 		element = element || document
@@ -81,8 +109,7 @@ UFX.touch = {
 		element.ontouchstart = c(this, "_ontouchstart")
 		element.ontouchmove = c(this, "_ontouchmove")
 		element.ontouchend = c(this, "_ontouchend")
-
-		backdrop.ontouchmove = UFX.touch._ontouchmove
+//		backdrop.ontouchmove = element.ontouchmove
 
 		this._element = element
 		this._backdrop = backdrop
@@ -113,7 +140,7 @@ UFX.touch = {
 			moved: false,  // has the touch moved at all?
 			followed: true,  // are we registering events for this touch?
 			held: false,  // has this touch registered a hold event?
-			multi: null,  // other touches co-generating multitouch events with this one
+			multi: 1,  // other touches co-generating multitouch events with this one
 			multit0: t,
 			vx: 0,
 			vy: 0,
@@ -190,6 +217,7 @@ UFX.touch = {
 				pos0: tobj.pos0,
 				pos: pos,
 				v: [tobj.vx, tobj.vy],
+				multi: tobj.multi,
 			})
 		}
 		delete this._touches[id]
@@ -198,6 +226,10 @@ UFX.touch = {
 		this._tkeys = []
 		for (var k in this._touches) this._tkeys.push(k)
 		this._tkeys.sort()
+		var n = this._tkeys.length
+		for (var k in this._touches) {
+			this._touches[k].multi = Math.max(this._touches[k].multi, n)
+		}
 	},
 	_checkhold: function () {
 		var t = Date.now()

@@ -15,6 +15,11 @@
 <h1>UFX.touch navigation test</h1>
 <canvas id="canvas" style="border: 40px gray outset"></canvas>
 <script type="text/javascript">
+// The only way to debug on mobile
+window.onerror = function (error, url, line) {
+	document.body.innerHTML = "<p>Error in: "+url+"<p>line "+line+"<pre>"+error+"</pre>"
+}
+
 var canvas = document.getElementById("canvas")
 canvas.width = 600 ; canvas.height = 400
 var context = canvas.getContext("2d")
@@ -25,11 +30,12 @@ UFX.draw("fs black f0 fs white textalign center font 40px~'sans-serif' ft Tap~or
 var n = 0, touching, backdrop = null
 canvas.onmousedown = function (event) {
 	if (backdrop) return
+	UFX.mouse.capture.wheel = true
 	UFX.mouse.init(canvas)
 	init()
 }
 canvas.ontouchstart = function (event) {
-	UFX.touch.touchmax = 1
+	UFX.touch.touchmax = 2
 	UFX.touch.init(canvas)
 	UFX.mouse.active = false
 	touching = true
@@ -55,19 +61,30 @@ function init() {
 	UFX.ticker.register(think)
 }
 
-var x0 = 0, y0 = 0, zoom = 4, cx0 = 0, cy0 = 0, cfactor = 2
+var x0 = 0, y0 = 0, z0 = 0, zoom = 3, cx0 = 0, cy0 = 0, cfactor = 2
 var dragpos = null, reeling = null, rfactor = 1
 function think(dt) {
+	var dz = 0, zpos = null, t2state
 	if (touching) {
 		var tstate = UFX.touch.state()
-		for (var j in tstate.deltas) {
-			var d = tstate.deltas[j]
-			x0 -= d[0]
-			y0 -= d[1]
+		if (tstate.ids.length == 1) {  // single touch
+			for (var j in tstate.deltas) {
+				var d = tstate.deltas[j]
+				x0 -= d[0] / zoom
+				y0 -= d[1] / zoom
+			}
+		} else if (tstate.ids.length == 2) {
+			var t2state = UFX.touch.twotouchstate(tstate)
+			if (t2state) {
+				dz = Math.log(t2state.rratio) * 100
+				zpos = t2state.center
+			}
 		}
+
 		if (JSON.stringify(tstate.ps) != "{}") reeling = null
-		if (tstate.release.length) {
+		if (tstate.release.length && tstate.release[0].multi <= 1) {
 			reeling = tstate.release[0].v
+			reeling = [reeling[0]/zoom, reeling[1]/zoom]
 		}
 		if (reeling) {
 			var vx = reeling[0], vy = reeling[1]
@@ -79,23 +96,35 @@ function think(dt) {
 	} else {
 		var mstate = UFX.mouse.state()
 		if (mstate.left.drag) {
-			x0 -= mstate.left.drag.dx
-			y0 -= mstate.left.drag.dy
+			x0 -= mstate.left.drag.dx / zoom
+			y0 -= mstate.left.drag.dy / zoom
+		}
+		if (mstate.wheeldy) {
+			dz = mstate.wheeldy
+			zpos = mstate.pos
 		}
 	}
+	if (dz) {
+		z0 += dz
+		z0 = Math.min(Math.max(z0, -50), 200)
+		var oldzoom = zoom
+		zoom = 3 * Math.exp(z0 * 0.01)
+		x0 += (zpos[0] - 0.5 * canvas.width) * (1/oldzoom - 1/zoom)
+		y0 += (zpos[1] - 0.5 * canvas.height) * (1/oldzoom - 1/zoom)
+	}
 
-	var x = Math.round(x0), y = Math.round(y0)
 	var sx2 = 0.5 * canvas.width, sy2 = 0.5 * canvas.height, z = zoom, s = 256 * z
+	var x = Math.round(x0 * z), y = Math.round(y0 * z)
 	UFX.draw("[ t", sx2 - x, sy2 - y, "z", z, z)
 	backdrop.draw(context, -(sx2-x)/z, -(sy2-y)/z, 2*sx2/z, 2*sy2/z)
 	UFX.draw("]")
 
 
-	cx0 += 10 * dt
-	cy0 += 12 * dt
+	cx0 += 3 * dt
+	cy0 += 4 * dt
 	z = zoom * cfactor
 	s = 256 * z
-	var x = Math.round(cx0 + x0 * cfactor), y = Math.round(cy0 + y0 * cfactor)
+	var x = Math.round((cx0 + x0) * z), y = Math.round((cy0 + y0) * z)
 	UFX.draw("[ t", sx2 - x, sy2 - y, "z", z, z, "alpha 0.5")
 	clouds.draw(context, -(sx2-x)/z, -(sy2-y)/z, 2*sx2/z, 2*sy2/z)
 	UFX.draw("]")
