@@ -125,21 +125,27 @@ UFX._draw = function () {
             case "ss": case "strokestyle":
                 this.strokeStyle = t[++j]
                 break
-            case "shadowblur":
+            case "shadowblur": case "shb":
                 this.shadowBlur = +t[++j]
                 break
-            case "shadowcolor":
+            case "shadowcolor": case "shc":
                 this.shadowColor = t[++j]
                 break
-            case "shadowoffsetx": case "shadowx":
+            case "shadowoffsetx": case "shadowx": case "shx":
                 this.shadowOffsetX = +t[++j]
                 break
-            case "shadowoffsety": case "shadowy":
+            case "shadowoffsety": case "shadowy": case "shy":
                 this.shadowOffsetY = +t[++j]
                 break
-            case "shadowoffsetxy": case "shadowxy":
+            case "shadowoffsetxy": case "shadowxy": case "shxy":
                 this.shadowOffsetX = +t[++j]
                 this.shadowOffsetY = +t[++j]
+                break
+            case "shadow": case "sh":
+                this.shadowColor = t[++j]
+                this.shadowOffsetX = +t[++j]
+                this.shadowOffsetY = +t[++j]
+                this.shadowBlur = +t[++j]
                 break
             case "drawimage":
                 this.drawImage(t[++j], +t[++j], +t[++j])
