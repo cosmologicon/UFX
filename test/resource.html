@@ -40,15 +40,15 @@ td {
 
 
 <script>
-//<button id=playsound type=button onclick="qplay(UFX.resource.sounds.jump)">Play sound</button>
-//UFX.resource.onloading = function (f) { alert("loading" + f) }
+window.onerror = function (error, url, line) {
+    document.body.innerHTML = "<p>Error in: "+url+"<p>line "+line+"<pre>"+error+"</pre>"
+}
 UFX.resource.onload = function () {
     context.fillStyle = "#004"
     context.fillRect(0, 0, 300, 300)
     context.scale(0.5, 0.5)
     context.drawImage(UFX.resource.images.abigail, 0, 0)
     multijump = UFX.resource.Multisound(UFX.resource.sounds.jumpwav)
-    UFX.resource.sounds.jump.volume = 0.5
 }
 
 function qplay (sound) {
