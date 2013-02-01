@@ -33,21 +33,22 @@ td {
 <h1>UFX.resource test</h1>
 
 <canvas id=canvas style="border: thin blue solid"></canvas>
-<button id=playsound type=button onclick="qplay(jumpsound)">Play sound</button>
+<p><button type=button onclick="qplay(UFX.resource.sounds.jumpwav)">Play wav</button>
+<p><button type=button onclick="qplay(UFX.resource.sounds.jumpogg)">Play ogg</button>
+<p><button type=button onclick="qplay(UFX.resource.sounds.jumpmp3)">Play mp3</button>
+<p><button type=button onclick="qplay(multijump)">Play Multisound</button>
 
 
 <script>
 //<button id=playsound type=button onclick="qplay(UFX.resource.sounds.jump)">Play sound</button>
 //UFX.resource.onloading = function (f) { alert("loading" + f) }
-var jumpsound
 UFX.resource.onload = function () {
     context.fillStyle = "#004"
     context.fillRect(0, 0, 300, 300)
     context.scale(0.5, 0.5)
     context.drawImage(UFX.resource.images.abigail, 0, 0)
-    jumpsound = UFX.resource.Multisound(UFX.resource.sounds.jump)
+    multijump = UFX.resource.Multisound(UFX.resource.sounds.jumpwav)
     UFX.resource.sounds.jump.volume = 0.5
-    playsound.disabled = false
 }
 
 function qplay (sound) {
@@ -57,10 +58,11 @@ function qplay (sound) {
 }
 
 UFX.resource.base = "data"
-UFX.resource.load({abigail: "abigail.png", jump: "jump.wav"})
-
-var playsound = document.getElementById("playsound")
-playsound.disabled = true
+UFX.resource.load({abigail: "abigail.png",
+    jumpwav: "jump.wav",
+    jumpogg: "jump.ogg",
+    jumpmp3: "jump.mp3",
+})
 
 var canvas = document.getElementById("canvas")
 canvas.width = 300
