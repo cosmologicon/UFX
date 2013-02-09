@@ -58,7 +58,10 @@ function init() {
 	backdrop = UFX.texture.tiler(backdrop)
 	clouds = UFX.texture.tiler(clouds)
 
-	UFX.ticker.register(think)
+	UFX.ticker.register(think, null, {
+		maxups: 300,
+		minups: 10,
+	})
 }
 
 var x0 = 0, y0 = 0, z0 = 0, zoom = 3, cx0 = 0, cy0 = 0, cfactor = 2

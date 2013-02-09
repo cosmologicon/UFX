@@ -278,10 +278,8 @@ UFX.touch = {
 		var rect = elem.getBoundingClientRect()
 		var ex = rect.left + elem.clientLeft - elem.scrollLeft
 		var ey = rect.top + elem.clientTop - elem.scrollTop
-		if (this.roundpos) {
-			return [Math.round(event.clientX - ex), Math.round(event.clientY - ey)]
-		}
-		return [event.clientX - ex, event.clientY - ey]
+		var x = event.clientX - ex, y = event.clientY - ey
+		return this.roundpos ? [Math.round(x), Math.round(y)] : [x, y]
 	},
 	_getps: function(touches) {
 		var ps = []
