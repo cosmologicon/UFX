@@ -76,6 +76,7 @@ UFX.maximize = {
 			var by = wy - (dy || gy || this.element.height)
 			es.borderLeft = es.borderRight = bx > 0 ? (0.5 * bx + 1) + "px " + this.fillcolor + " solid" : "none"
 			es.borderTop = es.borderBottom = by > 0 ? (0.5 * by + 1) + "px " + this.fillcolor + " solid" : "none"
+			setTimeout(function () { window.scrollTo(0, 1) }, 1)
 		} else if (this.mode == "full") {
 			es.borderLeft = es.borderRight = "none"
 			es.borderTop = es.borderBottom = "none"
@@ -91,7 +92,6 @@ UFX.maximize = {
 			document.body.addEventListener('touchstart', this.preventdefault)
 			this.scrollprevented = true
 		}
-		setTimeout(function () { window.scrollTo(0, 1) }, 1)
 		this.adjust()
 		var es = this.element.style
 		es.position = "absolute"
