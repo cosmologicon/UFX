@@ -147,7 +147,6 @@ UFX.Recorder.prototype = {
         this.lastdatum = [Date.now(), "log"]
         this.lastdatum.push.apply(this.lastdatum, arguments)
         this.data.push(this.lastdatum)
-        console.log(this.lastdatum)
     },
     handle: function (eventtype) {
         if (typeof eventtype !== "string") throw "Invalid event type: " + eventtype
