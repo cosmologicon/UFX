@@ -26,7 +26,7 @@ var reviewer = {
 			"<tbody id='reviewsessions'></tbody></table>" +
 			"<div id='reviewcontrols'>" +
 			"<p>Chapter: " +
-			"<input id='reviewchapter' style='width:6em ; text-align: center'></input>" +
+			"<select id='reviewselector' onclick='reviewer.selectchapter()'></select>" +
 			"<button onclick='reviewer.prevchapter()'>Prev</button>" +
 			"<button onclick='reviewer.thischapter()'>Curr</button>" +
 			"<button onclick='reviewer.nextchapter()'>Next</button>" +
@@ -34,6 +34,7 @@ var reviewer = {
 			"<input id='reviewtimer' style='width:6em ; text-align: center'></input>" +
 			"<p>Replay factor: " +
 			"<select id='reviewsyncfactor' onclick='reviewer.setsyncfactor()'>" + 
+			"<option value=0>pause</option>" +
 			"<option value=0.3>0.3x</option>" +
 			"<option value=0.5>0.5x</option>" +
 			"<option value=0.75>0.75x</option>" +
@@ -48,7 +49,7 @@ var reviewer = {
 		document.body.insertBefore(this.banner, document.body.childNodes[0])
 		this.reviewcontrols = document.getElementById("reviewcontrols")
 		this.reviewcontrols.style.display = "none"
-		this.reviewchapter = document.getElementById("reviewchapter")
+		this.reviewselector = document.getElementById("reviewselector")
 		this.reviewtimer = document.getElementById("reviewtimer")
 	},
 	buildtable: function () {
@@ -96,6 +97,15 @@ var reviewer = {
 	loadsession: function (sessionname) {
 		this.sessionname = sessionname
 		this.session = this.getplayback("session", { sessionname: sessionname })
+		while (this.reviewselector.length) {
+			this.reviewselector.remove(0)
+		}
+		var nchapters = this.session.chapters.length
+		for (var j = 0 ; j < nchapters ; ++j) {
+			var chapter = this.session.chapters[j], jchapter = chapter.n, chaptername = chapter.name
+			var s = jchapter + "/" + nchapters + (chaptername ? " : " + chaptername : "")
+			this.reviewselector.add(new Option(s, j))
+		}
 		this.reviewcontrols.style.display = "block"
 		document.getElementById("reviewersessionlist").style.display = "none"
 		this.playback = UFX.Playback(this.session, this.playbackargs)
@@ -108,21 +118,23 @@ var reviewer = {
 			this.playback.syncfactor = this.syncfactor
 		}
 	},
+	selectchapter: function () {
+		this.loadchapter(this.reviewselector.value)
+	},
 	prevchapter: function () {
 		if (!this.playback) return
-		this.playback.jchapter = Math.max(this.playback.jchapter - 1, 0)
-		this.playback.loadchapter()
-		this.playback.playing = true
+		this.loadchapter(Math.max(this.playback.jchapter - 1, 0))
 	},
 	thischapter: function () {
 		if (!this.playback) return
-		this.playback.jchapter = Math.min(Math.max(this.playback.jchapter, 0), this.session.nchapters - 1)
-		this.playback.loadchapter()
-		this.playback.playing = true
+		this.loadchapter(Math.min(Math.max(this.playback.jchapter, 0), this.session.nchapters - 1))
 	},
 	nextchapter: function () {
 		if (!this.playback) return
-		this.playback.jchapter = Math.min(this.playback.jchapter + 1, this.session.nchapters - 1)
+		this.loadchapter(Math.min(this.playback.jchapter + 1, this.session.nchapters - 1))
+	},
+	loadchapter: function (jchapter) {
+		this.playback.jchapter = jchapter
 		this.playback.loadchapter()
 		this.playback.playing = true
 	},
@@ -132,7 +144,17 @@ var reviewer = {
 			return Math.floor(t) + "." + (Math.floor(t * 10) % 10 + 10).toString().substr(1)
 		}
 		if (this.session) {
-			this.reviewchapter.value = this.playback.jchapter + "/" + this.session.nchapters
+			var r = this.reviewselector
+			var selected = r.selectedIndex >= 0 ? r.options[r.selectedIndex].value : null
+			if (this.playback.jchapter != selected) {
+				for (var j = 0 ; j < r.length ; ++j) {
+					if (r.options[j].value == this.playback.jchapter) {
+						r.selectedIndex = j
+						break
+					}
+				}
+			}
+//			this.reviewchapter.value = this.playback.jchapter + "/" + this.session.nchapters
 			this.reviewtimer.value = formattime(this.playback.chaptert) + "/" + formattime(this.playback.chapter.duration / 1000)
 		}
 	},

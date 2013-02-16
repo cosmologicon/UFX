@@ -31,7 +31,7 @@ UFX.Recorder.prototype = {
         this.getpoststate = getpoststate
     },
     sethandler: function (handler) {
-        this.handler = handler
+        this.handler = handler || {}
     },
     setscene: function (scene, tethered, tetherswap) {
         if (this.scene) this.scene.recorder = null
@@ -66,12 +66,13 @@ UFX.Recorder.prototype = {
         this.setscene()
         return session
     },
-    startchapter: function () {
+    startchapter: function (chaptername) {
         var chapter = this.chapter
         this.poststate = this.getpoststate && this.getpoststate()
         if (this.poststate && this.copystate) this.poststate = JSON.parse(JSON.stringify(this.poststate))
         this.chapter = {
             n: this.nchapters++,
+            name: chaptername,
             t: Date.now(),
             duration: 0,
             prestate: this.prestate,
@@ -96,10 +97,10 @@ UFX.Recorder.prototype = {
             return this.chapters[jchapter]
         }
     },
-    checkpoint: function () {
+    checkpoint: function (chaptername) {
         if (!this.chapter.data.length) return
         var chapter = this.completechapter()
-        this.startchapter()
+        this.startchapter(chaptername)
         return chapter
     },
     addpush: function (scenename, args) {
@@ -142,6 +143,12 @@ UFX.Recorder.prototype = {
         this.lastdatum[2]++
         this.lastdatum[3] = Date.now()
     },
+    log: function () {
+        this.lastdatum = [Date.now(), "log"]
+        this.lastdatum.push.apply(this.lastdatum, arguments)
+        this.data.push(this.lastdatum)
+        console.log(this.lastdatum)
+    },
     handle: function (eventtype) {
         if (typeof eventtype !== "string") throw "Invalid event type: " + eventtype
         switch (eventtype) {
@@ -150,6 +157,7 @@ UFX.Recorder.prototype = {
             case "swap":  this.addswap(arguments[1], arguments[2]) ; break
             case "think": this.addthink(arguments[1]) ; break
             case "clip":  this.addclip() ; break
+            case "log": this.log.apply(this, Array.prototype.slice.call(arguments, 1)) ; break
             default:
                 var args = Array.prototype.slice.call(arguments, 1)
                 this.lastdatum = [Date.now(), eventtype, args]
@@ -207,7 +215,7 @@ UFX.Playback.prototype = {
         this.setpoststate = setpoststate
     },
     sethandler: function (handler) {
-        this.handler = handler
+        this.handler = handler || {}
     },
     setscene: function (scene) {
         this.scene = scene
@@ -276,11 +284,11 @@ UFX.Playback.prototype = {
     // Have to manually implement swap because we want the state to be updated
     //   in between the pop and the push.
     applyswap: function (scenename, args, state) {
-		var c0 = this.stack_stack.pop()
+		var c0 = this.stack._stack.pop()
 		if (c0 && c0.stop) c0.stop()
         if (this.setstate) this.setstate.apply(null, state)
-		var c = this.stack.getscene(cname)
-		this._stack.push(c)
+		var c = this.stack.getscene(scenename)
+		this.stack._stack.push(c)
 		if (c.start) c.start.apply(c, args)
 		return c0
     },
@@ -292,6 +300,29 @@ UFX.Playback.prototype = {
         }
     },
     applyclip: function () {
+    },
+    // log messages from specified chapter, or current chapter if not specified
+    getlogs: function (jchapter) {
+        if (jchapter == undefined) jchapter = this.jchapter
+        var r = [], chapter = this.session.chapters[jchapter]
+        chapter.data.forEach(function (datum) {
+            if (datum[1] == "log") r.push(datum.slice(2))
+        })
+        return r
+    },
+    // log messages from all chapters
+    alllogs: function () {
+        var r = []
+        this.session.chapters.forEach(function (chapter) {
+            var n = chapter.name || chapter.n
+            chapter.data.forEach(function (datum) {
+                if (datum[1] != "log") return
+                var d = datum.slice(2)
+                d.splice(0, 0, n)
+                r.push(d)
+            })
+        })
+        return r
     },
     handle: function (t, eventtype) {
         if (typeof eventtype !== "string") throw "Invalid event type: " + eventtype

@@ -50,7 +50,9 @@ UFX.SceneStack.prototype = {
 		var args = Array.prototype.slice.call(arguments, 1)
 		if (this.resolveargs && c.startargs) args = c.startargs.apply(c, args)
 		if (this.recorder) this.recorder.addpush(cname, args)
-		if (c.checkpoint && this.recorder) this.recorder.checkpoint()
+		if (c.checkpoint && this.recorder) {
+			this.recorder.checkpoint(c.getchaptername ? c.getchaptername.apply(c, args) : cname)
+		}
 		if (c.start) c.start.apply(c, args)
 	},
 	ipop: function () {
@@ -71,7 +73,9 @@ UFX.SceneStack.prototype = {
 		var args = Array.prototype.slice.call(arguments, 1)
 		if (this.resolveargs && c.startargs) args = c.startargs.apply(c, args)
 		if (this.recorder) this.recorder.addswap(cname, args)
-		if (c.checkpoint && this.recorder) this.recorder.checkpoint()
+		if (c.checkpoint && this.recorder) {
+			this.recorder.checkpoint(c.getchaptername ? c.getchaptername.apply(c, args) : cname)
+		}
 		if (c.start) c.start.apply(c, args)
 		return c0
 	},
