@@ -203,9 +203,11 @@ UFX.Playback.prototype = {
         this.setstatefuncs(obj.setprestate, obj.setstate, obj.setpoststate)
         this.sethandler(obj.handler)
         this.setscene(obj.scene || UFX.scene)
+        this.raw = obj.raw   // Just replay the input rather than recreating the scene stack
         this.syncfactor = obj.syncfactor || 1
         this.sync = obj.sync
-        this.persistoncomplete = obj.persistoncomplete
+        this.persistonstop = obj.persistonstop
+        this.ontakedown = obj.ontakedown
         this.cancelcallback = obj.cancelcallback  // why the heck did I make this?
     },
     setstatefuncs: function (setprestate, setstate, setpoststate) {
@@ -227,21 +229,34 @@ UFX.Playback.prototype = {
         this.scene.ipush(Object.create(this.PlayScene), this)
         this.scene.frozen = true
     },
-    complete: function () {
+    playraw: function () {
+    	this.raw = true
+		this.playall()
+	},
+    stop: function () {
         this.playing = false
-        if (!this.persistoncomplete) {
+        if (!this.persistonstop) {
             this.takedown()
         }
     },
     takedown: function () {
         this.scene.frozen = false
-        this.scene.pop()
+        this.scene.ipop()
+        if (this.raw) {
+        	console.log(this.scene._stack)
+        	console.log(this.stack._stack)
+        	this.scene._stack = this.stack._stack.slice()
+        }
+        if (this.ontakedown) {
+        	this.ontakedown()
+    	}
     },
     loadchapter: function () {
         if (!this.session.chapters[this.jchapter]) return false
         this.chapter = JSON.parse(JSON.stringify(this.session.chapters[this.jchapter]))
         if (this.setprestate) this.setprestate.apply(null, this.chapter.prestate)
         this.stack._stack = []
+        if (this.raw) this.stack._stack = this.scene._stack.slice()
         this.stack._lastthinker = null
         var state = this.chapter.state
         for (var j = 0 ; j < state.length ; ++j) {
@@ -358,12 +373,12 @@ UFX.Playback.prototype = {
                 this.t += dt * this.playback.syncfactor
                 while (this.t > this.playback.t) {
                     if (!this.playback.step()) {
-                        this.playback.complete()
+                        this.playback.stop()
                         return
                     }
                 }
             } else {
-                if (!this.playback.step()) this.playback.complete()
+                if (!this.playback.step()) this.playback.stop()
             }
         },
         draw: function () {
