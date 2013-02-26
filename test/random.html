@@ -70,6 +70,30 @@ td {
 
 
 <script>
+// Test the LCG. See reference implementation for values.
+UFX.random.seed = 14045
+if (UFX.random.rand() != 2917321368 ||
+	UFX.random.rand() != 914607383 ||
+	UFX.random.rand() != 2350286730) {
+	throw "RNG failure!"
+}
+var a = 0
+for (var j = 0 ; j < 100 ; ++j) a += UFX.random.rand()
+if (a != 209368554518 ||
+	UFX.random.rand() != 3821795205) {
+	throw "RNG failure!"
+}
+
+// Test the hash function. See reference implementation for values.
+if (3392050242 !== UFX.random.hash("a") ||
+	4164669301 !== UFX.random.hash("Hello, world!") ||
+	3893909825 !== UFX.random.hash([1,2,3,4,5,"a"])) {
+	throw "Hash function failure!"
+}
+
+UFX.random.setseed()
+
+
 // Set a context to white on black and set its size to 300x300
 var s = 200, n = 120
 function getcontext(name) {

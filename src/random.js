@@ -8,6 +8,9 @@
 // Also includes a number of handy functions I always wanted.
 
 if (typeof UFX == "undefined") UFX = {}
+
+// UFX.random and UFX.random.rand - the two basic RNG functions
+
 // UFX.random() : float in [0, 1)
 // UFX.random(a) : float in [0, a)
 // UFX.random(a, b) : float in [a, b)
@@ -23,7 +26,7 @@ UFX.random = function (a, b) {
             b = 1
         }
     }
-    return UFX.random.rand() * (b - a) / 4294967296.0 + a
+    return UFX.random.rand() * (b - a) / 4294967296 + a
 }
 UFX.random.rand = function (m, n) {
     if (typeof n != "undefined") return m + UFX.random.rand(n-m)
@@ -35,12 +38,54 @@ UFX.random.rand = function (m, n) {
     return m ? Math.floor(UFX.random.seed * m / 4294967296) : UFX.random.seed
 }
 
-// You don't have to call this, you can just assign to UFX.random.seed
+// Jenkins hash function - used to get a number for seeding the RNG from an arbitrary object
+//   http://en.wikipedia.org/wiki/Jenkins_hash_function
+// For the purposes of bitwise operations, JavaScript's Number type is a 32-bit signed
+//   integer. So we can operate as normal on the lower 32 bits, and only at the very end
+//   do we have to worry about whether it's negative.
+UFX.random.hash = function (obj) {
+    var s = typeof obj == "string" ? obj : JSON.stringify(obj), n = s.length, h = 0
+    for (var j = 0 ; j < n ; ++j) {
+        h += s.charCodeAt(j)
+        h += h << 10
+        h ^= h >>> 6
+    }
+    h += h << 3
+    h ^= h >>> 11
+    h += h << 15
+    if (h < 0) h += 4294967296 
+    return h
+}
+
+// Call with no argument to set a seed from Math.random
+// Call with an integer in the range [0, 4294967296) to set that seed
+//   (can also just assign to UFX.random.seed)
+// Call with an arbitrary object to set a seed based on that object's hash
+// Returns the new seed
 UFX.random.setseed = function (n) {
     if (typeof n == "undefined") {
         n = Math.floor(Math.random() * 4294967296)
+    } else if (typeof n == "number") {
+        n = Math.floor(n) % 4294967296
+    } else {
+        n = UFX.random.hash(n)
     }
-    UFX.random.seed = Math.floor(n) % 4294967296
+    UFX.random.seed = n
+    return n
+}
+
+// Save the state of the RNG for later use
+// Useful if you want to generate some random numbers without messing with the RNG
+UFX.random._seedstack = []
+UFX.random.pushseed = function (n) {
+    if (typeof UFX.random.seed == "undefined") UFX.random.setseed()
+    UFX.random._seedstack.push(UFX.random.seed)
+    UFX.random.setseed(n)
+    return UFX.random.seed
+}
+// Restore the old state of the RNG
+UFX.random.popseed = function () {
+    UFX.random.seed = UFX.random._seedstack.pop()
     return UFX.random.seed
 }
 
