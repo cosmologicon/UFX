@@ -71,6 +71,7 @@ UFX.random.setseed = function (n) {
         n = UFX.random.hash(n)
     }
     UFX.random.seed = n
+    delete UFX.random.normal._y
     return n
 }
 
