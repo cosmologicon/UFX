@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<title>UFX.touch test</title>
+<script src="../src/draw.js"></script>
+<script src="../src/ticker.js"></script>
+<script src="UFX.js"></script>
+<h1>UFX.touch test</h1>
+<canvas id="canvas" style="border: 40px gray outset"></canvas>
+<script type="text/javascript">
+var canvas = document.getElementById("canvas")
+canvas.width = 600 ; canvas.height = 400
+var context = canvas.getContext("2d")
+UFX.draw.setcontext(context)
+var events = []
+
+function getids(touches) {
+	var ids = []
+	for (var j = 0 ; j < touches.length ; ++j) {
+		ids.push(touches[j].identifier)
+	}
+	return ids
+}
+
+function getps(touches) {
+	var ids = []
+	for (var j = 0 ; j < touches.length ; ++j) {
+		ids.push(touches[j].clientX + " " + touches[j].clientY)
+	}
+	return ids
+}
+
+function eventpos (event, elem) {
+	elem = elem || event.target
+    var rect = elem.getBoundingClientRect()
+    var ex = rect.left + elem.clientLeft - elem.scrollLeft
+    var ey = rect.top + elem.clientTop - elem.scrollTop
+    return [event.clientX - ex, event.clientY - ey]
+}
+
+
+var touchmap = {
+	colors: { 0: "red", 1: "orange", 2: "yellow", 3: "green", 4: "blue", 5: "purple" },
+	map: {},
+	lastpos: {},
+	flyins: {},
+	flylimit: 0.25,
+	update: function (touches) {
+		this.map = {}
+		for (var j = 0 ; j < touches.length ; ++j) {
+			var t = touches[j]
+			var id = t.identifier
+			this.lastpos[id] = this.map[id] = eventpos(t)
+			if (!(id in this.flyins)) {
+				this.flyins[id] = this.flylimit
+			}
+		}
+	},
+	clear: function (touches) {
+		for (var j = 0 ; j < touches.length ; ++j) {
+			var t = touches[j]
+			delete this.map[t.identifier]
+		}
+	},
+	think: function (dt) {
+		for (var t in this.flyins) {
+			if (t in this.map) {
+				this.flyins[t] = Math.max(0, this.flyins[t] - dt)
+			} else {
+				this.flyins[t] += dt
+				if (this.flyins[t] > this.flylimit) {
+					delete this.flyins[t]
+				}
+			}
+		}
+	},
+	draw: function () {
+		for (var t in this.map) {
+			var color = this.colors[t] || "white"
+			UFX.draw("[ t", this.map[t], "b o 0 0 30 fs", color, "f ]")
+		}
+		for (var t in this.flyins) {
+			var color = this.colors[t] || "white"
+			var f = this.flyins[t] / this.flylimit
+			UFX.draw("[ t", this.lastpos[t], "b o 0 0", 40 + 100 * f, "ss", color, "alpha", 1-f, "lw 4 s ]")
+		}
+	},
+}
+
+document.addEventListener("touchstart", function (event) {
+	touchmap.update(event.touches)
+	event.preventDefault()
+}, false)
+document.addEventListener("touchmove", function (event) {
+	touchmap.update(event.touches)
+	event.preventDefault()
+}, false)
+document.addEventListener("touchend", function (event) {
+	touchmap.clear(event.changedTouches)
+	event.preventDefault()
+}, false)
+document.addEventListener("mousedown", function (event) {
+	events.push([Date.now(), "mousedown"])
+}, false)
+
+UFX.ticker.register(function (dt) {
+	UFX.draw("fs black f0")
+	touchmap.think(dt)
+	touchmap.draw()
+})
+    
+
+</script>
