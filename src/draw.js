@@ -110,6 +110,11 @@ UFX._draw = function () {
             case "sr": case "strokerect":
                 this.strokeRect(+t[++j], +t[++j], +t[++j], +t[++j])
                 break
+            case "fsr": case "fillstrokerect":
+                var x = +t[++j], y = +t[++j], w = +t[++j], h = +t[++j]
+                this.fillRect(x, y, w, h)
+                this.strokeRect(x, y, w, h)
+                break
             case "cr": case "clearrect":
                 this.clearRect(+t[++j], +t[++j], +t[++j], +t[++j])
                 break
