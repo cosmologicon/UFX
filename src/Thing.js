@@ -65,7 +65,7 @@ UFX.Thing.prototype = {
         return f
     },
     definemethod: function (mname, mtype) {
-        if (this[mname]) return
+        if (this[mname]) return this
         this[mname] = this._createmethod(mname, mtype)
         return this
     },
