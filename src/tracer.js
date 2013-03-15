@@ -23,7 +23,9 @@ UFX.Tracer = function (spec, rect, zmax) {
 }
 UFX.Tracer.prototype = {
     trace: function (context) {
-        if (context) {
+    	if (typeof this.spec == "function") {
+    		this.spec(context)
+        } else if (context) {
             UFX.draw(context, this.spec)
         } else {
             UFX.draw(this.spec)
