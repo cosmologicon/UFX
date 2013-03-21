@@ -45,7 +45,7 @@ UFX.Tracer.prototype = {
         } else {
             if (!(z in this.imgs)) this.makeimg(z)
             context = context || UFX.draw._context
-            if (this.showbox) {
+            if (UFX.Tracer.showbox || this.showbox) {
                 context.fillStyle = "rgba(255,128,0,0.3)"
                 context.fillRect(this.x0, this.y0, this.w, this.h)
             }
