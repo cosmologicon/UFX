@@ -78,7 +78,9 @@ def parsestyle(s):
 			pass
 		else:
 			raise ValueError("Unknown style name %s" % name)
-	return " ".join(map(str, r + d))
+	spec = map(str, r + d)
+	spec = [lgspec[s[5:-1]] if s.startswith("url(#linearGradient") else s for s in spec]
+	return " ".join(spec)
 
 def parsepath(s):
 	words = s.replace(",", " ").split()
@@ -138,6 +140,29 @@ def parsepath(s):
 			raise ValueError("Unrecognized command %s" % com)
 	tokens = [token if isinstance(token, str) else f(token) for token in tokens]
 	return " ".join(tokens)
+
+lgspec = {}
+for lname, lingrad in lingrads.items():
+	a = dict((base(k), v) for k, v in lingrad.attrib.items())
+	if "x1" not in a:
+		continue
+	x1, y1 = float(a["x1"]), float(a["y1"])
+	x2, y2 = float(a["x2"]), float(a["y2"])
+	if "gradientTransform" in a:
+		A,B,C,D,E,F = map(float, a["gradientTransform"][7:-1].split(","))
+		x1,y1 = A*x1+C*y1+E, B*x1+D*y1+F
+		x2,y2 = A*x2+C*y2+E, B*x2+D*y2+F
+	y1, y2 = yf(y1), yf(y2)
+	spec = ["lg"] + map(f, (x1,y1,x2,y2))
+	lg = lingrads[a["href"][1:]]
+	for child in lg:
+		if base(child.tag) == "stop":
+			a2 = child.attrib
+			style = dict(s.split(":") for s in a2["style"].strip(";").split(";"))
+			spec += [f(a2["offset"]), addalpha(style["stop-color"], style["stop-opacity"])]
+	spec = "~".join(spec)
+	lgspec[lname] = spec
+	
 
 for rname, radgrad in radgrads.items():
 	a = dict((base(k), v) for k, v in radgrad.attrib.items())

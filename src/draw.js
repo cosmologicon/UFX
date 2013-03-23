@@ -26,6 +26,15 @@ UFX._draw = function () {
         }
     }
     addt.apply(this, arguments)
+    var ctx = this
+    function getcolor(s) {
+        if (typeof s !== "string") return s
+        switch (s.substr(0,3)) {
+            case "lg~": return UFX._draw.lingrad.apply(ctx, s.substr(3).split("~"))
+            case "rg~": return UFX._draw.radgrad.apply(ctx, s.substr(3).split("~"))
+            default: return s
+        }
+    }
     for (var j = 0 ; j < t.length ; ++j) {
         switch (t[j].toLowerCase()) {
             case "b": case "(": case "beginpath":
@@ -125,16 +134,16 @@ UFX._draw = function () {
             	this.clearRect(0, 0, this.canvas.width, this.canvas.height)
             	break
             case "fs": case "fillstyle":
-                this.fillStyle = t[++j]
+                this.fillStyle = getcolor(t[++j])
                 break
             case "ss": case "strokestyle":
-                this.strokeStyle = t[++j]
+                this.strokeStyle = getcolor(t[++j])
                 break
             case "shadowblur": case "shb":
                 this.shadowBlur = +t[++j]
                 break
             case "shadowcolor": case "shc":
-                this.shadowColor = t[++j]
+                this.shadowColor = getcolor(t[++j])
                 break
             case "shadowoffsetx": case "shadowx": case "shx":
                 this.shadowOffsetX = +t[++j]
@@ -147,7 +156,7 @@ UFX._draw = function () {
                 this.shadowOffsetY = +t[++j]
                 break
             case "shadow": case "sh":
-                this.shadowColor = t[++j]
+                this.shadowColor = getcolor(t[++j])
                 this.shadowOffsetX = +t[++j]
                 this.shadowOffsetY = +t[++j]
                 this.shadowBlur = +t[++j]
@@ -229,16 +238,16 @@ UFX._draw.circle = function (x, y, r, fs, ss, lw) {
     this.restore()
 }
 UFX._draw.lingrad = function (x0, y0, x1, y1) {
-    var grad = this.createLinearGradient(x0, y0, x1, y1)
+    var grad = this.createLinearGradient(+x0, +y0, +x1, +y1)
     for (var j = 4 ; j < arguments.length ; j += 2) {
-        grad.addColorStop(arguments[j], arguments[j+1])
+        grad.addColorStop(+arguments[j], arguments[j+1])
     }
     return grad
 }
 UFX._draw.radgrad = function (x0, y0, r0, x1, y1, r1) {
-    var grad = this.createRadialGradient(x0, y0, r0, x1, y1, r1)
+    var grad = this.createRadialGradient(+x0, +y0, +r0, +x1, +y1, +r1)
     for (var j = 6 ; j < arguments.length ; j += 2) {
-        grad.addColorStop(arguments[j], arguments[j+1])
+        grad.addColorStop(+arguments[j], arguments[j+1])
     }
     return grad
 }
