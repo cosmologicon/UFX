@@ -11,7 +11,8 @@ svg = et.parse(sys.argv[1]).getroot()
 # Remove everything within curly brackets that Inkscape likes to add
 base = lambda s: re.sub(r'\{[^)]*\}', '', s)
 # Precision I want for floating-point values
-f = lambda x: "%.2f" % float(x)
+strip0 = lambda s: s if "." not in s else s.rstrip("0").rstrip(".")
+f = lambda x: strip0("%.2f" % float(x))
 # Yeah sometimes I use a flipped y axis. Confusing but you don't have to do it my way.
 # yf = lambda y: y
 yf = lambda y: sy - y
@@ -43,41 +44,53 @@ for child in svg:
 	else:
 		print "Skipping top-level element: %s" % tagname
 
-def addalpha(color, alpha):
+def getcolor(color, alpha):
 	if len(color) != 7 or color[0] != "#":
+		if alpha == "1":
+			return color
 		raise ValueError("Unrecognized color: %s" % color)
+	if alpha == "1":
+		# Trim down HTML color codes that can be represented in 3 characters
+		return color[0:7:2] if color[1:6:2] == color[2:7:2] else color
 	r, g, b = [int(color[j:j+2], 16) for j in (1,3,5)]
 	return "rgba(%d,%d,%d,%s)" % (r,g,b,alpha)
 
-def parsestyle(s):
+def parsestyle(s, style0):
 	rs = dict(rule.split(":") for rule in s.split(";"))
+	if "opacity" not in rs:
+		rs["opacity"] = "1"
+
 	if "fill-opacity" in rs:
-		if rs["fill-opacity"] != "1":
-			rs["fill"] = addalpha(rs["fill"], rs["fill-opacity"])
+		rs["fill"] = getcolor(rs["fill"], rs["fill-opacity"])
 		del rs["fill-opacity"]
 	if "stroke-opacity" in rs:
-		if rs["stroke-opacity"] != "1":
-			rs["stroke"] = addalpha(rs["stroke"], rs["stroke-opacity"])
+		rs["stroke"] = getcolor(rs["stroke"], rs["stroke-opacity"])
 		del rs["stroke-opacity"]
+
 	r, d = [], []
-	if "fill" in rs:
-		if rs["fill"] != "none":
-			d += ["fs", rs["fill"], "f"]
-		del rs["fill"]
-	if "stroke" in rs:
-		if rs["stroke"] != "none":
-			d += ["ss", rs["stroke"], "s"]
-		del rs["stroke"]
-	
+	def setvalue(key, value):
+		if style0.get(key) != value:
+			r.extend([key, value])
+			style0[key] = value
+
 	for name, value in rs.items():
-		if name == "stroke-width":
-			r += ["lw", f(value)]
+		if name == "stroke":
+			if value != "none":
+				setvalue("ss", value)
+				d += ["s"]
+		elif name == "fill":
+			if value != "none":
+				setvalue("fs", value)
+				d += ["f"]
+		elif name == "stroke-width":
+			setvalue("lw", f(value))
 		elif name == "opacity":
-			r += ["alpha", f(value)]
+			setvalue("alpha", f(value))
 		elif name in ["stroke-linecap", "stroke-linejoin", "stroke-miterlimit", "stroke-dasharray"]:
 			pass
 		else:
 			raise ValueError("Unknown style name %s" % name)
+	d.sort()
 	spec = map(str, r + d)
 	spec = [lgspec[s[5:-1]] if s.startswith("url(#linearGradient") else s for s in spec]
 	return " ".join(spec)
@@ -159,7 +172,7 @@ for lname, lingrad in lingrads.items():
 		if base(child.tag) == "stop":
 			a2 = child.attrib
 			style = dict(s.split(":") for s in a2["style"].strip(";").split(";"))
-			spec += [f(a2["offset"]), addalpha(style["stop-color"], style["stop-opacity"])]
+			spec += [f(a2["offset"]), getcolor(style["stop-color"], style["stop-opacity"])]
 	spec = "~".join(spec)
 	lgspec[lname] = spec
 	
@@ -173,13 +186,13 @@ for rname, radgrad in radgrads.items():
 		if base(child.tag) == "stop":
 			a2 = child.attrib
 			style = dict(s.split(":") for s in a2["style"].strip(";").split(";"))
-			spec += [f(a2["offset"]), addalpha(style["stop-color"], style["stop-opacity"])]
+			spec += [f(a2["offset"]), getcolor(style["stop-color"], style["stop-opacity"])]
 	spec = ",".join(spec)
 	print "var %s = UFX.draw.radgrad(%s)" % (rname, spec)
 
+style0 = {}
 for path in paths:
-	style = parsestyle(path.attrib["style"])
+	style = parsestyle(path.attrib["style"], style0)
 	data = parsepath(path.attrib["d"])
-	print '\t"( %s",' % data
-	print '\t\t"%s",' % style
+	print '"( %s %s",' % (data, style)
 
