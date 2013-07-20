@@ -220,8 +220,8 @@ UFX.random.normal = function (mu, sigma) {
         } while (w > 1)
         try {
             w = Math.sqrt(-2. * Math.log(w) / w)
-            x /= w
-            y /= w
+            x *= w
+            y *= w
         } catch (err) {
             x = y = 0
         }
@@ -229,6 +229,7 @@ UFX.random.normal = function (mu, sigma) {
     }
     return x * sigma + mu
 }
+
 
 
 

@@ -85,7 +85,8 @@ UFX.maximize = {
 			this.onadjust(this.element, this.element.width, this.element.height)
 		}
 	},
-	fill: function (element) {
+	fill: function (element, resizemode) {
+		if (resizemode) this.resizemode = resizemode
 		if (element) this.init(element)
 		this.setmode("fill")
 		if (this.preventscroll) {
@@ -99,7 +100,8 @@ UFX.maximize = {
 		es.top = "1px"
 		document.body.style.overflow = "hidden"
 	},
-	full: function (element) {
+	full: function (element, resizemode) {
+		if (resizemode) this.resizemode = resizemode
 		if (element) this.init(element)
 		this.setmode("full")
 		var fs = this
@@ -111,7 +113,8 @@ UFX.maximize = {
 			}
 		}, 100)
 	},
-	maximize: function (element) {
+	maximize: function (element, resizemode) {
+		if (resizemode) this.resizemode = resizemode
 		if (element) this.init(element)
 		if (!this.element.requestFullscreen) {
 			this.fill()

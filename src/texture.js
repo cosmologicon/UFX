@@ -27,7 +27,7 @@ UFX.texture = {
         canvas.width = w
         canvas.height = h
         canvas.context = canvas.getContext("2d")
-        var idata = context.createImageData(w, h)
+        var idata = canvas.context.createImageData(w, h)
         canvas.data = idata.data
         canvas.applydata = function () {
             canvas.context.putImageData(idata, 0, 0)
