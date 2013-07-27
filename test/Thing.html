@@ -200,22 +200,20 @@ setballs(10)
 
 function think(dt) {
     balls.think(dt)
-    document.getElementById("ups").value = UFX.ticker.getupsstr()
 }
 
 function draw() {
     context.fillStyle = "black"
     context.fillRect(0, 0, 400, 300)
     balls.draw(context)
-    document.getElementById("fps").value = UFX.ticker.getfpsstr()
+    document.getElementById("fps").value = UFX.ticker.getrates()
 }
 
 // polyfill, boo!
 window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||  
                                window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
 
-// UFX.ticker.animsync = true
-UFX.ticker.registersync(think, draw, 300, 10)
+UFX.ticker.init(think, draw, {minups: 10, maxups: 300})
 
 </script>
 

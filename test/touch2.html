@@ -20,7 +20,7 @@ UFX.draw("fs black f0 fs white textalign center font 40px~'sans-serif' ft Tap~to
 UFX.touch.init(canvas)
 
 var broken = false, taps = [], releases = [], holds = []
-UFX.ticker.register(function () {
+UFX.ticker.init(function () {
 	if (broken) return
 	UFX.draw("fs black f0 fs white textalign left textbaseline top font 40px~'sans-serif'")
 	try {
@@ -58,7 +58,7 @@ UFX.ticker.register(function () {
 		broken = true
 		return
 	}
-}, null)
+})
 
 
 </script>

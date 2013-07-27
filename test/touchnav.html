@@ -58,7 +58,7 @@ function init() {
 	backdrop = UFX.texture.tiler(backdrop)
 	clouds = UFX.texture.tiler(clouds)
 
-	UFX.ticker.register(think, null, {
+	UFX.ticker.init(think, null, {
 		maxups: 300,
 		minups: 10,
 	})
@@ -133,7 +133,7 @@ function think(dt) {
 	UFX.draw("]")
 	
 	UFX.draw("fs orange font 60px~'Contrail~One' textalign left textbaseline top shadowx 2 shadowy 2 shadowcolor black")
-	context.fillText(UFX.ticker.getfpsstr(), 10, 10)
+	context.fillText(UFX.ticker.getrates(), 10, 10)
 }
 
 </script>

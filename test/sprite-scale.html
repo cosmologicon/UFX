@@ -45,7 +45,7 @@ td {
 
 <script>
 UFX.resource.onload = function () {
-    UFX.ticker.register(think, null, {maxups: 60})
+    UFX.ticker.init(think, null, {maxups: 60})
 }
 UFX.resource.base = "data"
 UFX.resource.load({head420: "mort-head-420.png",
@@ -95,7 +95,7 @@ function think(dt) {
         }
         context.restore()
     }
-    document.getElementById("fps").value = UFX.ticker.getupsstr()
+    document.getElementById("fps").value = UFX.ticker.getrates()
 }
 
 </script>

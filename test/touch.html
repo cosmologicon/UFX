@@ -101,7 +101,7 @@ document.addEventListener("mousedown", function (event) {
 	events.push([Date.now(), "mousedown"])
 }, false)
 
-UFX.ticker.register(function (dt) {
+UFX.ticker.init(function (dt) {
 	UFX.draw("fs black f0")
 	touchmap.think(dt)
 	touchmap.draw()
