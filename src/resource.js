@@ -6,8 +6,10 @@ UFX.resource = {}
 // These will become populated as you call load
 UFX.resource.images = {}
 UFX.resource.sounds = {}
+UFX.resource.data = {}
 
 // Recognized extensions
+UFX.resource.jsontypes = "js json".split(" ")
 UFX.resource.imagetypes = "png gif jpg jpeg bmp tiff".split(" ")
 UFX.resource.soundtypes = "wav mp3 ogg au".split(" ")
 
@@ -57,6 +59,13 @@ UFX.resource.loadsound = function () {
     for (var j = 0 ; j < resnames.length ; ++j) {
         var res = resnames[j]
         UFX.resource._loadsound(res[0], res[1])
+    }
+}
+UFX.resource.loadjson = function () {
+    var resnames = UFX.resource._extractlist(arguments)
+    for (var j = 0 ; j < resnames.length ; ++j) {
+        var res = resnames[j]
+        UFX.resource._loadjson(res[0], res[1])
     }
 }
 
@@ -173,9 +182,11 @@ UFX.resource._load = function (name, url) {
         return UFX.resource._loadimage(name, url)
     } else if (UFX.resource.soundtypes.indexOf(ext) > -1) {
         return UFX.resource._loadsound(name, url)
+    } else if (UFX.resource.jsontypes.indexOf(ext) > -1) {
+        return UFX.resource._loadjson(name, url)
     }
-    console.log("Treating unknown extension " + ext + " as image")
-    return UFX.resource._loadimage(name, url)
+    console.log("Treating unknown extension " + ext + " as raw data")
+    return UFX.resource._loaddata(name, url)
 }
 
 // Load a single image with the given name
@@ -194,6 +205,31 @@ UFX.resource._loadsound = function (aname, audiourl) {
     audio.src = UFX.resource._seturl(audiourl)
     audio.aname = aname
     UFX.resource.sounds[aname] = audio
+    ++UFX.resource._toload
+}
+// Load a single json resource
+UFX.resource._loadjson = function (jname, jsonurl) {
+    var req = new XMLHttpRequest()
+    req.overrideMimeType("application/json")
+    req.open('GET', jsonurl, true);  
+    var target = this;
+    req.onload  = function() {
+        UFX.resource.data[jname] = JSON.parse(req.responseText)
+        UFX.resource._onload()
+    }
+    req.send(null);
+    ++UFX.resource._toload
+}
+// Load a single raw data resource
+UFX.resource._loaddata = function (dname, dataurl) {
+    var req = new XMLHttpRequest()
+    req.open('GET', dataurl, true);  
+    var target = this;
+    req.onload  = function() {
+        UFX.resource.data[dname] = req.responseText
+        UFX.resource._onload()
+    }
+    req.send(null);
     ++UFX.resource._toload
 }
 

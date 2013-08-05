@@ -50,13 +50,16 @@ UFX.SceneStack.prototype = {
 		}
 		if (c.start) c.start.apply(c, args)
 	},
-	ipop: function () {
+	ipop: function (n) {
 		if (this.frozen) return
-		var c = this._stack.pop()
-		if (c.stop) c.stop()
-		var n = this.top()
-		if (n && n.resume) n.resume()
-		if (this.recorder) this.recorder.addpop()
+		n = n || 1
+		for (var j = 0 ; j < n ; ++j) {
+			var c = this._stack.pop()
+			if (c.stop) c.stop()
+			var d = this.top()
+			if (d && d.resume) d.resume()
+			if (this.recorder) this.recorder.addpop()
+		}
 		return c
 	},
 	iswap: function (cname) {
@@ -78,7 +81,7 @@ UFX.SceneStack.prototype = {
 		this._actionq.push(["push", Array.prototype.slice.call(arguments, 0)])
 	},
 	pop: function () {
-		this._actionq.push(["pop"])
+		this._actionq.push(["pop", Array.prototype.slice.call(arguments, 0)])
 	},
 	swap: function () {
 		this._actionq.push(["swap", Array.prototype.slice.call(arguments, 0)])
@@ -87,7 +90,7 @@ UFX.SceneStack.prototype = {
 		for (var j = 0 ; j < this._actionq.length ; ++j) {
 			switch (this._actionq[j][0]) {
 				case "push": this.ipush.apply(this, this._actionq[j][1]) ; break
-				case "pop": this.ipop() ; break
+				case "pop": this.ipop.apply(this, this._actionq[j][1]) ; break
 				case "swap": this.iswap.apply(this, this._actionq[j][1]) ; break
 			}
 		}
