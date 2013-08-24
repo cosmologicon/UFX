@@ -133,6 +133,15 @@ UFX._draw = function () {
             case "c0": case "clearall":
             	this.clearRect(0, 0, this.canvas.width, this.canvas.height)
             	break
+            case "tr": case "tracerect":
+                var x = +t[++j], y = +t[++j], w = +t[++j], h = +t[++j]
+                this.beginPath()
+                this.moveTo(x, y)
+                this.lineTo(x+w, y)
+                this.lineTo(x+w, y+h)
+                this.lineTo(x, y+h)
+                this.closePath()
+                break
             case "fs": case "fillstyle":
                 this.fillStyle = getcolor(t[++j])
                 break
