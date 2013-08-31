@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>sound delay test</title>
+<body>
+<button id=playsound type=button onclick="sound.play()" disabled=true>Play sound</button>
+<script>
+var playsound = document.getElementById("playsound")
+var sound = new Audio()
+sound.addEventListener("canplaythrough", function () { playsound.disabled = false }, false)
+sound.src = "data/jump.ogg"
+</script>
+

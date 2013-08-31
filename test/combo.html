@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>UFX.key combo test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 200%;
+}
+h1 {
+    font-size: 120%;
+}
+input {
+    background: inherit; color: inherit; border: none;
+    font-family: inherit; font-size: inherit;
+    width: 20em;
+}
+table {
+    margin: auto;
+}
+td {
+    text-align: right
+}
+</style>
+
+<script src="../src/key.js"></script>
+<body>
+<h1>Press multiple keys (space, enter, arrows, Z, X, C) at once</h1>
+
+<p>Combo time<br>
+<input id=combotime type=range  min=0 max=500 value=100 onchange="updatectime()"></input>
+
+<script>
+UFX.key.init()
+UFX.key.watchlist = ["up", "down", "left", "right", "enter", "space", "Z", "X", "C"]
+UFX.key.qcombo = true
+
+function updatectime() {
+    UFX.key.combodt = +document.getElementById("combotime").value
+}
+updatectime()
+
+// A text box that disappears
+function fadebox(text) {
+    fadebox.y = (fadebox.y + 50) % (window.innerHeight - 60)
+    var elem = document.createElement("div")
+    elem.appendChild(document.createTextNode(text))
+    document.body.appendChild(elem)
+    elem.style.position = "absolute"
+    elem.style.color = "rgb(" + Math.floor(Math.random() * 100 + 155) + "," +
+                                Math.floor(Math.random() * 100 + 155) + "," +
+                                Math.floor(Math.random() * 100 + 155) + ")"
+    elem.style.left = window.innerWidth - 500 + "px"
+    elem.style.top = fadebox.y + "px"
+    elem.style.opacity = 1
+    elem.think = function () {
+        elem.style.opacity -= 0.02
+        if (elem.style.opacity > 0.04) {
+            setTimeout(elem.think, 20)
+        } else {
+            document.body.removeChild(elem)
+        }
+    }
+    elem.think()
+}
+fadebox.y = 100
+
+function think() {
+    setTimeout(think, 20)
+
+    // Display all combos
+    var combos = UFX.key.combos()
+    for (var j in combos) {
+        var combo = combos[j]
+        fadebox("combo: " + combo.kstring)
+    }
+}
+think()
+
+
+</script>
+

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
+<title>fill screen testarooni</title>
+<script src="../src/draw.js"></script>
+<script src="../src/ticker.js"></script>
+<script src="../src/maximize.js"></script>
+<script src="UFX.js"></script>
+<h1>fill screen test</h1>
+<p><button type=button id=action onclick="cycleaction()">maximize</button>
+<button type=button id=mode onclick="cyclemode()">fixed</button>
+<p><canvas id="canvas" style="border: 40px gray outset"></canvas>
+<div style="height:1000px"></div>
+<br>test
+<style type="text/css">
+button {
+	font-size: 300%;
+	width: 5em;
+}
+</style>
+<script type="text/javascript">
+function cycleaction() {
+	var a = document.getElementById("action")
+	if (a.textContent == "maximize") {
+		a.textContent = "full"
+	} else if (a.textContent == "full") {
+		a.textContent = "fill"
+	} else {
+		a.textContent = "maximize"
+	}
+}
+function cyclemode() {
+	var a = document.getElementById("mode")
+	if (a.textContent == "fixed") {
+		a.textContent = "aspect"
+	} else if (a.textContent == "aspect") {
+		a.textContent = "total"
+	} else if (a.textContent == "total") {
+		a.textContent = "none"
+	} else {
+		a.textContent = "fixed"
+	}
+}
+
+var canvas = document.getElementById("canvas")
+canvas.width = 600 ; canvas.height = 400
+var context = canvas.getContext("2d")
+UFX.draw.setcontext(context)
+
+canvas.requestFullscreen = canvas.requestFullscreen || canvas.mozRequestFullScreen || canvas.webkitRequestFullScreen
+document.cancelFullscreen = document.cancelFullscreen || document.mozCancelFullScreen || document.webkitCancelFullScreen
+UFX.maximize.getfullscreenelement = function () {
+	return document.fullScreenElement || document.webkitCurrentFullScreenElement || document.mozFullScreenElement
+}
+
+UFX.maximize.onadjust = function (e, w, h) {
+	UFX.draw("fs #400 f0 fs #800 fr 0 0 100 100")
+	UFX.draw("[ z", canvas.width, canvas.height, "( m 0.5 0 l 1 0.5 l 0.5 1 l 0 0.5 ) ] ss white lw 1 s")
+	UFX.draw("font 40px~'sans~serif' fs white textalign center textbaseline bottom ft",
+		canvas.width + "x" + canvas.height, 0.5 * canvas.width, 0.5 * canvas.height)
+	UFX.draw("textbaseline top ft", parseFloat(canvas.style.width) + "x" + parseFloat(canvas.style.height),
+		0.5 * canvas.width, 0.5 * canvas.height)
+}
+canvas.onclick = function (event) {
+	if (UFX.maximize.mode) {
+		UFX.maximize.restore()
+	} else {
+		var a = document.getElementById("action").textContent
+		UFX.maximize.resizemode = document.getElementById("mode").textContent
+		UFX.maximize[a](canvas)
+	}
+	event.preventDefault()
+}
+</script>
