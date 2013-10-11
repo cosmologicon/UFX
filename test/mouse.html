@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<title>UFX.mouse test</title>
+<script src="../src/mouse.js"></script>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+input {
+    background: inherit; color: inherit; border: none;
+    font-family: inherit; font-size: inherit;
+    width: 20em;
+}
+table {
+    margin: auto;
+}
+td {
+    text-align: right
+}
+</style>
+<h1>UFX.mouse test</h1>
+<div id=gamebox style="margin: auto; text-align: center">
+<canvas id=canvas style="border: 20px blue outset; margin: 10px"></canvas>
+<div>
+<p><input type=text id=mousepos readonly></input>
+<p><input type=text id=mousedrag readonly></input>
+<p><input type=text id=clickinfo readonly></input>
+<p><input type=checkbox onclick="UFX.mouse.capture.middle = this.checked">
+Capture middle click</input>
+<p><input type=checkbox onclick="UFX.mouse.capture.right = this.checked">
+Capture right click</input>
+<p><input type=checkbox onclick="UFX.mouse.capture.wheel = this.checked">
+Capture mouse wheel</input>
+
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 400
+canvas.height = 300
+var context = canvas.getContext("2d")
+var mousepos = document.getElementById("mousepos")
+var clickinfo = document.getElementById("clickinfo")
+
+var grid = document.createElement("canvas")
+grid.width = 400
+grid.height = 300
+var gcontext = grid.getContext("2d")
+
+for (var x = 0 ; x <= 400 ; x += 10) {
+    gcontext.strokeStyle = x % 100 ? "blue" : "white"
+    gcontext.beginPath()
+    gcontext.moveTo(x + 0.5, 0)
+    gcontext.lineTo(x + 0.5, 400)
+    gcontext.stroke()
+    gcontext.beginPath()
+    gcontext.moveTo(0, x + 0.5)
+    gcontext.lineTo(400, x + 0.5)
+    gcontext.stroke()
+}
+
+var dots = document.createElement("canvas")
+dots.width = 400
+dots.height = 300
+var dcontext = dots.getContext("2d")
+var bcolor = 0
+
+
+function drawdot(pos, color) {
+    dcontext.fillStyle = color || "red"
+    dcontext.beginPath()
+    dcontext.arc(pos[0], pos[1], 4, 0, 2 * Math.PI, true); 
+    dcontext.closePath()
+    dcontext.fill()
+}
+
+function draw() {
+	var ldrag = UFX.mouse.drag.left
+	var dx = ldrag ? ldrag.dx : null
+	var dy = ldrag ? ldrag.dy : null
+    mousepos.value = "pos: " + (UFX.mouse.pos && UFX.mouse.pos[0].toFixed(1) + ", " + UFX.mouse.pos[1].toFixed(1))
+    mousedrag.value = UFX.mouse.drag ? "left drag: " + dx + "," + dy
+                        : "point: " + UFX.mouse.pos
+
+    UFX.mouse.events().forEach(function (event) {
+        if (event.type == "up") {
+            drawdot(event.pos, ["red", "orange", "yellow"][event.button])
+            clickinfo.value = "Click: dt=" + event.dt + "  (dx,dy)=" + event.dx + "," + event.dy
+        }
+    })
+    
+    bcolor += UFX.mouse.getwheeldy()
+    bcolor = ((bcolor % 255) + 255) % 255
+    context.fillStyle = "rgb(0,0," + Math.floor(bcolor) + ")"
+
+    context.fillRect(0, 0, 400, 300)
+    context.drawImage(grid, 0, 0)
+    context.drawImage(dots, 0, 0)
+    for (var button in UFX.mouse.drag) {
+    	var drag = UFX.mouse.drag[button]
+        context.strokeStyle = {left: "red", middle: "orange", right: "yellow"}[button]
+        context.beginPath()
+        context.moveTo(drag.pos0[0], drag.pos0[1])
+        context.lineTo(drag.pos[0], drag.pos[1])
+        context.stroke()
+        
+    }
+
+    setTimeout(draw, 20)
+}
+draw()
+
+UFX.mouse.init("canvas")
+
+</script>
+
+

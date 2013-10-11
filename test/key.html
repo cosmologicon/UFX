@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>UFX.key test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 200%;
+}
+h1 {
+    font-size: 120%;
+}
+input {
+    background: inherit; color: inherit; border: none;
+    font-family: inherit; font-size: inherit;
+    width: 20em;
+}
+table {
+    margin: auto;
+}
+td {
+    text-align: right
+}
+</style>
+
+<script src="../src/key.js"></script>
+<body>
+<h1>Press some keys or something</h1>
+<table>
+<tr><td>Keys pressed: <td><input type=text id=keyspressed></input>
+<tr><td>Codes pressed: <td><input type=text id=codespressed></input>
+</table>
+
+
+<script>
+UFX.key.init()
+//UFX.key.remappunct()
+//UFX.key.capture = false
+
+var keyspressed = document.getElementById("keyspressed")
+var codespressed = document.getElementById("codespressed")
+
+// A text box that disappears
+function fadebox(text) {
+    fadebox.y = (fadebox.y + 50) % (window.innerHeight - 60)
+    var elem = document.createElement("div")
+    elem.appendChild(document.createTextNode(text))
+    document.body.appendChild(elem)
+    elem.style.position = "absolute"
+    elem.style.color = "rgb(" + Math.floor(Math.random() * 100 + 155) + "," +
+                                Math.floor(Math.random() * 100 + 155) + "," +
+                                Math.floor(Math.random() * 100 + 155) + ")"
+    elem.style.left = window.innerWidth - 400 + "px"
+    elem.style.top = fadebox.y + "px"
+    elem.style.opacity = 1
+    elem.think = function () {
+        elem.style.opacity -= 0.02
+        if (elem.style.opacity > 0.04) {
+            setTimeout(elem.think, 20)
+        } else {
+            document.body.removeChild(elem)
+        }
+    }
+    elem.think()
+}
+fadebox.y = 100
+
+function think() {
+    setTimeout(think, 20)
+
+    // List all the currently pressed keys
+    var keys = [], codes = []
+
+    for (var key in UFX.key.ispressed) keys.push(key)
+    keyspressed.value = keys.sort().join(" ")
+
+    for (var code in UFX.key.codepressed) codes.push(+code)
+    codespressed.value = codes.sort(function (x,y) { return x - y }).join(" ")
+
+    // Display all events
+    var events = UFX.key.events()
+    for (var j in events) {
+        var event = events[j]
+        if (event.type == "up") {
+            fadebox("keyup: " + events[j].name + " " + events[j].dt + "ms")
+        } else if (event.type == "down") {
+            fadebox("keydown: " + events[j].name)
+        }
+    }
+}
+think()
+
+
+</script>
+

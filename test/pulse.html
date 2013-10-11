@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html><head><body>
+<script>
+var nframe = 0, dt = 20, delay = 30
+window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+    if (key == "dt") dt = +value
+    if (key == "delay") delay = +value
+})
+function pulse() {
+    setTimeout(pulse, dt)
+    document.title = "frame " + nframe++
+    var now = (new Date()).getTime()
+    var r = Math.floor(80 + 80 * Math.sin(now / 100.))
+    document.body.style.background = "rgb(" + r + ",0,0)"
+    while ((new Date()).getTime() < now + delay);
+}
+pulse()
+</script>
+

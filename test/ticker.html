@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<title>UFX.ticker test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+	background: black; color: white;
+	font-family: 'Viga';
+	font-size: 110%;
+}
+h1 {
+	font-size: 160%;
+	text-align: center;
+	margin-left: auto;
+	margin-right: auto;
+}
+input {
+	background: inherit; color: inherit; border: none;
+	font-family: inherit; font-size: inherit;
+}
+input[type="text"] {
+	width: 15em;
+}
+button {
+	font-family: inherit; font-size: inherit;
+}
+</style>
+
+<script src="../src/ticker.js"></script>
+<h1>UFX.ticker test</h1>
+<table><tr>
+<td>
+<canvas id=canvas style="border: thin blue solid"></canvas>
+<td>
+<p>
+<button onclick="runfixed()">Fixed</button>
+<button onclick="runfixedrbound()">Fixed render bound</button>
+<button onclick="runfixedubound()">Fixed update bound</button>
+<p>
+<button onclick="runsemifixed()">Semi-fixed</button>
+<button onclick="runsemifixedtween()">Semi-fixed + tweening</button>
+
+<p><label><input type=checkbox id=sync onclick="UFX.ticker.sync=this.checked" checked>
+Sync to animation frame</label>
+<p><label><input type=checkbox id=tween>
+Inter-frame tweening</label>
+
+<p>think delay:
+<input type=radio name=tdelay value=0 checked>0ms</input>
+<input type=radio name=tdelay value=20>20ms</input>
+<input type=radio name=tdelay value=50>50ms</input>
+<input type=radio name=tdelay value=100>100ms</input>
+<input type=radio name=tdelay value=200>200ms</input>
+<label><input type=checkbox id=trandom>Randomize</label>
+
+<p>draw delay:
+<input type=radio name=ddelay value=0 checked>0ms</input>
+<input type=radio name=ddelay value=20>20ms</input>
+<input type=radio name=ddelay value=50>50ms</input>
+<input type=radio name=ddelay value=100>100ms</input>
+<input type=radio name=ddelay value=200>200ms</input>
+<label><input type=checkbox id=drandom>Randomize</label>
+
+<p>Fadeout time:
+<input type=radio name=ftime value=0>0ms</input>
+<input type=radio name=ftime value=100 checked>100ms</input>
+<input type=radio name=ftime value=200>200ms</input>
+<input type=radio name=ftime value=500>500ms</input>
+<input type=radio name=ftime value=1000>1000ms</input>
+
+
+<p><input type=text id=ups readonly></input>
+<p><input type=text id=fps readonly></input>
+<p><input type=text id=ttrack readonly></input>
+<p><input type=text id=rates readonly></input>
+</table>
+
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 400
+canvas.height = 400
+var context = canvas.getContext("2d")
+
+function delay(t) {
+	if (!t) return
+	var tend = Date.now() + t
+	while (Date.now() < tend);
+}
+function getradiovalue(name) {
+	var elems = document.getElementsByName(name)
+	for (var j = 0 ; j < elems.length ; ++j) {
+		if (elems[j].checked) return elems[j].value
+	}
+}
+
+
+function RateTimer(ename, suffix) {
+	this.elem = document.getElementById(ename)
+	this.suffix = suffix || ""
+	this.last = Date.now()
+	this.len = 0
+}
+RateTimer.prototype = {
+	update: function () {
+		var now = Date.now(), dt = (now - this.last) * 0.001
+		this.last = now
+		this.len = 0.96 * this.len + 0.04 * dt
+		this.elem.value = (1 / this.len).toPrecision(3) + this.suffix
+	},
+}
+
+var n = 0, t = 0, start = Date.now()
+var theta = 0, theta0 = 0, phi = 3
+var ttimer = new RateTimer("ups", "ups")
+var dtimer = new RateTimer("fps", "fps")
+var dttrack = 0, dt0track = 0, lastthink = Date.now()
+
+function think(dt) {
+	ttimer.update()
+	n += 1
+	t += dt
+	theta0 = theta
+	theta += phi * dt
+	var d = +getradiovalue("tdelay")
+	if (document.getElementById("trandom").checked)
+		d *= 2 * Math.random()
+	delay(d)
+	var now = Date.now(), dt0 = (now - lastthink) * 0.001
+	lastthink = now
+	dttrack = 0.96 * dttrack + 0.04 * dt
+	dt0track = 0.96 * dt0track + 0.04 * dt0
+	document.getElementById("ttrack").value = "tfactor: " + (dttrack / dt0track).toPrecision(3)
+	document.getElementById("rates").value = UFX.ticker.getrates()
+}
+var lastfade = Date.now()
+function draw(f) {
+	dtimer.update()
+	var tween = document.getElementById("tween").checked
+	var a = tween ? f * theta + (1-f) * theta0 : theta
+	var bx = 200 + 160 * Math.sin(a), by = 200 + 160 * Math.cos(a)
+	
+	var ftime = +getradiovalue("ftime")
+	var dt = Date.now() - lastfade
+	lastfade = Date.now()
+	var alpha = ftime ? 1 - Math.exp(-dt/ftime) : 1
+	context.fillStyle = "rgba(0,0,0," + alpha + ")"
+	context.fillRect(0, 0, 400, 400)
+	context.beginPath()
+	context.moveTo(200, 200)
+	context.lineTo(bx, by)
+	context.strokeStyle = "white"
+	context.lineWidth = 2
+	context.stroke()
+	context.beginPath()
+	context.moveTo(bx, by)
+	context.arc(bx, by, 30, 0, 6.3)
+	context.fillStyle = "orange"
+	context.fill()
+	var d = +getradiovalue("ddelay")
+	if (document.getElementById("drandom").checked)
+		d *= 2 * Math.random()
+	delay(d)
+}
+
+
+window.requestAnimationFrame = window.requestAnimationFrame
+	|| window.mozRequestAnimationFrame
+	|| window.webkitRequestAnimationFrame
+	|| window.msRequestAnimationFrame
+window.cancelAnimationFrame = window.cancelAnimationFrame
+	|| window.mozCancelAnimationFrame
+	|| window.webkitCancelAnimationFrame
+	|| window.msCancelAnimationFrame
+
+UFX.ticker.sync = true
+
+function run(opts) {
+	UFX.ticker.init(think, draw, opts)
+}
+function runfixed() {
+	run({
+	})
+}
+function runfixedrbound() {
+	run({
+		minupf: 1,
+		maxupf: 3,
+		ups: 60,
+	})
+}
+function runfixedubound() {
+	run({
+		minupf: 0,
+		ups: 20,
+	})
+}
+function runsemifixed() {
+	run({
+		minups: 20,
+		maxups: 100,
+	})
+}
+function runsemifixedtween() {
+	run({
+		minupf: 0,
+		maxupf: 1,
+		minups: 20,
+		maxups: 100,
+	})
+}
+
+
+</script>
+
