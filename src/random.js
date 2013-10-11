@@ -104,6 +104,10 @@ UFX.random.word = function (n, letters) {
 	return a.join("")
 }
 
+UFX.random.color = function () {
+	return "#" + UFX.random.word(6, "0123456789ABCDEF")
+}
+
 // Fisher-Yates shuffle (in-place)
 UFX.random.shuffle = function (arr) {
     for (var i = arr.length - 1 ; i > 0 ; --i) {
