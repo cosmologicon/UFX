@@ -48,6 +48,7 @@ UFX.ticker = {
 	},
 	resume: function () {
 		this.stop()
+		this.resetcounters()
 		this._running = true
 		this._tick()
 	},
@@ -56,7 +57,6 @@ UFX.ticker = {
 		if (this._thandle) clearTimeout(this._thandle)
 		this._shandle = this._thandle = null
 		this._running = false
-		this.resetcounters()
 	},
 	// Reset the FPS counters etc.
 	resetcounters: function () {
@@ -117,20 +117,20 @@ UFX.ticker = {
 			nthink = Math.max(Math.min(n, maxupf), minupf)
 			dt = Math.min(nthink / minups, this._accumulator)
 			dtmin = Math.max(minupf, 1) / maxups
-//			console.log(minups, maxups, this._accumulator, n, nthink, dt, dt0)
+			console.log(minups, maxups, this._accumulator, n, nthink, dt, dt0, this._dtu, this._dtg)
 		}
-		
 
 		// Invoke the think callback
 		if (nthink) {
 			this._accumulator -= dt
+			now = Date.now()
+			var afac = 0.05 * nthink
+			this._dtu = (1 - afac) * this._dtu + afac * 0.001 * (now - this._lastthink)
+			this._dtg = (1 - afac) * this._dtg + afac * dt
+			this._lastthink = now
 			dt /= nthink
 			for (var jthink = 0 ; jthink < nthink ; ++jthink) {
 				this._tcallback.call(this.cthis, dt, jthink, nthink)
-				now = Date.now()
-				this._dtu = 0.95 * this._dtu + 0.05 * (now - this._lastthink)
-				this._dtg = 0.95 * this._dtg + 0.05 * (dt * 1000)
-				this._lastthink = now
 			}
 		}
 
@@ -139,7 +139,7 @@ UFX.ticker = {
 			var f = this._accumulator * minups
 			this._dcallback.call(this.cthis, f)
 			now = Date.now()
-			this._dtf = 0.95 * this._dtf + 0.05 * (now - this._lastdraw)
+			this._dtf = 0.95 * this._dtf + 0.05 * 0.001 * (now - this._lastdraw)
 			this._lastdraw = now
 		}
 
@@ -148,8 +148,8 @@ UFX.ticker = {
 		// TODO: reconsider the margin for accumulator amounts close to 0
 
 		// Update frame rate counters
-		this.wups = 1000 / this._dtu
-		this.wfps = this._dcallback ? 1000 / this._dtf : this.wups
+		this.wups = 1 / this._dtu
+		this.wfps = this._dcallback ? 1 / this._dtf : this.wups
 		this.wfactor = this._dtg / this._dtu
 
 		// In case someone called UFX.ticker.stop during the loop

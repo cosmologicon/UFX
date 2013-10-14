@@ -329,10 +329,10 @@ function go(dt) {
     context.restore()
 
     calctime = typeof calctime == "number" ? calctime * 0.95 + (t1 - t0) * 0.05 : (t1 - t0)
-    document.getElementById("fps").value = UFX.ticker.getrates()
+    document.getElementById("fps").value = UFX.ticker.wfps.toPrecision(3) + "fps"
     document.getElementById("info").value = "Calculation time per frame: " + Math.round(calctime) + "ms"
 }
-UFX.ticker.init(go, null, {minups: 1, maxups: 300})
+UFX.ticker.init(go, null, {minups: 1, maxups: 300, sync: false})
 function update() {
     var anim = document.getElementById("animate").checked
     if (anim) {
