@@ -38,6 +38,8 @@ button {
 <p>
 <button onclick="runsemifixed()">Semi-fixed</button>
 <button onclick="runsemifixedtween()">Semi-fixed + tweening</button>
+<p>
+<button onclick="UFX.ticker.stop()">Stop</button>
 
 <p><label><input type=checkbox id=sync onclick="UFX.ticker.sync=this.checked" checked>
 Sync to animation frame</label>
@@ -183,8 +185,9 @@ function runfixed() {
 function runfixedrbound() {
 	run({
 		minupf: 1,
-		maxupf: 3,
-		ups: 60,
+		maxupf: 6,
+		ups: 120,
+		maxups: 120,
 	})
 }
 function runfixedubound() {
