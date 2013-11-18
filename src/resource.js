@@ -12,6 +12,7 @@ UFX.resource.data = {}
 UFX.resource.jsontypes = "js json".split(" ")
 UFX.resource.imagetypes = "png gif jpg jpeg bmp tiff".split(" ")
 UFX.resource.soundtypes = "wav mp3 ogg au".split(" ")
+UFX.resource.rawtypes = "csv txt frag vert".split(" ")
 
 // Base path for loading resources
 UFX.resource.base = null
@@ -184,6 +185,8 @@ UFX.resource._load = function (name, url) {
         return UFX.resource._loadsound(name, url)
     } else if (UFX.resource.jsontypes.indexOf(ext) > -1) {
         return UFX.resource._loadjson(name, url)
+    } else if (UFX.resource.rawtypes.indexOf(ext) > -1) {
+        return UFX.resource._loaddata(name, url)
     }
     console.log("Treating unknown extension " + ext + " as raw data")
     return UFX.resource._loaddata(name, url)
