@@ -147,8 +147,9 @@ UFX.key._currentcombo = null
 UFX.key._captureevents = function (element) {
     element = element || document
     if (typeof element == "String") element = document.getElementById(element)
-    // TODO: use addEventListener for all event types
+    // TODO: this seems like a bit of a hack but I can't really figure this blur thing out....
     element.addEventListener("blur", UFX.key._onblur, true)
+    window.onblur = UFX.key._onblur
     element.onkeypress = UFX.key._onkeypress
     element.onkeyup = UFX.key._onkeyup
     element.onkeydown = UFX.key._onkeydown
@@ -166,6 +167,7 @@ UFX.key._watching = function (event) {
     return UFX.key.watchlist.indexOf(UFX.key.map[event.which]) > -1
 }
 UFX.key._onkeypress = function (event) {
+	console.log("onkeypress")
     if (!UFX.key.active || !UFX.key._watching(event)) return true
     return !UFX.key.capture
 }
