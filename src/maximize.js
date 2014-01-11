@@ -1,11 +1,21 @@
-// UFX.maximize - expand a canvas to take up the whole window or screen
-// Requires polyfill for fullscreening
+// UFX.maximize: expand a canvas to take up the whole window or screen
+
+// May require polyfill for fullscreening
 // UFX.maximize.full(canvas): fullscreen
 // UFX.maximize.fill(canvas): fill window
 // UFX.maximize.maximize(canvas): fullscreen if possible, fill window otherwise
 
+// When resizing or maximizing, the callback UFX.maximize.onadjust will be invoked with arguments
+// (canvas, width, height).
 
-if (typeof UFX == "undefined") UFX = {}
+// UFX.maximize.resizemode can be set to "none", "fixed", "aspect", or "total", depending on how
+// you want the canvas resized upon maximization.
+
+// For more details and options, see the UFX.maximize documentation here:
+// https://code.google.com/p/unifac/wiki/UFXDocumentation#UFX.maximize_:_resize_canvas_to_fit_screen/window
+
+"use strict"
+var UFX = UFX || {}
 
 UFX.maximize = {
 	resizemode: "fixed",

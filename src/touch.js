@@ -1,6 +1,18 @@
-// UFX.touch - touch and multitouch event handling
+// UFX.touch: touch and multitouch event handling
 
-if (typeof UFX == "undefined") UFX = {}
+// Still working out the API on this one. I don't really have a handle on touch events yet.
+// Use with caution.
+
+// Basically, though, I'm trying to make it mostly similar to UFX.muose.
+
+// Basic usage:
+// 1. Call UFX.touch.init(canvas)
+// 2. Each frame call: var tstate = UFX.touch.state()
+
+// TODO: add documentation to unifac wiki
+
+"use strict"
+var UFX = UFX || {}
 
 UFX.touch = {
 	// Some options

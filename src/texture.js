@@ -1,6 +1,18 @@
-// Procedural texture generation
+// UFX.texture: procedural texture generation
 
-if (typeof UFX == "undefined") UFX = {}
+// Generates canvas objects with a variety of procedural textures.
+// Basic usage:
+// var texture = UFX.texture.gravel()
+
+// Functions take optional option arguments, so you can tweak it to make it look just right:
+// var texture = UFX.texture.gravel({ size: 400, gmin: 0, gmax: 100 })
+
+// Textures that use coherent noise require the UFX.noise module be included.
+
+// TODO: add documentation to the unifac wiki
+
+"use strict"
+var UFX = UFX || {}
 
 UFX.texture = {
     joinobj: function (obj0, obj1) {

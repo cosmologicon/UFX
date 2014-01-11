@@ -1,6 +1,10 @@
-// draw module - some convenience functions for invoking context methods
-// The basic UFX.draw() function takes a string based on the SVG path string specification,
+// UFX.draw module: some convenience functions for invoking context methods
+
+// The basic UFX.draw() function takes a string inspired by the SVG path string specification,
 //   but with some important differences
+
+// For a complete listing of UFX.draw tokens, please see the UFX documentation here:
+// https://code.google.com/p/unifac/wiki/UFXDocumentation#UFX.draw_token_list
 
 // Three ways to invoke the function here.
 // UFX.draw(context, drawstring)
@@ -10,7 +14,8 @@
 // The drawstring can also be a series of strings or values.
 // UFX.draw(context, "( m 0 0 l", x, y, ") s")
 
-if (typeof UFX == "undefined") UFX = {}
+"use strict"
+var UFX = UFX || {}
 
 UFX._draw = function () {
     var t = []  // Draw tokens

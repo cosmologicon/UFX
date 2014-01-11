@@ -4,7 +4,12 @@
 // follow an n-dimensional Gaussian distribution rather than being uniformly-distributed unit
 // vectors.
 
-if (typeof UFX == "undefined") UFX = {}
+// TODO: add documentation to the unifac wiki
+// For now, please see examples in UFX/test/noise.html
+
+
+"use strict"
+var UFX = UFX || {}
 
 // The basic function that returns noise at a given position in n-space.
 // This a slow, general reference implementation. Most calls should use a faster function
@@ -101,7 +106,7 @@ UFX.noise.wrapslice = function (s, zoff, ngrid, soff, noff) {
     noff = noff || [0, 0]
     var gz0 = Math.floor(zoff) % nz
     if (gz0 < 0) gz0 += nz
-    gz1 = (gz0 + 1) % nz
+    var gz1 = (gz0 + 1) % nz
     var az = zoff - Math.floor(zoff), bz = 1 - az
     var caz = az*az*(3-2*az), cbz = 1 - caz
     var gradx0 = new Array(n), grady0 = new Array(n), gradz0 = new Array(n)

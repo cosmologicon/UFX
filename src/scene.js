@@ -1,6 +1,20 @@
-// The scene module - keeps track of the scene stack
+// UFX.scene: keep track of the scene stack
 
-if (typeof UFX == "undefined") UFX = {}
+// Basic usage:
+// 1. include UFX.tikcer
+// 2. call UFX.scene.init()
+// 3. call UFX.scene.push(sceneobj) to push a scene object onto the stack
+// 4. call UFX.scene.pop() to pop the top scene object off the stack
+
+// Scene objects should at least have a think method, which gets invoked every update
+// They can also optionally have a start method, invoked when they're pushed on the stack, and
+//   a draw method, if you want to separate your model from your view.
+
+// For more options, please see the documentation:
+// https://code.google.com/p/unifac/wiki/UFXDocumentation#UFX.scene_:_scene_management
+
+"use strict"
+var UFX = UFX || {}
 
 UFX.SceneStack = function () {
 	if (!(this instanceof UFX.SceneStack)) return new UFX.SceneStack()

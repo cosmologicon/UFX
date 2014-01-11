@@ -1,12 +1,17 @@
+// UFX.Tracer: cache vector graphics commands for faster rendering.
+
 // A tracer is a tool for optimizing vector graphics via caching
-// If you've got a sequence of draw commands that you're executing over and over,
-//   use this module to cache them to a canvas.
+// If you've got a sequence of draw commands that you're executing over and over, and you need them
+// to be rendered at a variety of zoom levels, use this module to cache them to a canvas.
 // UFX.draw is not required to use this module, but it is required for a couple of features.
 
 // spec can either be a callback that performs all the drawing operations,
 // or a string or array that can be passed to UFX.draw.
 
-if (typeof UFX == "undefined") UFX = {}
+// TODO: add documentation to unifac wiki
+
+"use strict"
+var UFX = UFX || {}
 
 UFX.Tracer = function (spec, rect, zmax) {
     var tracer = Object.create(UFX.Tracer.prototype)

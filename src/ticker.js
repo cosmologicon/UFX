@@ -1,7 +1,19 @@
-// UFX.ticker module
-// Handle game loop
+// UFX.ticker: handle game loop
 
-if (typeof UFX == "undefined") UFX = {}
+// Suggested that you use the UFX.scene module along with this one, in which case you never need
+// to call any UFX.ticker methods. If you wish to use UFX.ticker manually:
+// 1. Call UFX.ticker.init(think) or UFX.ticker.init(think, draw) to kick off the game loop.
+// 2. think is a callback that optionally takes one argument, dt, time elapsed this update.
+// 3. draw (optional) is a callback
+
+// UFX.ticker by default aims for 30fps. This can be set to a variety of possibilities with options.
+// You can check on the actual framerate achieved with UFX.ticker.getrates()
+
+// For more options, see the documentation:
+// https://code.google.com/p/unifac/wiki/UFXDocumentation#UFX.ticker_:_game_loop_management
+
+"use strict"
+var UFX = UFX || {}
 
 UFX.ticker = {
 	// Default options

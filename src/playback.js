@@ -1,5 +1,21 @@
+// UFX.Recorder and UFX.Playback: record a gameplay scene for later playback
+
+// The idea is that you can record the keypresses etc that a player makes, serialize this record
+// into an object, upload it to the universefactory.net server, and then download it and play it
+// back so you can see exactly what the player did.
+
+// This is pretty fragile and I still haven't worked out exactly how I want the API to look, but
+// I did implement it in Mortimer the Lepidopterist and it seems to work.
+
+// This is pretty advanced stuff. I recommend avoiding this module until I've had more practice
+// with it.
+
+// If you want to use it, and you don't replicate the server-side functionality yourself, you'll
+// have to get an account on universefactory.net and register a game before you can use this.
+
 // Requires UFX.scene
 
+"use strict"
 UFX.Recorder = function (obj) {
     if (!(this instanceof UFX.Recorder)) return new UFX.Recorder(obj)
     this.init(obj)

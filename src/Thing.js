@@ -1,8 +1,14 @@
-// Thing - component-based game object
-// Basic usage is very simple. Use UFX.Thing as a factory/constructor
-// Components are simply a collection of named methods.
+// UFX.Thing: component-based entity system
 
-if (typeof UFX == "undefined") UFX = {}
+// Call UFX.Thing as a factory or constructor. Call the addcomp method of the resulting object
+// to add a component.
+
+// You are strongly recommended to read the documentation with example usage at:
+// https://code.google.com/p/unifac/wiki/UFXDocumentation#UFX.Thing_:_component-based_entities
+// https://code.google.com/p/unifac/wiki/UFXComponentModel
+
+"use strict"
+var UFX = UFX || {}
 
 // Thing factory/constructor. Give it a Component or a list of Components
 UFX.Thing = function () {

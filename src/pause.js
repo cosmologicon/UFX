@@ -1,7 +1,13 @@
-// The pause scene - click to continue
+// UFX.pause: click to continue
+
+// This is not a great, robust module, and I wrote it against an old UFX.scene API. I hope to
+// rewrite this at some point, but for now I recommend implementing your own pause scene instead of
+// using this one.
+
 // Requires modules scene and mouse
 // Draws to the global var context
 
+"use strict"
 
 UFX.pause = function () {
     if (!UFX.pause.ispaused()) {

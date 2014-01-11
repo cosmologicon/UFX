@@ -1,6 +1,19 @@
-// Resource loading
+// UFX.resource: load external resources
 
-if (typeof UFX == "undefined") UFX = {}
+// Basic usage:
+// 1. define the callback UFX.resource.onloading(f), which will be called every time a resource is
+//    loaded, with f the fraction of resources loaded
+// 2. define the callback UFX.resource.onload(), which will be called when the last resource has
+//    loaded
+// 3. call UFX.resource.load(res), where res is an object mapping names to urls
+
+// The resources will be loaded into the objects UFX.resource.images, UFX.resource.sounds, and
+// UFX.resource.data, based on the url extension, and parsed into the appropriate type.
+
+// TODO: add documentation to the unifac wiki
+
+"use strict"
+var UFX = UFX || {}
 UFX.resource = {}
 
 // These will become populated as you call load

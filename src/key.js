@@ -1,4 +1,4 @@
-// UFX.key module: functions and constants related to key presses
+// UFX.key module: enqueue keyboard events
 
 // Generally for games you want to know:
 //   - when a key is pressed
@@ -11,8 +11,16 @@
 //   module will enqueue all the key events so they can be handled at the appropriate place in the
 //   main game loop.
 
+// The simplest way to use this module is to start it with:
+//   UFX.key.init()
+// which will capture all key events. Then each frame, call:
+//   var kstate = UFX.key.state()
 
-if (typeof UFX == "undefined") UFX = {}
+// For options and details, please see the documentation here:
+// https://code.google.com/p/unifac/wiki/UFXDocumentation#UFX.key_:_handle_keyboard_input
+
+"use strict"
+var UFX = UFX || {}
 UFX.key = {}
 
 // PUBLIC API

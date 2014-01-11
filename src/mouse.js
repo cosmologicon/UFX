@@ -1,8 +1,20 @@
-// Mouse module - puts mouse events in a queue
+// UFX.mouse module: enqueue mouse events
+
+// This is an alternative system to handling mouse events in event handlers.
+
+// The simplest way to use it is to begin by calling:
+//   UFX.mouse.init(canvas)
+// and then each frame call:
+//   var mstate = UFX.mouse.state()
+
+// By default, only the left mouse button is captured.
 
 // Does not yet handle horizontal scrolling
 
+// For more details and options, please see the documentation at:
+// https://code.google.com/p/unifac/wiki/UFXDocumentation#UFX.mouse_:_handle_mouse_events
 
+"use strict"
 var UFX = UFX || {}
 UFX.mouse = {}
 
