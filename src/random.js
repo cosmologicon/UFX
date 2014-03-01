@@ -98,8 +98,10 @@ UFX.random.popseed = function () {
     return UFX.random.seed
 }
 
-UFX.random.choice = function (arr) {
-    return arr[UFX.random.rand(arr.length)]
+// Select a random element from the array arr.
+// If remove is set to true, the selected element is removed.
+UFX.random.choice = function (arr, remove) {
+    return remove ? arr.splice(UFX.random.rand(arr.length), 1)[0] : arr[UFX.random.rand(arr.length)]
 }
 
 // string of n random letters
