@@ -259,8 +259,6 @@ UFX.Playback.prototype = {
         this.scene.frozen = false
         this.scene.ipop()
         if (this.raw) {
-        	console.log(this.scene._stack)
-        	console.log(this.stack._stack)
         	this.scene._stack = this.stack._stack.slice()
         }
         if (this.ontakedown) {
@@ -276,7 +274,6 @@ UFX.Playback.prototype = {
         this.stack._lastthinker = null
         var state = this.chapter.state
         for (var j = 0 ; j < state.length ; ++j) {
-//            console.log(state[j])
 //            if (this.setstate) this.setstate.apply(null, state[j][2])
             this.applypush(state[j][0], state[j][1], state[j][2])
         }

@@ -84,6 +84,7 @@ UFX.resource.loadjson = function () {
 }
 
 // Load Google web fonts
+var WebFontConfig
 UFX.resource.loadwebfonts = function () {
     WebFontConfig = {
         google: { families: Array.prototype.slice.call(arguments) },

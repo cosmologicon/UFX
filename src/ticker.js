@@ -119,7 +119,6 @@ UFX.ticker = {
 			nthink = minupf
 			// Need to redo this formula. It always maxes out semi-fixed timesteps
 			dtmin = dt = Math.min(this._accumulator, minupf / minups)
-//			console.log(dt, dt0)
 		} else {
 			// Choose the number of updates and length of each update so as to
 			//   maximize the amount of accumulated time consumed, and then to
@@ -129,7 +128,6 @@ UFX.ticker = {
 			nthink = Math.max(Math.min(n, maxupf), minupf)
 			dt = Math.min(nthink / minups, this._accumulator)
 			dtmin = Math.max(minupf, 1) / maxups
-			console.log(minups, maxups, this._accumulator, n, nthink, dt, dt0, this._dtu, this._dtg)
 		}
 
 		// Invoke the think callback

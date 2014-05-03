@@ -175,7 +175,6 @@ UFX.key._watching = function (event) {
     return UFX.key.watchlist.indexOf(UFX.key.map[event.which]) > -1
 }
 UFX.key._onkeypress = function (event) {
-	console.log("onkeypress")
     if (!UFX.key.active || !UFX.key._watching(event)) return true
     return !UFX.key.capture
 }
