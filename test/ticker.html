@@ -32,7 +32,9 @@ button {
 <canvas id=canvas style="border: thin blue solid"></canvas>
 <td>
 <p>
-<button onclick="runfixed()">Fixed</button>
+<button onclick="runfixed()">Fixed 30ups</button>
+<button onclick="runfixed120()">Fixed 120ups</button>
+<p>
 <button onclick="runfixedrbound()">Fixed render bound</button>
 <button onclick="runfixedubound()">Fixed update bound</button>
 <p>
@@ -110,11 +112,14 @@ RateTimer.prototype = {
 	},
 }
 
-var n = 0, t = 0, start = Date.now()
 var theta = 0, theta0 = 0, phi = 3
-var ttimer = new RateTimer("ups", "ups")
-var dtimer = new RateTimer("fps", "fps")
-var dttrack = 0, dt0track = 0, lastthink = Date.now()
+function reset() {
+	n = 0, t = 0, start = Date.now()
+	ttimer = new RateTimer("ups", "ups")
+	dtimer = new RateTimer("fps", "fps")
+	dttrack = 0, dt0track = 0, lastthink = Date.now()
+}
+reset()
 
 function think(dt) {
 	ttimer.update()
@@ -176,24 +181,28 @@ window.cancelAnimationFrame = window.cancelAnimationFrame
 UFX.ticker.sync = true
 
 function run(opts) {
+	reset()
 	UFX.ticker.init(think, draw, opts)
 }
 function runfixed() {
 	run({
 	})
 }
+function runfixed120() {
+	run({
+		fps: 120,
+	})
+}
 function runfixedrbound() {
 	run({
-		minupf: 1,
-		maxupf: 6,
 		ups: 120,
-		maxups: 120,
+		maxupf: 6,
 	})
 }
 function runfixedubound() {
 	run({
-		minupf: 0,
 		ups: 20,
+		minupf: 0,
 	})
 }
 function runsemifixed() {

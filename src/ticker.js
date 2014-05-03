@@ -27,6 +27,7 @@ UFX.ticker = {
 		minups: null,  // If set, minimum number of updates per second
 		maxups: null,  // If set, maximum number of updates per second
 		fps: 30,       // Minimum frame (render, draw) rate
+		cfac: null,    // Counter update factor (defaults to 1 / minups)
 	},
 
 	// Main entry point. Pass a think callback, (optionally) a draw callback,
@@ -90,7 +91,7 @@ UFX.ticker = {
 	},
 
 	// Where the magic happens.
-	// Calls the thick callback 0 or more times, and the draw callback 0 or 1 time.
+	// Calls the think callback 0 or more times, and the draw callback 0 or 1 time.
 	_tick: function () {
 		if (!this._running) return
 		var now = Date.now()
@@ -103,6 +104,7 @@ UFX.ticker = {
 		var maxupf = this.maxupf
 		var minups = this.minups || this.ups || fps
 		var maxups = this.maxups || this.ups || minups
+		var cfac = this.cfac || 1 / minups
 		
 		var dodraw, nthink, dt, dtmin
 
@@ -134,9 +136,8 @@ UFX.ticker = {
 		if (nthink) {
 			this._accumulator -= dt
 			now = Date.now()
-			var afac = 0.05 * nthink
-			this._dtu = (1 - afac) * this._dtu + afac * 0.001 * (now - this._lastthink)
-			this._dtg = (1 - afac) * this._dtg + afac * dt
+			this._dtu = (1 - cfac * nthink) * this._dtu + cfac * 0.001 * (now - this._lastthink)
+			this._dtg = (1 - cfac * nthink) * this._dtg + cfac * dt
 			this._lastthink = now
 			dt /= nthink
 			for (var jthink = 0 ; jthink < nthink ; ++jthink) {
@@ -149,7 +150,7 @@ UFX.ticker = {
 			var f = this._accumulator * minups
 			this._dcallback.call(this.cthis, f)
 			now = Date.now()
-			this._dtf = 0.95 * this._dtf + 0.05 * 0.001 * (now - this._lastdraw)
+			this._dtf = (1 - cfac) * this._dtf + cfac * 0.001 * (now - this._lastdraw)
 			this._lastdraw = now
 		}
 
@@ -173,9 +174,8 @@ UFX.ticker = {
 		    this._shandle = window.requestAnimationFrame(callback)
 		} else {
 			// The next time at which a frame would actually execute
-			var nexttick = this._lasttick + (dtmin - this._accumulator)
-			var delay = Math.max(Date.now() - nexttick, this.delay)
-			delay = 0
+			var nexttick = this._lasttick + 1000 * (dtmin - this._accumulator)
+			var delay = Math.max(Math.ceil(nexttick - Date.now()), this.delay)
 		    this._thandle = window.setTimeout(callback, delay)
 		}
 	},
