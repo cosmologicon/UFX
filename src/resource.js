@@ -29,6 +29,10 @@ UFX.resource = {
 	// Base path for loading resources
 	base: null,
 
+	soundvolume: undefined,
+	musicvolume: undefined,
+	audiovolume: undefined,
+
 	// Set this to a function that should be called when all resources are loaded
 	onload: function () {},
 
@@ -96,6 +100,134 @@ UFX.resource = {
 		this._toload += arguments.length
 	},
 
+	setsoundvolume: function (v) {
+		this.soundsvolume = v
+	},
+	setmusicvolume: function (v) {
+		this.musicvolume = v
+		if (this.musicplaying) this.musicplaying.volume = this._getmusicvolume()
+	},
+	setaudiovolume: function (v) {
+		this.audiovolume = v
+		if (this.musicplaying) this.musicplaying.volume = this._getmusicvolume()
+	},
+	playsound: function (sname) {
+		var s = this.sounds[sname]
+		if (!s) {
+			console.log("Missing sound: " + sname)
+			return
+		}
+		var v = this.soundvolume === undefined ? this.audiovolume : this.soundvolume
+		if (v === undefined) v = 1
+		s.volume = v
+		s.play()
+	},
+	musicplaying: null,
+	_getmusicvolume: function () {
+		if (this.musicvolume !== undefined) return this.musicvolume
+		if (this.audiovolume !== undefined) return this.audiovolume
+		return 1
+	},
+	playmusic: function (mname, noloop) {
+		this._completependingfades()
+		if (!mname) return this.stopmusic()
+		var m = this.sounds[mname]
+		if (!m) {
+			console.log("Missing music: " + mname)
+			return
+		}
+		if (m === this.musicplaying) return
+		this.stopmusic()
+		m.volume = this._getmusicvolume()
+		m.currentTime = 0
+		m.play()
+		m.loop = !noloop
+		this.musicplaying = m
+	},
+	stopmusic: function () {
+		this._completependingfades()
+		if (this.musicplaying) this.musicplaying.pause()
+		this.musicplaying = null
+	},
+	_fadeouttime0: 1400,
+	_fadeintime0: 1400,
+	_fadegap0: 0,
+	setfadetime: function (fadeouttime, fadeintime, fadegap) {
+		if (fadeouttime !== undefined) this._fadeouttime0 = fadeouttime
+		if (fadeintime !== undefined) this._fadeintime0 = fadeintime
+		if (fadegap !== undefined) this._fadegap0 = fadegap
+	},
+	setcrossfade: function (crossfadetime) {
+		if (crossfadetime === undefined) crossfadetime = this._fadetime
+		this.setfadetime(crossfadetime, crossfadetime, -crossfadetime)
+	},
+	_completependingfades: function () {
+		if (this._fadetimeout) {
+			window.clearTimeout(this._fadetimeout)
+			this._fadeinstart = -1
+			this._fadeoutstart = -1
+			this._fadecallback()
+		}
+	},
+	fadetomusic: function (mname, fadeouttime, fadeintime, fadegap, noloop) {
+		this._completependingfades()
+		if (this.musicplaying && mname && this.sounds[mname] === this.musicplaying) return
+		this._fadeouttime = fadeouttime === undefined ? this._fadeouttime0 : fadeouttime
+		this._fadeintime = fadeintime === undefined ? this._fadeintime0 : fadeintime
+		this._fadegap = fadegap === undefined ? this._fadegap0 : fadegap
+		this._fadeoutstart = Date.now()
+		this._fadeinstart = this._fadeoutstart + (this.musicplaying ? this._fadeintime + this._fadegap : 0)
+		this._pendingmname = mname
+		this._pendingnoloop = noloop
+		this._outgoingmusic = this.musicplaying
+		this.musicplaying = null
+		this._fadecallback()
+	},
+	crossfadetomusic: function (mname, crossfadetime, noloop) {
+		if (crossfadetime === undefined) crossfadetime = this._fadeouttime
+		this.fadetomusic(mname, crossfadetime, crossfadetime, -crossfadetime, noloop)
+	},
+	_fadecallback: function () {
+		if (this._outgoingmusic) {
+			var dtout = Date.now() - this._fadeoutstart
+			var fout = this._fadeouttime > 0 ? 1 - dtout / this._fadeouttime : dtout > 0 ? 0 : 1
+			if (fout > 0) {
+				this._outgoingmusic.volume = fout * this._getmusicvolume()
+			} else {
+				this._outgoingmusic.pause()
+				this._outgoingmusic = null
+			}
+		}
+		if (this._pendingmname) {
+			var dtin = Date.now() - this._fadeinstart
+			var fin = this._fadeintime > 0 ? dtin / this._fadeintime : dtin > 0 ? 1 : 0
+			if (fin > 0) {
+				if (!this.musicplaying) {
+					var m = this.sounds[this._pendingmname]
+					if (!m) {
+						console.log("Missing music: " + mname)
+					} else {
+						m.currentTime = 0
+						m.volume = 0
+						m.play()
+						m.loop = !this._pendingnoloop
+						this.musicplaying = m
+					}
+				}
+				if (fin >= 1) {
+					this.musicplaying.volume = this._getmusicvolume()
+					this._pendingmname = null
+				} else {
+					this.musicplaying.volume = fin * this._getmusicvolume()
+				}
+			}
+		}
+		if (this._outgoingmusic || this._pendingmname) {
+			this._fadetimeout = window.setTimeout(this._fadecallback.bind(this), 100)
+		} else {
+			this._fadetimeout = null
+		}
+	},
 
 	// Firefox won't let me play a sound more than once every 10 seconds or so.
 	// Use this class to create a set of identical sounds if you want to play in rapid succession

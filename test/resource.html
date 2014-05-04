@@ -38,6 +38,14 @@ td {
 <p><button type=button onclick="qplay(UFX.resource.sounds.jumpmp3)">Play mp3</button>
 <p><button type=button onclick="qplay(multijump)">Play Multisound</button>
 
+<p><button type=button onclick="UFX.resource.stopmusic()">Stop music</button>
+<p><button type=button onclick="UFX.resource.fadetomusic()">Fade out music</button>
+<p><button type=button onclick="UFX.resource.playmusic('song1')">Play song1</button>
+<p><button type=button onclick="UFX.resource.playmusic('song2')">Play song2</button>
+<p><button type=button onclick="UFX.resource.fadetomusic('song2')">Fade to song2</button>
+<p><button type=button onclick="UFX.resource.crossfadetomusic('song1')">x-Fade to song1</button>
+
+<p>Music CC-BY sampled from: <a href="http://ccmixter.org/files/grapes/16626">song1</a>, <a href="http://ccmixter.org/files/morgantj/18947">song2</a>
 
 <script>
 window.onerror = function (error, url, line) {
@@ -66,6 +74,8 @@ UFX.resource.load({
 	jumpwav: "jump.wav",
 	jumpogg: "jump.ogg",
 	jumpmp3: "jump.mp3",
+	song1: "song1.ogg",
+	song2: "song2.ogg",
 })
 UFX.resource.loadwebfonts("Viga")
 
