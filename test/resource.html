@@ -2,7 +2,6 @@
 <html>
 <head>
 <title>UFX.resource test</title>
-<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
 <style>
 body {
     background: black; color: white;
@@ -29,6 +28,7 @@ td {
 </style>
 
 <script src="../src/resource.js"></script>
+<script src="../src/random.js"></script>
 <body>
 <h1>UFX.resource test</h1>
 
@@ -46,9 +46,12 @@ window.onerror = function (error, url, line) {
 UFX.resource.onload = function () {
     context.fillStyle = "#004"
     context.fillRect(0, 0, 300, 300)
+    context.font = "40px 'Viga'"
+    context.fillStyle = "white"
+    context.fillText("resource!", 80, 100)
     context.scale(0.5, 0.5)
     context.drawImage(UFX.resource.images.abigail, 0, 0)
-    multijump = UFX.resource.Multisound(UFX.resource.sounds.jumpwav)
+    multijump = UFX.resource.Multisound([UFX.resource.sounds.jumpwav])
 }
 
 function qplay (sound) {
@@ -58,11 +61,13 @@ function qplay (sound) {
 }
 
 UFX.resource.base = "data"
-UFX.resource.load({abigail: "abigail.png",
-    jumpwav: "jump.wav",
-    jumpogg: "jump.ogg",
-    jumpmp3: "jump.mp3",
+UFX.resource.load({
+	abigail: "abigail.png",
+	jumpwav: "jump.wav",
+	jumpogg: "jump.ogg",
+	jumpmp3: "jump.mp3",
 })
+UFX.resource.loadwebfonts("Viga")
 
 var canvas = document.getElementById("canvas")
 canvas.width = 300
