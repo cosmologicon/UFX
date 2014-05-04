@@ -357,7 +357,7 @@ UFX.resource = {
 	_loaded: 0,
 	_onload: function () {
 		++UFX.resource._loaded
-		var f = this._loaded / this._toload
+		var f = UFX.resource._loaded / UFX.resource._toload
 		UFX.resource.onloading(f)
 		if (UFX.resource._loaded == UFX.resource._toload) {
 			UFX.resource.onload()
