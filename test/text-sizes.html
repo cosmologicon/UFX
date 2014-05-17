@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>UFX.texture test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<script src="../src/draw.js"></script>
+<style>
+* { font-family: 'Viga'; }
+</style>
+
+<h1>text sizing test</h1>
+<p>Why the heck is so hard to know where text is going to be drawn on the canvas? Let's at least
+try to enumerate all the context properties that affect the size and position of text, shall we?
+<p><canvas id=canvas></canvas>
+
+
+<script>
+
+var canvas = document.getElementById("canvas")
+canvas.width = 800
+canvas.height = 400
+var context = canvas.getContext("2d")
+UFX.draw.setcontext(context)
+UFX.draw("fs rgb(0,0,80) f0 m 400 0 l 400 400 m 0 200 l 800 200 ss rgb(0,0,160) s")
+
+function test() {
+	UFX.draw("[ t 400 200 fs rgb(100,0,0) ss red lw 5 font 80px~Viga fst0 test ]")
+}
+
+setTimeout(test, 500)
+
+</script>
+
+

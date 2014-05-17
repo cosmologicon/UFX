@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>UFX.touch navigation test</title>
+<script src="../src/draw.js"></script>
+<script src="../src/ticker.js"></script>
+<script src="../src/touch.js"></script>
+<script src="UFX.js"></script>
+<h1>UFX.touch navigation test</h1>
+<canvas id="canvas" style="border: 40px gray outset"></canvas>
+<script type="text/javascript">
+var canvas = document.getElementById("canvas")
+canvas.width = 600 ; canvas.height = 400
+var context = canvas.getContext("2d")
+UFX.draw.setcontext(context)
+
+UFX.draw("fs black f0 fs white textalign center font 40px~'sans-serif' ft Tap~to~begin 300 200")
+//canvas.onclick = function () {
+//}
+
+UFX.touch.init(canvas)
+
+var broken = false, taps = [], releases = [], holds = []
+UFX.ticker.init(function () {
+	if (broken) return
+	UFX.draw("fs black f0 fs white textalign left textbaseline top font 40px~'sans-serif'")
+	try {
+		var state = UFX.touch.state()
+		context.fillText(JSON.stringify(state), 0, 10)
+		state.tap.forEach(function (tap) { taps.push(tap) })
+		state.hold.forEach(function (hold) { holds.push(hold) })
+		state.release.forEach(function (release) { releases.push(release) })
+		taps.forEach(function (tap) {
+			var r = (Date.now() - tap.t) * 0.6
+			UFX.draw("b o", tap.pos, r, "ss cyan lw 3 s")
+			UFX.draw("[ t", tap.pos, "t -20 -50 fs cyan font 10px~'sans-serif' ft0 dt=" + tap.dt, "]")
+		})
+		holds.forEach(function (hold) {
+			var r = (Date.now() - hold.t) * 0.6
+			UFX.draw("b o", hold.pos, r, "ss yellow lw 3 s")
+		})
+		releases.forEach(function (release) {
+			var d = 0.2 * Math.sqrt((Date.now() - release.t) * 0.001), pos = release.pos, v = release.v
+			UFX.draw("b o", pos[0] + d * v[0], pos[1] + d * v[1], 10, "fs gray f")
+			UFX.draw("b o", pos, 10, "lw 2 ss gray s")
+		})
+		taps = taps.filter(function (tap) { return Date.now() - tap.t < 200 } )
+		holds = holds.filter(function (tap) { return Date.now() - tap.t < 200 } )
+		releases = releases.filter(function (release) { return Date.now() - release.t < 500} )
+		for (var j in state.ps) {
+			var p = state.ps[j], delta = state.deltas[j]
+			UFX.draw("b o", p, "20 fs red f")
+			UFX.draw("b m", p[0] - delta[0], p[1] - delta[1], "l", p, "lw 4 ss white s")
+			UFX.draw("[ font 14px~'sans-serif' t", p, "ft", j, "-20 -50 ]")
+		}
+	} catch (error) {
+		UFX.draw("fs red font 10px~'sans-serif'")
+		context.fillText(error, 0, 10)
+		broken = true
+		return
+	}
+})
+
+
+</script>

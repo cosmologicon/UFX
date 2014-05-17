@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Snake timing test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 140%;
+}
+input {
+    background: inherit; color: inherit; border: none;
+    font-family: inherit; font-size: inherit;
+}
+</style>
+
+<body>
+<h1>Snake timing test</h1>
+<canvas id=canvas style="border: thin blue solid; float: left; margin: 0 4em"></canvas>
+
+<table>
+<tr><td><input type=text id=box readonly></input>
+<tr><td><input type=checkbox id=delay>Add 30ms delay per frame</input>
+</table>
+
+
+
+<script>
+var gx = 60, gy = 42, gsize = 10, slength = 60
+var snake = [[gx/2, gy/2, 255, 255, 255]], motion = [0, -1]
+var box = document.getElementById("box")
+var boxcolor = 0
+
+var canvas = document.getElementById("canvas")
+canvas.width = gx * gsize
+canvas.height = gy * gsize
+var context = canvas.getContext("2d")
+
+function mutatecolor(c) {
+    return Math.floor(Math.max(Math.min(c + Math.random() * 20 - 10, 255), 64))
+}
+function updatesnake() {
+    var lastsegment = snake[snake.length-1]
+    var x = (lastsegment[0] + motion[0] + gx) % gx
+    var y = (lastsegment[1] + motion[1] + gy) % gy
+    var r = mutatecolor(lastsegment[2])
+    var g = mutatecolor(lastsegment[3])
+    var b = mutatecolor(lastsegment[4])
+    snake.push([x, y, r, g, b])
+    while (snake.length > slength) snake.shift()
+}
+
+function updatebox() {
+    box.style.color = "rgb(0," + boxcolor + ",0)"
+    boxcolor = Math.max(0, boxcolor - 20)
+}
+
+function draw() {
+    context.fillStyle = "black"
+    context.fillRect(0, 0, gx*gsize, gy*gsize)
+    snake.forEach(function (seg) {
+        var x = seg[0], y = seg[1], r = seg[2], g = seg[3], b = seg[4]
+        context.fillStyle = "rgb(" + r + "," + g + "," + b + ")"
+        context.fillRect(x * gsize, y * gsize, gsize-1, gsize-1)
+    })
+}
+
+document.onkeydown = function (event) {
+    var dname = {37: "left", 38: "up", 39: "right", 40: "down"}[event.which]
+    if (!dname) return true
+    box.value = dname
+    boxcolor = 255
+    var newmotion = {"left": [-1,0], "up": [0,-1], "right": [1,0], "down": [0,1]}[dname]
+    if (newmotion[0] * motion[0] + newmotion[1] * motion[1] == 0) {
+        motion = newmotion
+    }
+    return false
+}
+
+
+window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||  
+                               window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
+
+function think() {
+    window.requestAnimationFrame(think)
+//    setTimeout(think,5)
+    if (document.getElementById("delay").checked) {
+        var stop = Date.now() + 60
+        while (Date.now() < stop);
+    }
+    updatesnake()
+    updatebox()
+    for (var j = 0 ; j < 300 ; ++j)
+        draw()
+}
+think()
+
+</script>
+
+
