@@ -292,6 +292,7 @@ UFX.texture = {
         var r0 = "r0" in obj ? obj.r0 : 160, dr = "dr" in obj ? obj.dr : 80
         var g0 = "g0" in obj ? obj.g0 : 160, dg = "dg" in obj ? obj.dg : 80
         var b0 = "b0" in obj ? obj.b0 : 160, db = "db" in obj ? obj.db : 80
+        var a0 = "a0" in obj ? obj.a0 : 255, da = "da" in obj ? obj.da : 0
         var canvas = this.makecanvas(w, h), data = canvas.data
         var ndata = this.noisedata(obj, {fraclevel: 2, scale: 8})
         for (var j = 0, k = 0 ; k < w*h ; j += 4, ++k) {
@@ -299,7 +300,7 @@ UFX.texture = {
             data[j] = r0 + v*dr
             data[j+1] = g0 + v*dg
             data[j+2] = b0 + v*db
-            data[j+3] = 255
+            data[j+3] = a0 + v*da
         }
         canvas.applydata()
         return canvas

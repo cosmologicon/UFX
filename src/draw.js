@@ -129,6 +129,11 @@ UFX._draw = function () {
                 this.fillRect(x, y, w, h)
                 this.strokeRect(x, y, w, h)
                 break
+            case "sfr": case "strokefillrect":
+                var x = +t[++j], y = +t[++j], w = +t[++j], h = +t[++j]
+                this.strokeRect(x, y, w, h)
+                this.fillRect(x, y, w, h)
+                break
             case "cr": case "clearrect":
                 this.clearRect(+t[++j], +t[++j], +t[++j], +t[++j])
                 break
@@ -193,10 +198,14 @@ UFX._draw = function () {
             case "lc": case "linecap":
                 this.lineCap = t[++j]
                 break
-            case "textalign":
+            case "textalign": case "ta":
                 this.textAlign = t[++j]
                 break
-            case "textbaseline":
+            case "textbaseline": case "tb":
+                this.textBaseline = t[++j]
+                break
+            case "textalignbaseline": case "tab":
+                this.textAlign = t[++j]
                 this.textBaseline = t[++j]
                 break
             case "[": case "save":
@@ -229,6 +238,16 @@ UFX._draw = function () {
                 var s = t[++j].replace(/~/g, " ")
                 this.fillText(s, 0, 0)
                 this.strokeText(s, 0, 0)
+                break
+            case "strokefilltext": case "sft":
+                var s = t[++j].replace(/~/g, " "), x = +t[++j], y = +t[++j]
+                this.strokeText(s, x, y)
+                this.fillText(s, x, y)
+                break
+            case "strokefilltext0": case "sft0":
+                var s = t[++j].replace(/~/g, " ")
+                this.strokeText(s, 0, 0)
+                this.fillText(s, 0, 0)
                 break
             default:
                 throw "Unrecognized draw token " + t[j]
