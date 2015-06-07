@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>requestAnimationFrame performance test</title>
+
+<script>
+var useraf = true
+var ndelay = 256
+
+function begin() {
+	nframe = 0
+	tstart = Date.now()
+	loop()
+}
+function loop() {
+	for (var j = 0 ; j < ndelay ; ++j) {
+		for (var k = 0 ; k < 1024 ; ++k) var x = Math.sin(1)
+	}
+
+	var t = Date.now() - tstart
+	++nframe
+	if (nframe > 1000 || t > 10000) {
+		complete()
+		return
+	}
+
+	if (useraf) {
+		window.requestAnimationFrame(loop)
+	} else {
+		setTimeout(loop, 4)
+	}
+}
+function complete() {
+	var fps = nframe / (Date.now() - tstart) * 1000
+	console.log(useraf, ndelay, fps)
+	test()
+}
+
+function test() {
+	useraf = !useraf
+	if (useraf) ndelay *= 4
+	if (ndelay < 1 << 18) begin()
+}
+
+begin()
+</script>
+
+

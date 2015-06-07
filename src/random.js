@@ -104,6 +104,10 @@ UFX.random.choice = function (arr, remove) {
     return remove ? arr.splice(UFX.random.rand(arr.length), 1)[0] : arr[UFX.random.rand(arr.length)]
 }
 
+UFX.random.flip = function (p) {
+    return UFX.random() < (p === undefined ? 0.5 : p)
+}
+
 // string of n random letters
 UFX.random.word = function (n, letters) {
 	var a = []
