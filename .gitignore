@@ -1,0 +1,7 @@
+*~
+*.pyc
+
+deploy/UFX*.js
+deploy/src/*
+deploy/versiondata.json
+
