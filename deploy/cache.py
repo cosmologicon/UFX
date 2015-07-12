@@ -22,10 +22,6 @@ def build(outfile, version, modules=None, minify=False):
 	if minify:
 		cmd = Popen(config.minifier, stdin=PIPE, stdout=PIPE)
 		src, err = cmd.communicate(src)
-		# Uglify seems to have a problem removing comments, so do this ad-hoc thing.
-		lines = [line.split("//")[0].strip() for line in src.split("\n")]
-		lines = filter(None, lines)
-		src = "\n".join(lines)
 		header = config.header.format(version=version)
 		if modules is not None:
 			header += config.mheader.format(modulelist = " ".join(modules))

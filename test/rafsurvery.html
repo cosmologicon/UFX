@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<link href='http://fonts.googleapis.com/css?family=Droid+Sans+Mono|Roboto+Condensed' rel='stylesheet' type='text/css'>
+<meta name=viewport content="width=device-width, initial-scale=1">
+<title>JavaScript animation survey</title>
+<style>
+body {
+	background: #222;
+	color: white;
+	font-family: 'Roboto Condensed', 'sans-serif';
+}
+#intro, #thanks {
+	max-width: 28em;
+	margin: auto;
+	line-height: 150%;
+}
+h1 {
+	font-family: 'Droid Sans Mono', 'sans-serif';
+	font-weight: bold;
+	text-align: center;
+}
+figure {
+	margin: auto;
+	text-align: center;
+}
+figcaption {
+	text-align: right;
+	font-size: 80%;
+	font-style: italic;
+	line-height: 110%;
+}
+form {
+	text-align: center;
+}
+canvas {
+	margin: auto;
+	text-align: center;
+}
+button {
+	font-family: 'Roboto Condensed', 'sans-serif';
+	background: transparent;
+	font-size: 120%;
+	color: #CFF;
+	border: medium #CFF outset;
+	padding: 0.2em 0.4em;
+	margin: 0.3em;
+	border-radius: 0.4em;
+	cursor: pointer;
+}
+button:disabled {
+	opacity: 0.2;
+	font-style: italic;
+	cursor: default;
+}
+#experiment {
+	display: none;
+}
+#thanks {
+	display: none;
+}
+</style>
+<script src="http://ufx.space/UFX.js"></script>
+<script type="text/javascript">
+"use strict"
+var tau = 2 * Math.PI
+localStorage.ufxsurveyid = localStorage.ufxsurveyid || UFX.random.word()
+
+function dump(data) {
+	var s = JSON.stringify(data)
+	if (s.length > 1000000) return
+	var req = new XMLHttpRequest()
+	req.open("POST", "http://universefactory.net/tools/dump/", true)
+	req.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
+	req.send("project=ufxsurvey&data=" + encodeURIComponent(JSON.stringify(data)))
+}
+
+var demo = {
+	running: true,
+	load: function () {
+		this.canvas = document.getElementById("demo")
+		this.context = this.canvas.getContext("2d")
+		UFX.draw.extend(this.context)
+		this.context.draw("c0")
+		window.requestAnimationFrame(this.think.bind(this))
+	},
+	think: function () {
+		if (!this.running) return
+		var h = Math.floor(Math.min(window.innerWidth * 0.48, 200))
+		if (h != this.canvas.height) {
+			this.canvas.height = h
+			this.canvas.width = h * 2
+		}
+		var scale = h / 200
+		document.getElementById("buttonbegin").disabled = false
+		this.context.draw("[ z", scale, scale, "cr 0 0 200 200 t 100 100")
+		drawpattern(this.context, "A")
+		this.context.draw("]")
+		if (Math.random() < 0.5) {
+			this.context.draw("[ z", scale, scale, "cr 200 0 200 200 t 300 100")
+			drawpattern(this.context, "B")
+			this.context.draw("]")
+		}
+		this.timeout = setTimeout(this.think.bind(this), 20)
+	},
+}
+
+document.addEventListener("DOMContentLoaded", demo.load.bind(demo))
+
+function begin() {
+	demo.running = false
+	document.getElementById("intro").style.display = "none"
+	document.getElementById("experiment").style.display = "block"
+	document.getElementById("thanks").style.display = "none"
+	runner.run()
+	return false
+}
+
+
+function drawcheckers(context, r0, r1, n) {
+	for (var j = 0 ; j < n ; ++j) {
+		var a0 = j*tau/n, a1 = a0 + 0.5 * tau/n
+		var S0 = Math.sin(a0), C0 = Math.cos(a0)
+		var S1 = Math.sin(a1), C1 = Math.cos(a1)
+		context.draw("( m", r0 * C0, r0 * S0, "a", 0, 0, r0, a0, a1,
+			"l", r1 * C1, r1 * S1, "aa", 0, 0, r1, a1, a0, ")")
+		context.draw("f")
+	}
+}
+function drawpattern(context, name, t) {
+	t = t || Date.now() * 0.001
+	context.draw("fs white font 36px~'sans-serif' tab center middle ft0", name)
+	context.draw("fs #ACC")
+	context.draw("[ r", 2 * t % tau)
+	drawcheckers(context, 64, 80, 8)
+	context.draw("] [ r", -(t % tau))
+	drawcheckers(context, 40, 60, 8)
+	context.draw("]")
+}
+
+// experiment runner object
+var runner = {
+	nruns: 0,
+	basesetup: function () {
+		return {
+			tickfirst: false,
+			raf: false,
+			calldelay: 0,
+			delaybefore: 0,
+			delayafter: 0,
+			ts: [],
+			debug: window.location.search.slice(1).indexOf("DEBUG") > -1,
+		}
+	},
+	randomdelay: function () {
+		var fps = UFX.random.choice(
+			[5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 75, 90, 105, 120, 150, 200, 250])
+		return Math.floor(1000 / fps)
+	},
+	getsetup: function () {
+		var setup = [this.basesetup(), this.basesetup()]
+		switch (UFX.random.choice("ccrrrrpq")) {
+		case "c":  // Calibration experiment
+			setup[0].delaybefore = this.randomdelay()
+			setup[1].delaybefore = this.randomdelay()
+			break
+		case "r":  // RequestAnimationFrame experiment
+			setup[0].raf = true
+			if (UFX.random.flip(0.15)) {
+				setup[0].delayafter = setup[1].delayafter = this.randomdelay()
+			} else {
+				setup[0].delaybefore = setup[1].delaybefore = this.randomdelay()
+			}
+			setup[0].tickfirst = setup[1].tickfirst = UFX.random.flip(0.15)
+			break
+		case "p":  // RequestAnimationFrame superior
+			setup[0].raf = true
+			setup[0].delaybefore = setup[1].delaybefore = this.randomdelay()
+			setup[1].delaybefore *= UFX.random(1.05, 1.25)
+			break
+		case "q":  // RequestAnimationFrame inferior
+			setup[0].raf = true
+			setup[0].delaybefore = setup[1].delaybefore = this.randomdelay()
+			setup[0].delaybefore *= UFX.random(1.05, 1.25)
+			break
+		}
+		return UFX.random.flip() ? setup : [setup[1], setup[0]]
+	},
+	lettersets: ["FG", "JK", "PQ", "XY", "AB"],
+	running: false,
+	run: function () {
+		this.running = true
+		if (!this.context) {
+			this.canvas = document.getElementById("canvas")
+			this.canvas.width = 500
+			this.canvas.height = 500
+			this.context = this.canvas.getContext("2d")
+			UFX.draw.extend(this.context)
+			this.button1 = document.getElementById("button1")
+			this.button2 = document.getElementById("button2")
+			this.button3 = document.getElementById("button3")
+		}
+		this.current = 0
+		this.setup = this.getsetup()
+		var letters = this.lettersets[this.nruns % this.lettersets.length]
+		this.setup[0].name = letters[0]
+		this.setup[1].name = letters[1]
+
+		this.button1.innerHTML = letters[0] + " is smoother"
+		this.button2.innerHTML = letters[1] + " is smoother"
+		this.button3.innerHTML = "I don't know"
+		this.button1.disabled = true
+		this.button2.disabled = true
+		this.button3.disabled = true
+		
+		this.blip()
+		this.nruns += 1
+		this.think()
+	},
+	click: function (n) {
+		this.running = false
+		dump({
+			id: localStorage.ufxsurveyid,
+			choice: n,
+			setup: this.setup,
+			nrun: this.nruns,
+		})
+		document.getElementById("intro").style.display = "none"
+		document.getElementById("experiment").style.display = "none"
+		document.getElementById("thanks").style.display = "block"
+	},
+	swap: function () {
+		this.current = 1 - this.current
+		this.blip()
+		return false
+	},
+	think: function () {
+		if (!this.running) return
+		var s = Math.floor(Math.min(window.innerWidth * 0.9, window.innerHeight * 0.8))
+		if (this.canvas.width != s) {
+			this.canvas.width = s
+			this.canvas.height = s
+		}
+		var setup = this.setup[this.current]
+		var now = Date.now()
+		if (setup.tickfirst) this.tick(setup)
+		this.delay(setup.delaybefore)
+		var scale = this.context.canvas.width / 200
+		this.context.draw("c0 [ z", scale, scale, "t 100 100")
+		drawpattern(this.context, setup.name)
+		if (setup.debug) {
+			this.context.draw("tab left top font 8px~'Roboto~Condensed' fs white")
+			this.context.fillText("raf: " + setup.raf, -96, -96)
+			this.context.fillText("tickfirst: " + setup.tickfirst, -96, -86)
+			this.context.fillText("delaybefore: " + setup.delaybefore, -96, -76)
+			this.context.fillText("delayafter: " + setup.delayafter, -96, -66)
+		}
+		this.context.draw("]")
+		this.delay(setup.delayafter)
+		if (now < this.tblipend) {
+			this.context.draw("fs white f0")
+		} else {
+			if (setup.ts.length < 100000) setup.ts.push(now)
+		}
+		if (this.button1.disabled) {
+			if (this.setup[0].ts.length > 10 && this.setup[1].ts.length > 10) {
+				this.button1.disabled = false
+				this.button2.disabled = false
+				this.button3.disabled = false
+			}
+		}
+		if (!setup.tickfirst) this.tick(setup)
+	},
+	tblipend: 0,
+	blip: function () {
+		this.tblipend = Date.now() + 100
+	},
+	tick: function (setup) {
+		var callback = this.think.bind(this)
+		if (setup.raf) {
+			window.requestAnimationFrame(callback)
+		} else {
+			setTimeout(callback, setup.calldelay || 0)
+		}
+	},
+	delay: function (dt) {
+		if (!dt) return
+		var end = Date.now() + dt
+		while (Date.now() < end) {
+			var x = Math.sin(1)
+		}
+	},
+
+}
+</script>
+<div id=intro>
+<h1>ufx.space/survey</h1>
+<p>The purpose of this survey is to determine which JavaScript settings produce the best animation on
+different systems. You may stop the survey at any time by closing this window.
+<p>You will be shown a pair of animations, one after the other. Click or tap on the animation to
+switch between them. You may switch back and forth as often as you like. Please watch carefully, and
+when you're ready, choose the one that you think is smoother.
+<p>The smoother animation is the one that looks more like real motion, and is less choppy, jerky, or
+inconsistent.
+<figure id="demofig">
+<canvas id="demo"></canvas>
+<figcaption>Example: A is smoother.
+If the animation does not appear, your system may not support this kind of animation.</figcaption>
+</figure>
+<form action="/"><p>
+<button type=button id="buttonbegin" onclick="begin()" disabled>Begin survey</button>
+</form>
+</div>
+
+
+<div id=experiment style="text-align: center; margin: auto">
+<canvas id="canvas" onclick="runner.swap()" style="cursor: pointer"></canvas>
+<form action="/"><p>
+<button type=button id="button1" onclick="runner.click(1)"></button>
+<button type=button id="button2" onclick="runner.click(2)"></button>
+<button type=button id="button3" onclick="runner.click(3)"></button>
+</form>
+</div>
+
+<div id=thanks>
+<h1>ufx.space/survey</h1>
+<p>Thank you for participating. Your response has been logged.
+<p>If you wish to help more, please click below to run the survey again with a new set of parameters.
+<p>You may stop at any time by closing this window.
+<form action="/"><p>
+<button type=button id="buttoncontinue" onclick="begin()">Continue survey</button>
+</form>
+</div>
