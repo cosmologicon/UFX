@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>UFX.Thing mode test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+</style>
+
+<script src="../src/Thing.js"></script>
+<body>
+<h1>UFX.Thing various mode test</h1>
+<script>
+var comp1 = {
+	init: function () {
+		this.setmethodmode("g", "every")
+		this.setmethodmode("h", "some")
+	},
+	f: function () { return this.x1 },
+	g: function () { return this.x1 },
+}
+var comp2 = {
+	f: function () { return this.x2 },
+	g: function () { return this.x2 },
+	h: function () { return this.x2 },
+}
+var comp3 = {
+	init: function () {
+		this.setmethodmode("f", "sum")
+	},
+	f: function () { return this.x3 },
+	g: function () { return this.x3 },
+	h: function () { return this.x3 },
+}
+
+var thing = UFX.Thing()
+	.addcomp(comp1)
+	.addcomp(comp2)
+	.addcomp(comp3)
+
+thing.x1 = 3
+thing.x2 = 0
+thing.x3 = 5
+
+// mode is "every": return first falsy return value
+console.assert(thing.g() === 0)
+// mode is "some": return first truthy return value
+console.assert(thing.h() === 5)
+// mode is null: return last return value
+thing.setmethodmode("g")
+console.assert(thing.g() === 5)
+
+// 3 + 0 + 5
+console.assert(thing.f() === 8)
+// max(3, 0, 5)
+thing.setmethodmode("f", "max")
+console.assert(thing.f() === 5)
+// min(3, 0, 5)
+thing.setmethodmode("f", "min")
+console.assert(thing.f() === 0)
+// 3 ^ 0 ^ 5
+thing.setmethodmode("f", function (x, y) { return x ^ y })
+console.assert(thing.f() === 6)
+
+
+
+</script>
+

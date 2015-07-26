@@ -30,6 +30,7 @@ td {
 
 <script src="../src/ticker.js"></script>
 <script src="../src/Thing.js"></script>
+<script src="../src/random.js"></script>
 <body>
 <h1>UFX.Thing test</h1>
 <canvas id=canvas style="border: thin blue solid"></canvas>
@@ -42,10 +43,6 @@ td {
 <td><button type=button onclick="mballs(1.5)">More dots please</button>
 </table>
 
-<input type=checkbox onclick="UFX.ticker.animsync = this.checked">
-Sync to animation frames</input>
-
-
 <script>
 var canvas = document.getElementById("canvas")
 canvas.width = 400
@@ -54,9 +51,28 @@ var context = canvas.getContext("2d")
 
 var interact = false
 
-
-
-InteractChildren = {
+var HasChildren = {
+	init: function () {
+		this.children = []
+	},
+	addchild: function (child) {
+		this.children.push(child)
+	},
+	think: function () {
+		var args = arguments
+		this.children.forEach(function (child) {
+			child.think.apply(child, args)
+		})
+	},
+	draw: function (context) {
+		this.children.forEach(function (child) {
+			context.save()
+			child.draw(context)
+			context.restore()
+		})
+	},
+}
+var InteractChildren = {
     think: function (dt) {
         for (var j = 1 ; j < this.children.length ; ++j) {
             for (var i = 0 ; i < j ; ++i) {
@@ -66,12 +82,12 @@ InteractChildren = {
     },
 }
 
-var balls = UFX.Thing([InteractChildren, UFX.Component.HasChildren])
+var balls = UFX.Thing([InteractChildren, HasChildren])
 
 MoveLinear = {
     init: function (p, v) {
         this.p = p || {x: 0, y: 0}
-        this.v = v || {x: Math.random() * 200 - 100, y: Math.random() * 200 - 100}
+        this.v = v || {x: UFX.random(-100, 100), y: UFX.random(-100, 100)}
     },
     think: function (dt) {
         this.p.x += this.v.x * dt
@@ -170,31 +186,31 @@ Bounce = {
 }
 
 Ball = function () {
-    var p = {x: Math.random() * 400, y: Math.random() * 300}
-    var r = 5 * Math.random() + 5
-    var color = ["red", "green", "blue", "yellow"][Math.floor(Math.random() * 4)]
-    return UFX.Thing(UFX.Component.HasParent).
-             addcomp(Attract).
-             addcomp(CubicDrag).
-             addcomp(MoveAccel, p).
-             addcomp(DrawAt).
-             addcomp(DrawSquish).
-             addcomp(DrawCircle, r, color).
-             addcomp(Bounce)
+    var p = {x: UFX.random(400), y: UFX.random(300)}
+    var r = UFX.random(5, 10)
+    var color = UFX.random.choice(["red", "green", "blue", "yellow"])
+    return UFX.Thing()
+             .addcomp(Attract)
+             .addcomp(CubicDrag)
+             .addcomp(MoveAccel, p)
+             .addcomp(DrawAt)
+             .addcomp(DrawSquish)
+             .addcomp(DrawCircle, r, color)
+             .addcomp(Bounce)
 }
 
 function setballs(n) {
-    while (balls.nchildren() < n) {
+    while (balls.children.length < n) {
         var ball = Ball()
-        ball.attachto(balls)
+        balls.addchild(ball)
     }
-    while (balls.nchildren() > n) {
-        balls.lastchild().die()
+    while (balls.children.length > n) {
+        balls.children.pop()
     }
     document.getElementById("nballs").value = n
 }
 function mballs(fac) {
-    setballs(Math.max(Math.round(fac * balls.nchildren()), 1))
+    setballs(Math.max(Math.round(fac * balls.children.length), 1))
 }
 setballs(10)
 
@@ -208,10 +224,6 @@ function draw() {
     balls.draw(context)
     document.getElementById("fps").value = UFX.ticker.getrates()
 }
-
-// polyfill, boo!
-window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||  
-                               window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
 
 UFX.ticker.init(think, draw, {minups: 10, maxups: 300})
 
