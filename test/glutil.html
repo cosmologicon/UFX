@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>UFX.glutil test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+</style>
+
+<script src="../src/glprog.js"></script>
+<h1>UFX.glutil test</h1>
+<canvas id=canvas></canvas>
+<script id=vsource type="x-shader/x-vertex">
+uniform float size;
+void main() {
+	gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+	gl_PointSize = size;
+}
+</script>
+<script id=fsource type="x-shader/x-vertex">
+uniform mediump vec3 color;
+void main() {
+	gl_FragColor = vec4(color, 1.0);
+}
+</script>
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 854
+canvas.height = 480
+var gl = canvas.getContext("webgl")
+
+console.assert(UFX.glutil.enumname(gl.DONT_CARE) == "DONT_CARE")
+console.assert(UFX.glutil.enumasstring(gl.DONT_CARE) == "gl.DONT_CARE")
+console.assert(UFX.glutil.typeletter(gl.FLOAT_VEC2) == "f")
+console.assert(UFX.glutil.typesize(gl.FLOAT_VEC2) == 2)
+console.assert(UFX.glutil.ismatrixtype(gl.FLOAT_VEC2) == false)
+console.assert(UFX.glutil.uniformsettername(gl.FLOAT_VEC2) == "uniform2fv")
+console.assert(UFX.glutil.uniformsettername(gl.BOOL) == "uniform1i")
+console.assert(UFX.glutil.uniformsettername(gl.FLOAT_MAT4) == "uniformMatrix4fv")
+
+var prog = new UFX.glprog("vsource", "fsource")
+prog.use()
+prog.set.size(10)
+prog.set.color([1, 1, 0])
+gl.drawArrays(gl.POINTS, 0, 1)
+
+</script>
+
