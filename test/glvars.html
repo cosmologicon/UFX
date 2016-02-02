@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<title>WebGL variables test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+</style>
+<script src="../src/glprog.js"></script>
+<h1>WebGL variables test</h1>
+<canvas id=canvas></canvas>
+<table id=uinfo>
+<tr><th>#<th>name<th>type<th>size
+</table>
+<table id=ainfo>
+<tr><th>#<th>name<th>type<th>size<th>index
+</table>
+<script id=vsource type="x-shader/x-vertex">
+struct S {
+	int x;
+	float f;
+	mat2 m;
+};
+struct T {
+	S s;
+	float g;
+};
+
+uniform float uscalar;
+uniform vec2 uvector;
+uniform mat2 umatrix;
+uniform T ustruct;
+uniform float uarr[10];
+uniform S ustructarr[2];
+uniform mat2 umatrixarr[2];
+
+// attribute int aint;
+attribute float ascalar1;
+attribute float ascalar2;
+attribute float ascalar3;
+attribute float ascalar4;
+attribute float ascalar5;
+attribute vec2 avector;
+attribute mat3 amatrix1;
+attribute mat3 amatrix2;
+// attribute T astruct;
+// attribute float aarr[10];
+// attribute S astructarr[2];
+// attribute mat2 amatrixarr[2];
+
+void main() {
+	float p =
+		uscalar + uvector[0] + uvector[1] + umatrix[0][1] +
+		float(ustruct.s.x) + ustruct.g +
+		uarr[0] + uarr[1] + uarr[9] +
+		umatrixarr[1][1][1] +
+		ustructarr[0].f + ustructarr[1].f +
+		ascalar1 + ascalar2 + ascalar3 + ascalar4 + ascalar5 +
+		avector.x + amatrix1[0].x + amatrix2[2][2]
+	;
+	gl_Position = vec4(p * 0.0001, 0.0, 0.0, 1.0);
+	gl_PointSize = 10.0;
+}
+</script>
+<script id=fsource type="x-shader/x-vertex">
+void main() {
+}
+</script>
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 854
+canvas.height = 480
+var gl = canvas.getContext("webgl")
+var prog = new UFX.glprog("vsource", "fsource")
+
+var nuniforms = gl.getProgramParameter(prog.prog, gl.ACTIVE_UNIFORMS)
+for (var i = 0 ; i < nuniforms ; ++i) {
+	var info = gl.getActiveUniform(prog.prog, i)
+	uinfo.innerHTML += `<tr><td>${i}<td>${info.name}<td>${UFX.glutil.enumasstring(info.type)}<td>${info.size}\n`
+}
+
+var nattribs = gl.getProgramParameter(prog.prog, gl.ACTIVE_ATTRIBUTES)
+for (var i = 0 ; i < nattribs ; ++i) {
+	var info = gl.getActiveAttrib(prog.prog, i)
+	ainfo.innerHTML += `<tr><td>${i}<td>${info.name}<td>${UFX.glutil.enumasstring(info.type)}<td>${info.size}<td>${gl.getAttribLocation(prog.prog, info.name)}\n`
+}
+
+
+
+prog.use()
+
+</script>
+

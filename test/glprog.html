@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>UFX.glprog test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: #444; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+canvas {
+	width: 800px;
+	height: 800px;
+	border: medium white solid;
+}
+</style>
+<script src="../src/glprog.js"></script>
+<h1>UFX.glprog test</h1>
+<canvas id=canvas></canvas>
+<script id=vsource1 type="x-shader/x-vertex">
+attribute float psize;
+attribute vec2 pos;
+void main() {
+	gl_Position = vec4(pos, 0.0, 1.0);
+	gl_PointSize = psize;
+}
+</script>
+<script id=fsource1 type="x-shader/x-vertex">
+uniform mediump vec3 color;
+uniform bool rounded;
+void main() {
+	if (rounded && length(gl_PointCoord - 0.5) > 0.5) discard;
+	gl_FragColor = vec4(color, 1.0);
+}
+</script>
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = canvas.height = 800
+var gl = canvas.getContext("webgl")
+gl.clearColor(0, 0, 0, 1)
+gl.clear(gl.COLOR_BUFFER_BIT)
+
+var prog1 = new UFX.glprog("vsource1", "fsource1")
+prog1.use()
+
+prog1.set.color([1, 0, 0])
+prog1.set.rounded(true)
+prog1.setconstant.psize(50)
+prog1.set.pos([0, 0, 0.5, 0.5, 0.7, 0.7])
+gl.drawArrays(gl.POINTS, 0, 3)
+
+prog1.set.color([0, 1, 0])
+prog1.set.psize([10, 60])
+prog1.set.pos([-0.5, -0.5, 0, 0.5])
+gl.drawArrays(gl.POINTS, 0, 2)
+
+
+</script>
+
