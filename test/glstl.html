@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<title>UFX.glprog test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+* {
+	margin-left: auto;
+	margin-right: auto;
+}
+body {
+    background: #444; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+canvas {
+	border: medium white solid;
+}
+</style>
+<script src="../src/glprog.js"></script>
+<script src="../src/ticker.js"></script>
+<h1>UFX.glprog STL loading test</h1>
+<canvas id=canvas></canvas>
+<script id=vsource type="x-shader/x-vertex">
+attribute vec3 pos;
+attribute vec3 normal;
+varying vec3 fnormal;
+uniform vec4 q;  // rotation quaternion
+void main() {
+	mat3 rot = mat3(
+		1.0 - 2.0 * (q.y * q.y + q.z * q.z), 2.0 * (q.x * q.y - q.z * q.w), 2.0 * (q.x * q.z + q.y * q.w),
+		2.0 * (q.x * q.y + q.z * q.w), 1.0 - 2.0 * (q.x * q.x + q.z * q.z), 2.0 * (q.y * q.z - q.x * q.w),
+		2.0 * (q.x * q.z - q.y * q.w), 2.0 * (q.y * q.z + q.x * q.w), 1.0 - 2.0 * (q.x * q.x + q.y * q.y)
+	);
+	gl_Position = vec4(0.8 * rot * pos, 1.0);
+	fnormal = rot * normal;
+	gl_Position.w = 1.0 + 0.2 * gl_Position.z;
+}
+</script>
+<script id=fsource type="x-shader/x-fragment">
+uniform mediump vec3 color;
+uniform mediump vec3 lightpos;
+varying mediump vec3 fnormal;
+void main() {
+	mediump float shade = 0.6 + 0.3 * dot(fnormal, lightpos);
+	gl_FragColor = vec4(color * shade, 1.0);
+}
+</script>
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 480
+canvas.height = 480
+var gl = canvas.getContext("webgl")
+gl.clearColor(0, 0, 0, 1)
+gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+gl.enable(gl.DEPTH_TEST)
+
+// quaternions implemented as <i, j, k, 1>.
+function qmult(p, q) {
+	return [
+		p[0] * q[3] + p[3] * q[0] + p[1] * q[2] - p[2] * q[1],
+		p[1] * q[3] + p[3] * q[1] + p[2] * q[0] - p[0] * q[2],
+		p[2] * q[3] + p[3] * q[2] + p[0] * q[1] - p[1] * q[0],
+		p[3] * q[3] - p[0] * q[0] - p[1] * q[1] - p[2] * q[2],
+	]
+}
+function qnorm(q) {
+	var a = Math.sqrt(q.map(x => x * x).reduce((x, y) => x + y))
+	return a ? q.map(x => x / a) : [0, 0, 0, 1]
+}
+
+
+var prog = new UFX.glprog("vsource", "fsource")
+prog.use()
+
+var data = `solid OpenSCAD_Model
+  facet normal 0 0 0
+    outer loop
+      vertex 0 0 -0.707107
+      vertex 0.00848528 0.724077 0
+      vertex 0.71842 0.00848528 0
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0 0 0.707107
+      vertex -0.00848528 -0.724077 0
+      vertex 0.71842 0.00848528 0
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.00848528 0.724077 0
+      vertex 0 0 0.707107
+      vertex 0.71842 0.00848528 0
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex -0.00848528 -0.724077 0
+      vertex 0 0 -0.707107
+      vertex 0.71842 0.00848528 0
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex -0.00848528 -0.724077 0
+      vertex 0 0 0.707107
+      vertex -0.71842 -0.00848528 0
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.00848528 0.724077 0
+      vertex 0 0 -0.707107
+      vertex -0.71842 -0.00848528 0
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0 0 -0.707107
+      vertex -0.00848528 -0.724077 0
+      vertex -0.71842 -0.00848528 0
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0 0 0.707107
+      vertex 0.00848528 0.724077 0
+      vertex -0.71842 -0.00848528 0
+    endloop
+  endfacet
+endsolid OpenSCAD_Model`
+
+function spliceto(lines, end) {
+	for (var j = 0 ; j < lines.length ; ++j) {
+		if (lines[j].match(end)) return lines.splice(0, j + 1)
+	}
+	throw "Ending line not found: " + end
+}
+
+
+function parsefacet(lines) {
+	var normal = lines[0].trim().split(" ").slice(2).map(s => +s)
+	var vertex = lines.slice(2, 5).map(line => line.trim().split(" ").slice(1).map(s => +s))
+	var d2 = normal.map(v => v * v).reduce((a, b) => a + b)
+	if (d2 < 0.001 * 0.001) {
+		var d1 = [0, 1, 2].map(j => vertex[1][j] - vertex[0][j])
+		var d2 = [0, 1, 2].map(j => vertex[2][j] - vertex[1][j])
+		normal = [
+			d1[1] * d2[2] - d1[2] * d2[1],
+			d1[2] * d2[0] - d1[0] * d2[2],
+			d1[0] * d2[1] - d1[1] * d2[0],
+		]
+		d2 = normal.map(v => v * v).reduce((a, b) => a + b)
+	}
+	normal = normal.map(v => v / Math.sqrt(d2))
+	return {
+		vertex: vertex,
+		normal: normal,
+	}
+}
+
+function parsesolid(lines) {
+	var n = 0
+	var name = lines[0].split(" ")[1]
+	lines.pop()
+	lines.shift()
+	var vertex = [], normal = []
+	while (lines.length) {
+		if (lines[0].match(/^ *facet/)) {
+			var facet = parsefacet(spliceto(lines, /^ *endfacet/))
+			console.log(facet)
+			vertex = vertex.concat(facet.vertex[0], facet.vertex[1], facet.vertex[2])
+			normal = normal.concat(facet.normal, facet.normal, facet.normal)
+			n += 3
+		} else {
+			throw "Unrecognized value: " + lines[0]
+		}
+	}
+	return {
+		n: n,
+		name: name,
+		vertex: vertex,
+		normal: normal,
+	}
+}
+
+function parsestl(data) {
+	var solids = {}
+	var values = []
+	data = data.split("\n")
+	while (data.length) {
+		if (data[0].match(/^solid/)) {
+			var solid = parsesolid(spliceto(data, /^endsolid/))
+			solids[solid.name] = {}
+			solids[solid.name].n = solid.n
+			solids[solid.name].pos = values.length
+			values = values.concat(solid.vertex)
+			solids[solid.name].normal = values.length
+			values = values.concat(solid.normal)
+		} else {
+			throw "Unrecognized value: " + data[0]
+		}
+	}
+	return {
+		values: Float32Array.from(values),
+		solids: solids,
+	}
+}
+
+var stl = parsestl(data)
+var buffer = gl.createBuffer()
+gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+gl.bufferData(gl.ARRAY_BUFFER, stl.values, gl.STATIC_DRAW)
+
+
+var q = [0, 0, 0, 1]
+prog.set.color([0.2, 0.6, 0.2])
+prog.set.lightpos([0.5773, 0.5773, 0.5773])
+
+gl.enableVertexAttribArray(prog.attribs.pos)
+gl.enableVertexAttribArray(prog.attribs.normal)
+
+function think(dt) {
+	var dq = qnorm([dt, dt, dt, 1])
+	q = qnorm(qmult(q, dq))
+	prog.set.q(q)
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	for (var s in stl.solids) {
+		var solid = stl.solids[s]
+		gl.vertexAttribPointer(prog.attribs.pos, 3, gl.FLOAT, false, 0, solid.pos * 4)
+		gl.vertexAttribPointer(prog.attribs.normal, 3, gl.FLOAT, false, 0, solid.normal * 4)
+		gl.drawArrays(gl.TRIANGLES, 0, solid.n)
+	}
+}
+UFX.ticker.init(think)
+</script>
+
