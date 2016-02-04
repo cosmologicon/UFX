@@ -5,6 +5,7 @@
 * {
 	margin-left: auto;
 	margin-right: auto;
+	text-align: center;
 }
 body {
     background: #444; color: white;
@@ -23,11 +24,19 @@ canvas {
 </style>
 <script src="../src/glprog.js"></script>
 <script src="../src/ticker.js"></script>
+<script src="../src/mouse.js"></script>
 <h1>UFX.glprog STL loading test</h1>
 <canvas id=canvas></canvas>
+<p><input id=dooutline type=checkbox checked></input> <label for=dooutline>Outline</label>
+<p>Left drag: rotate
+<p>Scroll wheel: zoom
+<p>Right drag: perspective skew
 <script id=vsource type="x-shader/x-vertex">
 attribute vec3 pos;
 attribute vec3 normal;
+uniform float zoom;
+uniform float pfactor;
+uniform bool outlining;
 varying vec3 fnormal;
 uniform vec4 q;  // rotation quaternion
 void main() {
@@ -36,26 +45,36 @@ void main() {
 		2.0 * (q.x * q.y + q.z * q.w), 1.0 - 2.0 * (q.x * q.x + q.z * q.z), 2.0 * (q.y * q.z - q.x * q.w),
 		2.0 * (q.x * q.z - q.y * q.w), 2.0 * (q.y * q.z + q.x * q.w), 1.0 - 2.0 * (q.x * q.x + q.y * q.y)
 	);
-	gl_Position = vec4(0.8 * rot * pos, 1.0);
+	gl_Position = vec4(zoom * rot * pos, 1.0);
 	fnormal = rot * normal;
-	gl_Position.w = 1.0 + 0.2 * gl_Position.z;
+	gl_Position.w = 1.0 + pfactor * gl_Position.z;
+	gl_Position.z /= 4.0;
+	if (outlining) gl_Position.z += 0.02;
 }
 </script>
 <script id=fsource type="x-shader/x-fragment">
 uniform mediump vec3 color;
 uniform mediump vec3 lightpos;
 varying mediump vec3 fnormal;
+uniform bool outlining;
 void main() {
 	mediump float shade = 0.6 + 0.3 * dot(fnormal, lightpos);
 	gl_FragColor = vec4(color * shade, 1.0);
+	if (outlining) gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 }
 </script>
 <script>
+"use strict"
+
 var canvas = document.getElementById("canvas")
-canvas.width = 480
-canvas.height = 480
+canvas.width = 600
+canvas.height = 600
+UFX.mouse.init(canvas)
+UFX.mouse.capture.wheel = true
+UFX.mouse.capture.right = true
+
 var gl = canvas.getContext("webgl")
-gl.clearColor(0, 0, 0, 1)
+gl.clearColor(0.6, 0.6, 0.6, 1)
 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 gl.enable(gl.DEPTH_TEST)
 
@@ -77,73 +96,12 @@ function qnorm(q) {
 var prog = new UFX.glprog("vsource", "fsource")
 prog.use()
 
-var data = `solid OpenSCAD_Model
-  facet normal 0 0 0
-    outer loop
-      vertex 0 0 -0.707107
-      vertex 0.00848528 0.724077 0
-      vertex 0.71842 0.00848528 0
-    endloop
-  endfacet
-  facet normal 0 0 0
-    outer loop
-      vertex 0 0 0.707107
-      vertex -0.00848528 -0.724077 0
-      vertex 0.71842 0.00848528 0
-    endloop
-  endfacet
-  facet normal 0 0 0
-    outer loop
-      vertex 0.00848528 0.724077 0
-      vertex 0 0 0.707107
-      vertex 0.71842 0.00848528 0
-    endloop
-  endfacet
-  facet normal 0 0 0
-    outer loop
-      vertex -0.00848528 -0.724077 0
-      vertex 0 0 -0.707107
-      vertex 0.71842 0.00848528 0
-    endloop
-  endfacet
-  facet normal 0 0 0
-    outer loop
-      vertex -0.00848528 -0.724077 0
-      vertex 0 0 0.707107
-      vertex -0.71842 -0.00848528 0
-    endloop
-  endfacet
-  facet normal 0 0 0
-    outer loop
-      vertex 0.00848528 0.724077 0
-      vertex 0 0 -0.707107
-      vertex -0.71842 -0.00848528 0
-    endloop
-  endfacet
-  facet normal 0 0 0
-    outer loop
-      vertex 0 0 -0.707107
-      vertex -0.00848528 -0.724077 0
-      vertex -0.71842 -0.00848528 0
-    endloop
-  endfacet
-  facet normal 0 0 0
-    outer loop
-      vertex 0 0 0.707107
-      vertex 0.00848528 0.724077 0
-      vertex -0.71842 -0.00848528 0
-    endloop
-  endfacet
-endsolid OpenSCAD_Model`
-
 function spliceto(lines, end) {
 	for (var j = 0 ; j < lines.length ; ++j) {
 		if (lines[j].match(end)) return lines.splice(0, j + 1)
 	}
 	throw "Ending line not found: " + end
 }
-
-
 function parsefacet(lines) {
 	var normal = lines[0].trim().split(" ").slice(2).map(s => +s)
 	var vertex = lines.slice(2, 5).map(line => line.trim().split(" ").slice(1).map(s => +s))
@@ -170,14 +128,17 @@ function parsesolid(lines) {
 	var name = lines[0].split(" ")[1]
 	lines.pop()
 	lines.shift()
-	var vertex = [], normal = []
+	var vertex = [], normal = [], outline = []
 	while (lines.length) {
 		if (lines[0].match(/^ *facet/)) {
 			var facet = parsefacet(spliceto(lines, /^ *endfacet/))
-			console.log(facet)
 			vertex = vertex.concat(facet.vertex[0], facet.vertex[1], facet.vertex[2])
 			normal = normal.concat(facet.normal, facet.normal, facet.normal)
-			n += 3
+			outline = outline.concat(
+				facet.vertex[0], facet.vertex[1], facet.vertex[1], facet.vertex[2],
+				facet.vertex[2], facet.vertex[0]
+			)
+			n += 1
 		} else {
 			throw "Unrecognized value: " + lines[0]
 		}
@@ -187,13 +148,15 @@ function parsesolid(lines) {
 		name: name,
 		vertex: vertex,
 		normal: normal,
+		outline: outline,
 	}
 }
 
 function parsestl(data) {
 	var solids = {}
 	var values = []
-	data = data.split("\n")
+	var maxvertex = 0
+	data = data.split("\n").filter(line => line.length > 0)
 	while (data.length) {
 		if (data[0].match(/^solid/)) {
 			var solid = parsesolid(spliceto(data, /^endsolid/))
@@ -201,41 +164,91 @@ function parsestl(data) {
 			solids[solid.name].n = solid.n
 			solids[solid.name].pos = values.length
 			values = values.concat(solid.vertex)
+			maxvertex = Math.max(maxvertex, solid.vertex.reduce((a, b) => Math.max(a, b)))
 			solids[solid.name].normal = values.length
 			values = values.concat(solid.normal)
+			solids[solid.name].outline = values.length
+			values = values.concat(solid.outline)
 		} else {
 			throw "Unrecognized value: " + data[0]
 		}
 	}
 	return {
+		maxvertex: maxvertex,
 		values: Float32Array.from(values),
 		solids: solids,
 	}
 }
 
-var stl = parsestl(data)
+
+canvas.addEventListener("dragover", function (event) {
+	canvas.style.borderColor = "yellow"
+	event.preventDefault()
+})
+canvas.addEventListener("dragend", function (event) {
+	canvas.style.borderColor = "white"
+	event.preventDefault()
+})
+canvas.addEventListener("drop", function (event) {
+	canvas.style.borderColor = "white"
+	event.preventDefault()
+	;[].forEach.call(event.dataTransfer.files, function (file) {
+		var reader = new FileReader()
+		reader.onload = function (event) {
+			loaddata(event.target.result)
+		}
+		reader.readAsText(file)
+	})
+})
+
+var stl = null
 var buffer = gl.createBuffer()
 gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
-gl.bufferData(gl.ARRAY_BUFFER, stl.values, gl.STATIC_DRAW)
+function loaddata(data) {
+	stl = parsestl(data)
+	gl.bufferData(gl.ARRAY_BUFFER, stl.values, gl.STATIC_DRAW)
+	zoom = 0.7 / stl.maxvertex
+}
 
-
-var q = [0, 0, 0, 1]
-prog.set.color([0.2, 0.6, 0.2])
+var q = qnorm([2, 0, 0, 1])
+var zoom = 1
+var pfactor = 0.5
+prog.set.color([0, 0.6, 0.4])
 prog.set.lightpos([0.5773, 0.5773, 0.5773])
 
 gl.enableVertexAttribArray(prog.attribs.pos)
 gl.enableVertexAttribArray(prog.attribs.normal)
+gl.lineWidth(4)
 
 function think(dt) {
-	var dq = qnorm([dt, dt, dt, 1])
-	q = qnorm(qmult(q, dq))
+	var mstate = UFX.mouse.state()
+	if (mstate.left.isdown) {
+		var dq = qnorm([0.005 * mstate.dpos[1], 0.005 * mstate.dpos[0], 0, 1])
+		q = qnorm(qmult(q, dq))
+	} else if (mstate.right.isdown) {
+		pfactor -= 0.003 * mstate.dpos[1]
+		pfactor = Math.min(Math.max(pfactor, 0), 3)
+	}
+	canvas.style.cursor = mstate.left.isdown ? "move" : mstate.right.isdown ? "ns-resize" : "pointer"
+	zoom *= Math.exp(0.03 * mstate.wheeldy)
 	prog.set.q(q)
+	prog.set.zoom(zoom)
+	prog.set.pfactor(pfactor)
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+	if (!stl) return
 	for (var s in stl.solids) {
 		var solid = stl.solids[s]
+
+		prog.set.outlining(false)
 		gl.vertexAttribPointer(prog.attribs.pos, 3, gl.FLOAT, false, 0, solid.pos * 4)
 		gl.vertexAttribPointer(prog.attribs.normal, 3, gl.FLOAT, false, 0, solid.normal * 4)
-		gl.drawArrays(gl.TRIANGLES, 0, solid.n)
+		gl.drawArrays(gl.TRIANGLES, 0, 3 * solid.n)
+
+		if (document.getElementById("dooutline").checked) {
+			prog.set.outlining(true)
+			gl.vertexAttribPointer(prog.attribs.pos, 3, gl.FLOAT, false, 0, solid.outline * 4)
+			gl.drawArrays(gl.LINES, 0, 6 * solid.n)
+		}
 	}
 }
 UFX.ticker.init(think)
