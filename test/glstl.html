@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>UFX.glprog test</title>
+<title>UFX.glprog STL test</title>
 <link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
 <style>
 * {
@@ -26,7 +26,8 @@ canvas {
 <script src="../src/ticker.js"></script>
 <script src="../src/mouse.js"></script>
 <h1>UFX.glprog STL loading test</h1>
-<canvas id=canvas></canvas>
+<p>Drag and drop an STL file onto the canvas below.
+<p><canvas id=canvas></canvas>
 <p><input id=dooutline type=checkbox checked></input> <label for=dooutline>Outline</label>
 <p>Left drag: rotate
 <p>Scroll wheel: zoom
@@ -78,6 +79,18 @@ gl.clearColor(0.6, 0.6, 0.6, 1)
 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 gl.enable(gl.DEPTH_TEST)
 
+function flatten(a) {
+	var n = 0
+	a.forEach(function (c) { n += c.length })
+	var b = new Array(n)
+	for (var j = 0, k = 0 ; j < a.length ; ++j) {
+		for (var i = 0 ; i < a[j].length ; ++k, ++i) {
+			b[k] = a[j][i]
+		}
+	}
+	return b
+}
+
 // quaternions implemented as <i, j, k, 1>.
 function qmult(p, q) {
 	return [
@@ -102,9 +115,8 @@ function spliceto(lines, end) {
 	}
 	throw "Ending line not found: " + end
 }
-function parsefacet(lines) {
-	var normal = lines[0].trim().split(" ").slice(2).map(s => +s)
-	var vertex = lines.slice(2, 5).map(line => line.trim().split(" ").slice(1).map(s => +s))
+// Normalizes and also uses the vertices if the normal is set to 0
+function getnormal(normal, vertex) {
 	var d2 = normal.map(v => v * v).reduce((a, b) => a + b)
 	if (d2 < 0.001 * 0.001) {
 		var d1 = [0, 1, 2].map(j => vertex[1][j] - vertex[0][j])
@@ -116,7 +128,12 @@ function parsefacet(lines) {
 		]
 		d2 = normal.map(v => v * v).reduce((a, b) => a + b)
 	}
-	normal = normal.map(v => v / Math.sqrt(d2))
+	return normal.map(v => v / Math.sqrt(d2))
+}
+function parsefacet(lines) {
+	var normal = lines[0].trim().split(" ").slice(2).map(s => +s)
+	var vertex = lines.slice(2, 5).map(line => line.trim().split(" ").slice(1).map(s => +s))
+	normal = getnormal(normal, vertex)
 	return {
 		vertex: vertex,
 		normal: normal,
@@ -153,26 +170,60 @@ function parsesolid(lines) {
 }
 
 function parsestl(data) {
+	// https://developers.google.com/web/updates/2014/08/Easier-ArrayBuffer-String-conversion-with-the-Encoding-API
+	var sdata = (new TextDecoder("UTF-8")).decode(new DataView(data))
+	var parsedsolids = []
+	if (sdata.slice(0, 80).includes("solid")) {
+		// ASCII STL
+		sdata = sdata.split("\n").filter(line => line.length > 0)
+		while (sdata.length) {
+			if (sdata[0].match(/^solid/)) {
+				parsedsolids.push(parsesolid(spliceto(sdata, /^endsolid/)))
+			} else {
+				throw "Unrecognized value: " + sdata[0]
+			}
+		}
+	} else {
+		// Binary STL
+		data = new DataView(data)
+		var solid = {
+			name: 0,
+			n: data.getUint32(80, true),
+			normal: [],
+			vertex: [],
+			outline: [],
+		}
+		for (var jface = 0 ; jface < solid.n ; ++jface) {
+			var fdata = [0,1,2,3,4,5,6,7,8,9,10,11].map(j => data.getFloat32(84 + 4 * j + 50 * jface, true))
+			var normal = fdata.slice(0, 3)
+			var p1 = fdata.slice(3, 6)
+			var p2 = fdata.slice(6, 9)
+			var p3 = fdata.slice(9, 12)
+			normal = getnormal(normal, [p1, p2, p3])
+			solid.vertex.push(p1, p2, p3)
+			solid.normal.push(normal, normal, normal)
+			solid.outline.push(p1, p2, p2, p3, p3, p1)
+		}
+		solid.vertex = flatten(solid.vertex)
+		solid.normal = flatten(solid.normal)
+		solid.outline = flatten(solid.outline)
+		parsedsolids.push(solid)
+	}
 	var solids = {}
 	var values = []
 	var maxvertex = 0
-	data = data.split("\n").filter(line => line.length > 0)
-	while (data.length) {
-		if (data[0].match(/^solid/)) {
-			var solid = parsesolid(spliceto(data, /^endsolid/))
-			solids[solid.name] = {}
-			solids[solid.name].n = solid.n
-			solids[solid.name].pos = values.length
-			values = values.concat(solid.vertex)
-			maxvertex = Math.max(maxvertex, solid.vertex.reduce((a, b) => Math.max(a, b)))
-			solids[solid.name].normal = values.length
-			values = values.concat(solid.normal)
-			solids[solid.name].outline = values.length
-			values = values.concat(solid.outline)
-		} else {
-			throw "Unrecognized value: " + data[0]
-		}
-	}
+	parsedsolids.forEach(function (solid, j) {
+		solid.name = j
+		solids[solid.name] = {}
+		solids[solid.name].n = solid.n
+		solids[solid.name].pos = values.length
+		values = values.concat(solid.vertex)
+		maxvertex = Math.max(maxvertex, solid.vertex.reduce((a, b) => Math.max(a, b)))
+		solids[solid.name].normal = values.length
+		values = values.concat(solid.normal)
+		solids[solid.name].outline = values.length
+		values = values.concat(solid.outline)
+	})
 	return {
 		maxvertex: maxvertex,
 		values: Float32Array.from(values),
@@ -197,7 +248,7 @@ canvas.addEventListener("drop", function (event) {
 		reader.onload = function (event) {
 			loaddata(event.target.result)
 		}
-		reader.readAsText(file)
+		reader.readAsArrayBuffer(file)
 	})
 })
 
@@ -215,6 +266,7 @@ var zoom = 1
 var pfactor = 0.5
 prog.set.color([0, 0.6, 0.4])
 prog.set.lightpos([0.5773, 0.5773, 0.5773])
+prog.setconstant.normal([0, 0, 1])
 
 gl.enableVertexAttribArray(prog.attribs.pos)
 gl.enableVertexAttribArray(prog.attribs.normal)
@@ -246,8 +298,10 @@ function think(dt) {
 
 		if (document.getElementById("dooutline").checked) {
 			prog.set.outlining(true)
+			gl.disableVertexAttribArray(prog.attribs.normal)
 			gl.vertexAttribPointer(prog.attribs.pos, 3, gl.FLOAT, false, 0, solid.outline * 4)
 			gl.drawArrays(gl.LINES, 0, 6 * solid.n)
+			gl.enableVertexAttribArray(prog.attribs.normal)
 		}
 	}
 }
