@@ -49,8 +49,9 @@ attribute float ascalar3;
 attribute float ascalar4;
 attribute float ascalar5;
 attribute vec2 avector;
-attribute mat3 amatrix1;
-attribute mat3 amatrix2;
+attribute mat2 amatrix2;
+attribute mat3 amatrix3;
+attribute mat4 amatrix4;
 // attribute T astruct;
 // attribute float aarr[10];
 // attribute S astructarr[2];
@@ -64,7 +65,8 @@ void main() {
 		umatrixarr[1][1][1] +
 		ustructarr[0].f + ustructarr[1].f +
 		ascalar1 + ascalar2 + ascalar3 + ascalar4 + ascalar5 +
-		avector.x + amatrix1[0].x + amatrix2[2][2]
+		avector.x +
+		amatrix2[0].x + amatrix3[2][2] + amatrix4[3].z
 	;
 	gl_Position = vec4(p * 0.0001, 0.0, 0.0, 1.0);
 	gl_PointSize = 10.0;
@@ -80,6 +82,8 @@ canvas.width = 854
 canvas.height = 480
 var gl = canvas.getContext("webgl")
 var prog = new UFX.glprog("vsource", "fsource")
+gl.bindAttribLocation(prog.prog, 0, "ascalar1")
+gl.linkProgram(prog.prog)
 
 var nuniforms = gl.getProgramParameter(prog.prog, gl.ACTIVE_UNIFORMS)
 for (var i = 0 ; i < nuniforms ; ++i) {

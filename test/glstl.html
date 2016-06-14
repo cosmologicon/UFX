@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>UFX.glprog STL test</title>
+<title>UFX.gl STL test</title>
 <link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
 <style>
 * {
@@ -22,10 +22,10 @@ canvas {
 	border: medium white solid;
 }
 </style>
-<script src="../src/glprog.js"></script>
+<script src="../src/gl.js"></script>
 <script src="../src/ticker.js"></script>
 <script src="../src/mouse.js"></script>
-<h1>UFX.glprog STL loading test</h1>
+<h1>UFX.gl STL loading test</h1>
 <p>Drag and drop an STL file onto the canvas below.
 <p><canvas id=canvas></canvas>
 <p><input id=dooutline type=checkbox checked></input> <label for=dooutline>Outline</label>
@@ -74,7 +74,7 @@ UFX.mouse.init(canvas)
 UFX.mouse.capture.wheel = true
 UFX.mouse.capture.right = true
 
-var gl = canvas.getContext("webgl")
+var gl = UFX.gl(canvas)
 gl.clearColor(0.6, 0.6, 0.6, 1)
 gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 gl.enable(gl.DEPTH_TEST)
@@ -106,7 +106,7 @@ function qnorm(q) {
 }
 
 
-var prog = new UFX.glprog("vsource", "fsource")
+var prog = gl.buildProgram("vsource", "fsource")
 prog.use()
 
 function spliceto(lines, end) {
@@ -266,7 +266,7 @@ var zoom = 1
 var pfactor = 0.5
 prog.set.color([0, 0.6, 0.4])
 prog.set.lightpos([0.5773, 0.5773, 0.5773])
-prog.setconstant.normal([0, 0, 1])
+prog.set.normal([0, 0, 1])
 
 gl.enableVertexAttribArray(prog.attribs.pos)
 gl.enableVertexAttribArray(prog.attribs.normal)
@@ -283,9 +283,11 @@ function think(dt) {
 	}
 	canvas.style.cursor = mstate.left.isdown ? "move" : mstate.right.isdown ? "ns-resize" : "pointer"
 	zoom *= Math.exp(0.03 * mstate.wheeldy)
-	prog.set.q(q)
-	prog.set.zoom(zoom)
-	prog.set.pfactor(pfactor)
+	prog.set({
+		q: q,
+		zoom: zoom,
+		pfactor: pfactor,
+	})
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 	if (!stl) return
 	for (var s in stl.solids) {

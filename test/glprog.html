@@ -19,7 +19,7 @@ canvas {
 	border: medium white solid;
 }
 </style>
-<script src="../src/glprog.js"></script>
+<script src="../src/gl.js"></script>
 <h1>UFX.glprog test</h1>
 <canvas id=canvas></canvas>
 <script id=vsource1 type="x-shader/x-vertex">
@@ -41,22 +41,25 @@ void main() {
 <script>
 var canvas = document.getElementById("canvas")
 canvas.width = canvas.height = 800
-var gl = canvas.getContext("webgl")
+var gl = UFX.gl(canvas)
 gl.clearColor(0, 0, 0, 1)
 gl.clear(gl.COLOR_BUFFER_BIT)
 
-var prog1 = new UFX.glprog("vsource1", "fsource1")
+var prog1 = gl.buildProgram("vsource1", "fsource1")
 prog1.use()
 
 prog1.set.color([1, 0, 0])
 prog1.set.rounded(true)
-prog1.setconstant.psize(50)
-prog1.set.pos([0, 0, 0.5, 0.5, 0.7, 0.7])
+prog1.set.psize(50)
+gl.makeArrayBuffer([0, 0, 0.5, 0.5, 0.7, 0.7])
+prog1.assignAttribOffsets({ pos: 0 })
 gl.drawArrays(gl.POINTS, 0, 3)
 
 prog1.set.color([0, 1, 0])
-prog1.set.psize([10, 60])
-prog1.set.pos([-0.5, -0.5, 0, 0.5])
+gl.makeArrayBuffer([10, 60])
+prog1.assignAttribOffsets({ psize: 0 })
+gl.makeArrayBuffer([-0.5, -0.5, 0, 0.5])
+prog1.assignAttribOffsets({ pos: 0 })
 gl.drawArrays(gl.POINTS, 0, 2)
 
 
