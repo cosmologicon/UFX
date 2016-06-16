@@ -167,7 +167,7 @@ UFX._gl = {
 			var index0 = gl.getAttribLocation(prog, info.name)
 			this._attach(prog.attribinfo, info, info.name)
 			var names = [info.name]
-			var argc = this.getTypeSize(info.type)
+			var argc = this.getTypeSize(info.type), typename = this.getName(info.type)
 			if (this.isMatrixType(info.type)) {
 				names = []
 				for (var j = 0 ; j < argc ; ++j) {
