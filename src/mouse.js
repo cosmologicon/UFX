@@ -203,6 +203,8 @@ UFX.mouse._onmouseup = function (event) {
     UFX.mouse.buttonsdown[bname] = false
     if (!UFX.mouse.capture[bname]) return true
 //    if (!UFX.mouse.drag[bname]) return true
+    // TODO: verify that this handler doesn't interfere with DOM elements in other parts of the document
+    var ret = true
     if (UFX.mouse.qup) {
         var mevent = {
             type: "up",
@@ -212,6 +214,7 @@ UFX.mouse._onmouseup = function (event) {
             baseevent: event,
         }
         if (UFX.mouse.drag[bname]) {
+        	ret = false
             mevent.t0 = UFX.mouse.drag[bname].t0
             mevent.dt = Date.now() - mevent.t0
             mevent.pos0 = UFX.mouse.drag[bname].pos0
@@ -221,8 +224,8 @@ UFX.mouse._onmouseup = function (event) {
         UFX.mouse._events.push(mevent)
     }
     delete UFX.mouse.drag[bname]
-    event.preventDefault()
-    return false
+    if (!ret) event.preventDefault()
+    return ret
 }
 
 
@@ -230,14 +233,16 @@ UFX.mouse._onmousemove = function (event) {
     if (!UFX.mouse.active) return true
     var pos = UFX.mouse._geteventpos(event, UFX.mouse._element)
     UFX.mouse.pos = pos
+    var ret = true
     for (var bname in UFX.mouse.drag) {
         var d = UFX.mouse.drag[bname]
         d.pos = pos
         d.dx = pos[0] - d.pos0[0]
         d.dy = pos[1] - d.pos0[1]
         d.dt = Date.now() - d.t0
+        ret = false
     }
-    return false
+    return ret
 }
 
 UFX.mouse._onmousewheel = function (event) {
