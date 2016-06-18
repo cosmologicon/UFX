@@ -99,6 +99,7 @@ UFX._gl = {
 		opts = opts || {}
 		var checkargs = "checkargs" in opts ? opts.checkargs : true
 		var gl = this
+		prog.gl = gl
 		prog.use = function () {
 			gl.useProgram(prog)
 			gl.prog = prog
@@ -227,12 +228,17 @@ UFX._gl = {
 		var texture = this.createTexture()
 		this.bindTexture(target, texture)
 
+		if ("flip" in opts) {
+			var flip0 = this.getParameter(this.UNPACK_FLIP_Y_WEBGL)
+			this.pixelStorei(this.UNPACK_FLIP_Y_WEBGL, opts.flip)
+		}
+
 		var level = 0
 		var format = opts.format || this.RGBA
 		var border = 0
 		var type = opts.type || this.UNSIGNED_BYTE
 		if (opts.source) {
-			this.texImage2d(target, level, format, format, type, opts.source)
+			this.texImage2D(target, level, format, format, type, opts.source)
 			texture.width = opts.source.width
 			texture.height = opts.source.height
 		} else {
@@ -243,6 +249,10 @@ UFX._gl = {
 			this.texImage2D(target, level, format, width, height, border, format, type, pixels)
 			texture.width = width
 			texture.height = height
+		}
+
+		if ("flip" in opts) {
+			this.pixelStorei(this.UNPACK_FLIP_Y_WEBGL, opts.flip)
 		}
 
 		var min_filter = opts.min_filter, mag_filter = opts.mag_filter
@@ -386,7 +396,7 @@ UFX._gl = {
 	// Also enables the attributes as arrays.
 	assignAttribOffsets: function (prog, offsets, opts) {
 		opts = opts || {}
-		var datatype = opts.type || gl.FLOAT
+		var datatype = opts.type || this.FLOAT
 		var normalize = "normalize" in opts ? opts.normalize : false
 		var bytes = opts.bytes || Float32Array.BYTES_PER_ELEMENT, stride
 		if ("stride" in opts) {
