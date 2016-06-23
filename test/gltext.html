@@ -32,16 +32,19 @@ UFX.resource.onload = function () {
 	gl.enable(gl.SCISSOR_TEST)
 	for (var x = 0 ; x < 800 ; x += 50) {
 		for (var y = 0 ; y < 800 ; y += 50) {
-			gl.clearColor(((x + y) / 50 % 2 ? 0.1 : 0), 0, 0, 1)
+			gl.clearColor(((x + y) / 50 % 2 ? 0.3 : 0), 0, 0, 1)
 			gl.scissor(x, y, 50, 50)
 			gl.clear(gl.COLOR_BUFFER_BIT)
 		}
 	}
 	gl.disable(gl.SCISSOR_TEST)
 	prog.use()
-	prog.draw("yellooooooo\nworld", [400, 400], { color: "red", fontname: "Viga", fontsize: 44, })
-	prog.draw("outline", { centerx: 600, centery: 200, color: "black", ocolor: "yellow", owidth: 6, fontname: "Viga", fontsize: 44, })
+	prog.draw("yellooooooo\nworld", [400, 400], { color: "red", fontname: "Viga", fontsize: 88, shadow: [1,1,5], scolor: "white", })
+	prog.draw("outline", { center: [600, 200], color: "black", ocolor: "yellow", owidth: 6, fontname: "Viga", fontsize: 88 })
+	prog.draw("gradient", { center: [200, 200], color: "red", gcolor: "orange", fontsize: 88 })
+	prog.draw("rotato", { center: [200, 600], color: "red", gcolor: "orange", rotation: 0.5, fontsize: 88 })
 }
-UFX.resource.loadwebfonts("Viga")
+//UFX.resource.loadwebfonts("Viga")
+UFX.resource.onload()
 </script>
 

@@ -260,8 +260,8 @@ UFX._gl = {
 		var wrap_t = opts.wrap_t || opts.wrap
 
 		if (opts.npot) {
-			min_filter = this.NEAREST
-			mag_filter = this.NEAREST
+			if (!min_filter) min_filter = this.NEAREST
+			if (!mag_filter) mag_filter = this.NEAREST
 			wrap_s = this.CLAMP_TO_EDGE
 			wrap_t = this.CLAMP_TO_EDGE
 		}
