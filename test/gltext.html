@@ -20,30 +20,27 @@ canvas {
 <script src="../src/gltext.js"></script>
 <script src="../src/resource.js"></script>
 <h1>UFX.gltext test</h1>
-<canvas id=canvas1></canvas>
-<canvas id=canvas2></canvas>
+<canvas id=canvas></canvas>
 <script>
-var canvas1 = document.getElementById("canvas1")
-canvas1.width = canvas1.height = 400
-var gl1 = UFX.gl(canvas1)
-gl1.clearColor(0, 0, 0, 1)
-var prog1 = UFX.gltext.init(gl1)
-
-var canvas2 = document.getElementById("canvas2")
-canvas2.width = canvas2.height = 400
-var gl2 = UFX.gl(canvas2)
-gl2.clearColor(0, 0, 0, 1)
-var prog2 = UFX.gltext.init(gl2)
+var canvas = document.getElementById("canvas")
+canvas.width = canvas.height = 800
+var gl = UFX.gl(canvas)
+gl.clearColor(0, 0, 0, 1)
+var prog = UFX.gltext.init(gl)
 
 UFX.resource.onload = function () {
-	gl1.clear(gl1.COLOR_BUFFER_BIT)
-	gl2.clear(gl2.COLOR_BUFFER_BIT)
-	prog1.use()
-	prog2.use()
-	prog1.draw("hello world", [100, 100], { color: "red", fontname: "Viga", fontsize: 44, })
-	prog2.draw("hello world", [100, 100], { color: "red", fontname: "Viga", fontsize: 44, })
-	prog1.draw("hello world", [100, 250], { color: "blue", fontname: "Viga", fontsize: 44, })
-	prog2.draw("hello world", [100, 250], { color: "green", fontname: "Viga", fontsize: 44, })
+	gl.enable(gl.SCISSOR_TEST)
+	for (var x = 0 ; x < 800 ; x += 50) {
+		for (var y = 0 ; y < 800 ; y += 50) {
+			gl.clearColor(((x + y) / 50 % 2 ? 0.1 : 0), 0, 0, 1)
+			gl.scissor(x, y, 50, 50)
+			gl.clear(gl.COLOR_BUFFER_BIT)
+		}
+	}
+	gl.disable(gl.SCISSOR_TEST)
+	prog.use()
+	prog.draw("yellooooooo\nworld", [400, 400], { color: "red", fontname: "Viga", fontsize: 44, })
+	prog.draw("outline", { centerx: 600, centery: 200, color: "black", ocolor: "yellow", owidth: 6, fontname: "Viga", fontsize: 44, })
 }
 UFX.resource.loadwebfonts("Viga")
 </script>

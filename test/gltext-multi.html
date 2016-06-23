@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>UFX.gltext multi-context test</title>
+<style>
+body {
+    background: #444; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+canvas {
+	border: medium white solid;
+}
+</style>
+<script src="../src/gl.js"></script>
+<script src="../src/gltext.js"></script>
+<script src="../src/resource.js"></script>
+<h1>UFX.gltext multi-context test</h1>
+<canvas id=canvas1></canvas>
+<canvas id=canvas2></canvas>
+<script>
+var canvas1 = document.getElementById("canvas1")
+canvas1.width = canvas1.height = 400
+var gl1 = UFX.gl(canvas1)
+gl1.clearColor(0, 0, 0, 1)
+var prog1 = UFX.gltext.init(gl1)
+
+var canvas2 = document.getElementById("canvas2")
+canvas2.width = canvas2.height = 400
+var gl2 = UFX.gl(canvas2)
+gl2.clearColor(0, 0, 0, 1)
+var prog2 = UFX.gltext.init(gl2)
+
+UFX.resource.onload = function () {
+	gl1.clear(gl1.COLOR_BUFFER_BIT)
+	gl2.clear(gl2.COLOR_BUFFER_BIT)
+	prog1.use()
+	prog2.use()
+	prog1.draw("hello world", [100, 100], { color: "red", fontname: "Viga", fontsize: 44, })
+	prog2.draw("hello world", [100, 100], { color: "red", fontname: "Viga", fontsize: 44, })
+	prog1.draw("hello world", [100, 250], { color: "blue", fontname: "Viga", fontsize: 44, })
+	prog2.draw("hello world", [100, 250], { color: "green", fontname: "Viga", fontsize: 44, })
+}
+UFX.resource.loadwebfonts("Viga")
+</script>
+
