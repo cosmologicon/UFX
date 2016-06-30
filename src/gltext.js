@@ -33,7 +33,7 @@ uniform float A;
 void main() {
 	mat2 R = mat2(cos(A), sin(A), -sin(A), cos(A));
 	gl_Position = vec4((p0 + R * (p * s - c)) / w * 2.0 - 1.0, 0.0, 1.0);
-	a = p + 0.5 / w;  // Scootch up half a pixel
+	a = p;
 }
 `
 UFX.gltext._fsource = `
@@ -65,6 +65,7 @@ UFX.gltext._draw = function (text, pos, opts) {
 	var hanchor = "hanchor" in opts ? opts.hanchor : DEFAULT.hanchor
 	var vanchor = "vanchor" in opts ? opts.vanchor : DEFAULT.vanchor
 	var margin = opts.margin || UFX.gltext.fontmargins[fontname] || DEFAULT.margin
+	var width = opts.width
 
 	var x = null, y = null
 	if (pos) {
@@ -90,11 +91,12 @@ UFX.gltext._draw = function (text, pos, opts) {
 	if (x == null || y == null) throw "Position insufficiently specified"
 
 	var tbbox = this.gettexture(
-		gl, text, fontsize, fontname, color, hanchor, margin,
+		gl, text, fontsize, fontname, color, hanchor, margin, width,
 		gcolor, owidth, ocolor, shadow, scolor
 	)
 	var texture = tbbox[0], bbox = tbbox[1]
-	console.log(bbox)
+	var rotation = "rotation" in opts ? opts.rotation : DEFAULT.rotation
+
 	gl.activeTexture(gl.TEXTURE0)
 	gl.bindTexture(gl.TEXTURE_2D, texture)
 	this.set({
@@ -104,7 +106,7 @@ UFX.gltext._draw = function (text, pos, opts) {
 		t: 0,
 		s: [texture.width, texture.height],
 		alpha: "alpha" in opts ? opts.alpha : DEFAULT.alpha,
-		A: "rotation" in opts ? opts.rotation : DEFAULT.rotation,
+		A: rotation * UFX.gltext.CONSTANTS.RADIANS_PER_ROTATION_UNIT,
 	})
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
 
@@ -125,19 +127,22 @@ UFX.gltext.DEFAULT = {
 	alpha: 1,
 	rotation: 0,
 }
+UFX.gltext.CONSTANTS = {
+	RADIANS_PER_ROTATION_UNIT: Math.PI / 180,
+}
 UFX.gltext.fontmargins = {
 }
 
 // Returns a 2-tuple of [texture, bounding box], where bounding box has 6 elements: texture width,
 // texture height, x, y, w, h. The x, y, w, h are the effective subrectangle of where the text is
 // drawn within the image, for the purpose of positioning.
-UFX.gltext._gettexture = function (gl, text, fontsize, fontname, color, hanchor, margin, gcolor, owidth, ocolor, shadow, scolor) {
+UFX.gltext._gettexture = function (gl, text, fontsize, fontname, color, hanchor, margin, width, gcolor, owidth, ocolor, shadow, scolor) {
 	var key = [
-		text, fontsize, fontname, color, hanchor, margin,
+		text, fontsize, fontname, color, hanchor, margin, width,
 		gcolor, owidth, ocolor, shadow, scolor
 	].toString()
 	if (this.textures[key]) return this.textures[key]
-	var DEBUG = true
+	var DEBUG = false
 
 	var d = Math.ceil(margin * fontsize)
 	var s = 1 * d  // line spacing
@@ -157,9 +162,23 @@ UFX.gltext._gettexture = function (gl, text, fontsize, fontname, color, hanchor,
 	var context = canvas.getContext("2d")
 	var font = fontsize + "px " + fontname
 	context.font = font
-	var texts = text.split("\n")
+	var texts = []
+	function twidth(line) {
+		return context.measureText(line).width
+	}
+	function addline(line) {
+		if (!width || twidth(line) <= width || !line.includes(" ")) { texts.push(line) ; return }
+		var i = line.indexOf(" "), j
+		while ((j = line.indexOf(" ", i + 1)) != -1) {
+			if (twidth(line.slice(0, j)) > width) break
+			i = j
+		}
+		texts.push(line.slice(0, i))
+		addline(line.slice(i + 1))
+	}
+	text.split("\n").forEach(addline)
 	var n = texts.length
-	var twidths = texts.map(t => context.measureText(t).width)
+	var twidths = texts.map(twidth)
 	var w0 = Math.max.apply(Math, twidths)
 	var x0s = twidths.map(w => mleft + Math.round(hanchor * (w0 - w)))
 	var y0s = twidths.map((w, j) => mbottom + s * j + h * (j + 1))
@@ -211,7 +230,7 @@ UFX.gltext._gettexture = function (gl, text, fontsize, fontname, color, hanchor,
 		if (gcolor || color) context.fillText(tline, 0, 0)
 		context.restore()
 	})
-	var texture = gl.buildTexture({ source: canvas, npot: true, flip: true, mag_filter: gl.LINEAR })
+	var texture = gl.buildTexture({ source: canvas, npot: true, flip: true, filter: gl.LINEAR })
 	var bbox = [canvas.width, canvas.height, mleft, mbottom, w0, h * n + s * (n - 1)]
 	this.textures[key] = [texture, bbox]
 	return this.textures[key]

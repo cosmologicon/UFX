@@ -255,7 +255,8 @@ UFX._gl = {
 			this.pixelStorei(this.UNPACK_FLIP_Y_WEBGL, opts.flip)
 		}
 
-		var min_filter = opts.min_filter, mag_filter = opts.mag_filter
+		var min_filter = opts.min_filter || opts.filter
+		var mag_filter = opts.mag_filter || opts.filter
 		var wrap_s = opts.wrap_s || opts.wrap
 		var wrap_t = opts.wrap_t || opts.wrap
 
