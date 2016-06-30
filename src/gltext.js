@@ -13,8 +13,13 @@ UFX.gltext.init = function (gl) {
 	UFX.gltext._gl = gl
 	var prog = UFX.gltext.prog = gl.addProgram("text", UFX.gltext._vsource, UFX.gltext._fsource)
 	prog.draw = UFX.gltext._draw
+	prog.clear = UFX.gltext._clear
 	prog.gettexture = UFX.gltext._gettexture
-	prog.textures = {}
+	prog.texturedata = {
+		textures: {},
+		tick: 0,
+		sizetotal: 0,
+	}
 	prog.posbuffer = gl.makeArrayBuffer([0, 0, 1, 0, 0, 1, 1, 1])
 	prog.assignAttribOffsets({ p: 0 })
 	prog._use0 = prog.use
@@ -54,6 +59,7 @@ UFX.gltext._draw = function (text, pos, opts) {
 	var gl = this.gl
 
 	var DEFAULT = UFX.gltext.DEFAULT
+	var CONSTANTS = UFX.gltext.CONSTANTS
 	var fontsize = opts.fontsize || DEFAULT.fontsize
 	var fontname = opts.fontname || DEFAULT.fontname
 	var color = opts.color || DEFAULT.color
@@ -94,8 +100,14 @@ UFX.gltext._draw = function (text, pos, opts) {
 		gl, text, fontsize, fontname, color, hanchor, margin, width,
 		gcolor, owidth, ocolor, shadow, scolor
 	)
+	tbbox[3] = ++this.texturedata.tick
 	var texture = tbbox[0], bbox = tbbox[1]
 	var rotation = "rotation" in opts ? opts.rotation : DEFAULT.rotation
+	if (rotation) rotation = Math.round(rotation / CONSTANTS.ANGLE_RESOLUTION) * CONSTANTS.ROTATION_RESOLUTION
+	var alpha = "alpha" in opts ? opts.alpha : DEFAULT.alpha
+	if (alpha < 1) alpha = Math.round(alpha / CONSTANTS.ALPHA_RESOLUTION) * CONSTANTS.ALPHA_RESOLUTION
+	if (alpha > 1) alpha = 1
+	if (alpha < 0) alpha = 0
 
 	gl.activeTexture(gl.TEXTURE0)
 	gl.bindTexture(gl.TEXTURE_2D, texture)
@@ -105,11 +117,35 @@ UFX.gltext._draw = function (text, pos, opts) {
 		c: [bbox[2] + hanchor * bbox[4], bbox[3] + vanchor * bbox[5]],
 		t: 0,
 		s: [texture.width, texture.height],
-		alpha: "alpha" in opts ? opts.alpha : DEFAULT.alpha,
-		A: rotation * UFX.gltext.CONSTANTS.RADIANS_PER_ROTATION_UNIT,
+		alpha: alpha,
+		A: rotation * CONSTANTS.RADIANS_PER_ROTATION_UNIT,
 	})
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
-
+	if (CONSTANTS.AUTO_CLEAN) this.clear()
+}
+UFX.gltext._clear = function () {
+	var CONSTANTS = UFX.gltext.CONSTANTS
+	var tdata = this.texturedata, textures = tdata.textures
+	if (tdata.sizetotal < CONSTANTS.MEMORY_LIMIT_MB) return
+	if (CONSTANTS.MEMORY_LIMIT_MB <= 0) {
+		for (var key in textures) {
+			this.gl.deleteTexture(textures[key][0])
+		}
+		tdata.textures = {}
+		tdata.sizetotal = 0
+	} else {
+		var keys = Object.keys(textures)
+		keys.sort(function (a, b) { return textures[b][3] - textures[a][3] })
+		var limit = CONSTANTS.MEMORY_LIMIT_MB * (1 << 20)
+		if (tdata.sizetotal < limit) return
+		limit *= CONSTANTS.MEMORY_REDUCTION_FACTOR
+		while (tdata.sizetotal > limit && keys.length) {
+			var key = keys.pop()
+			tdata.sizetotal -= textures[key][2]
+			this.gl.deleteTexture(textures[key][0])
+			delete tdata.textures[key]
+		}
+	}
 }
 UFX.gltext.DEFAULT = {
 	fontsize: 18,
@@ -129,6 +165,11 @@ UFX.gltext.DEFAULT = {
 }
 UFX.gltext.CONSTANTS = {
 	RADIANS_PER_ROTATION_UNIT: Math.PI / 180,
+	ROTATION_RESOLUTION: 3,
+	ALPHA_RESOLUTION: 1 / 16,
+	AUTO_CLEAN: true,
+	MEMORY_LIMIT_MB: 64,
+	MEMORY_REDUCTION_FACTOR: 0.5,
 }
 UFX.gltext.fontmargins = {
 }
@@ -141,7 +182,7 @@ UFX.gltext._gettexture = function (gl, text, fontsize, fontname, color, hanchor,
 		text, fontsize, fontname, color, hanchor, margin, width,
 		gcolor, owidth, ocolor, shadow, scolor
 	].toString()
-	if (this.textures[key]) return this.textures[key]
+	if (this.texturedata.textures[key]) return this.texturedata.textures[key]
 	var DEBUG = false
 
 	var d = Math.ceil(margin * fontsize)
@@ -232,6 +273,8 @@ UFX.gltext._gettexture = function (gl, text, fontsize, fontname, color, hanchor,
 	})
 	var texture = gl.buildTexture({ source: canvas, npot: true, flip: true, filter: gl.LINEAR })
 	var bbox = [canvas.width, canvas.height, mleft, mbottom, w0, h * n + s * (n - 1)]
-	this.textures[key] = [texture, bbox]
-	return this.textures[key]
+	var size = 4 * canvas.width * canvas.height
+	this.texturedata.sizetotal += size
+	var ret = this.texturedata.textures[key] = [texture, bbox, size, null]
+	return ret
 }

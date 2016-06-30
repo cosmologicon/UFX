@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<title>UFX.gltext stress test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body {
+    background: #444; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+canvas {
+	border: medium white solid;
+}
+</style>
+<script src="../src/gl.js"></script>
+<script src="../src/gltext.js"></script>
+<script src="../src/resource.js"></script>
+<script src="../src/ticker.js"></script>
+<script src="../src/maximize.js"></script>
+<h1>UFX.gltext stress test</h1>
+<canvas id=canvas></canvas>
+<script>
+var canvas = document.getElementById("canvas")
+var gl = UFX.gl(canvas)
+UFX.maximize.onadjust = function (canvas, sx, sy) {
+	gl.viewport(0, 0, sx, sy)
+}
+UFX.maximize.fill(canvas, "total")
+gl.clearColor(0, 0, 0, 1)
+var prog = UFX.gltext.init(gl)
+
+UFX.gltext.DEFAULT.fontsize = 36
+
+var n = 0
+function think(dt) {
+	gl.clear(gl.COLOR_BUFFER_BIT)
+	prog.use()
+	var sx2 = canvas.width / 2, sy2 = canvas.height / 2
+	prog.draw("" + ++n, { midbottom: [sx2, sy2], fontsize: 200, fontname: "Boogaloo" })
+	prog.draw(UFX.ticker.getrates(), { midbottom: [sx2, 40], fontsize: 40, fontname: "Boogaloo" })
+	prog.draw("Total texture size: " + (prog.texturedata.sizetotal / (1 << 20)).toFixed(2) + "MB",
+		{ midbottom: [sx2, 100], fontsize: 40, fontname: "Boogaloo" })
+}
+
+UFX.resource.onload = function () {
+	UFX.ticker.init(think, null, { fps: 60 })
+}
+UFX.resource.loadwebfonts("Boogaloo")
+//UFX.resource.onload()
+</script>
+
