@@ -71,7 +71,7 @@ UFX.gltext._draw = function (text, pos, opts) {
 	var gcolor = opts.gcolor || DEFAULT.gcolor
 	var owidth = (opts.owidth || DEFAULT.owidth) * DEFAULT.OUTLINE_UNITS
 	var ocolor = opts.ocolor || DEFAULT.ocolor
-	var shadow = (opts.shadow || DEFAULT.shadow).map(a => a * DEFAULT.SHADOW_UNITS)
+	var shadow = (opts.shadow || DEFAULT.shadow).map(function (a) { return a * DEFAULT.SHADOW_UNITS })
 	var scolor = opts.scolor || DEFAULT.scolor
 	var hanchor = "hanchor" in opts ? opts.hanchor : DEFAULT.hanchor
 	var vanchor = "vanchor" in opts ? opts.vanchor : DEFAULT.vanchor
@@ -158,7 +158,7 @@ UFX.gltext._fitsize = function (text, fontname, width, height, lineheight) {
 	function fits(fontsize) {
 		context.font = fontsize + "px " + fontname
 		var texts = UFX.gltext._split(context, text, width)
-		var wmax = Math.max.apply(Math, texts.map(line => context.measureText(line).width))
+		var wmax = Math.max.apply(Math, texts.map(function (line) { return context.measureText(line).width }))
 		if (wmax > width) return false
 		var n = texts.length
 		var s = (lineheight - 1) * fontsize, h = fontsize
@@ -284,10 +284,10 @@ UFX.gltext._gettexture = function (gl,
 	context.font = font
 	var texts = UFX.gltext._split(context, text, width)
 	var n = texts.length
-	var twidths = texts.map(line => context.measureText(line).width)
+	var twidths = texts.map(function (line) { return context.measureText(line).width })
 	var w0 = Math.max.apply(Math, twidths)
-	var x0s = twidths.map(w => mleft + Math.round(align * (w0 - w)))
-	var y0s = twidths.map((w, j) => mbottom + s * j + h * (j + 1))
+	var x0s = twidths.map(function (w) { return mleft + Math.round(align * (w0 - w)) })
+	var y0s = twidths.map(function (w, j) { return mbottom + s * j + h * (j + 1) })
 	canvas.width = mleft + mright + w0
 	canvas.height = mtop + mbottom + h * n + s * (n - 1)
 	if (DEBUG) {
