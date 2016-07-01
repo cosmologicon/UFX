@@ -205,7 +205,6 @@ UFX.gltext._clean = function () {
 	var CONSTANTS = UFX.gltext.CONSTANTS
 	var tdata = this.texturedata, textures = tdata.textures
 	if (tdata.sizetotal < CONSTANTS.MEMORY_LIMIT_MB * (1 << 20)) return
-	console.log("cleaning", tdata.sizetotal)
 	if (CONSTANTS.MEMORY_LIMIT_MB <= 0) {
 		for (var key in textures) {
 			this.gl.deleteTexture(textures[key][0])
