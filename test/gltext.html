@@ -44,12 +44,13 @@ UFX.resource.onload = function () {
 	prog.draw("Text color", [100, 720], { color: "orange" })
 	prog.draw("Font name and size", [100, 620], { fontname: "Boogaloo", fontsize: 60 })
 	prog.draw("Positioned text", { topright: [750, 600] })
-	prog.draw("Allow me to demonstrate wrapped text", [100, 480], { width: 400, })
+	prog.draw("Allow me to demonstrate wrapped text", [100, 480], { width: 400, lineheight: 1.5 })
 	prog.draw("Outlined text", [100, 380], { owidth: 1.5, ocolor: "rgb(255,255,0)", color: "rgb(0,0,0)" })
 	prog.draw("Drop shadow", [100, 280], { shadow: [2, 2, 2], scolor: "#C00" })
 	prog.draw("Color gradient", [100, 180], { color: "red", gcolor: "purple" })
 	prog.draw("Transparency", [100, 80], { alpha: 0.4 })
 	prog.draw("Vertical text", { midleft: [600, 300], rotation: 90 })
+	prog.drawbox("Text that's constrained to fit within a certain rectangle on the screen", [400, 300, 100, 50])
 	prog.draw("All together now:\nCombining the above options", {
 	    midbottom: [600, 100], width: 360, fontname: "Boogaloo", fontsize: 48,
 	    color: "#AAFF00", gcolor: "#66AA00", owidth: 1.5, ocolor: "black", rotation: 10,

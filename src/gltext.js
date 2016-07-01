@@ -13,20 +13,25 @@ UFX.gltext.init = function (gl) {
 	UFX.gltext._gl = gl
 	var prog = UFX.gltext.prog = gl.addProgram("text", UFX.gltext._vsource, UFX.gltext._fsource)
 	prog.draw = UFX.gltext._draw
-	prog.clear = UFX.gltext._clear
+	prog.drawbox = UFX.gltext._drawbox
+	prog.clean = UFX.gltext._clean
 	prog.gettexture = UFX.gltext._gettexture
 	prog.texturedata = {
 		textures: {},
 		tick: 0,
 		sizetotal: 0,
+		fitcache: {},
 	}
 	prog.posbuffer = gl.makeArrayBuffer([0, 0, 1, 0, 0, 1, 1, 1])
 	prog.assignAttribOffsets({ p: 0 })
-	prog._use0 = prog.use
+	var use0 = prog.use
 	prog.use = function () {
+		use0.call(this)
 		this.gl.enable(this.gl.BLEND)
 		this.gl.disable(this.gl.DEPTH_TEST)
 		this.gl.blendFuncSeparate(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA, 0, 1)
+		this.posbuffer.bind()
+		this.assignAttribOffsets({ p: 0 })
 	}
 	return prog
 }
@@ -70,7 +75,8 @@ UFX.gltext._draw = function (text, pos, opts) {
 	var scolor = opts.scolor || DEFAULT.scolor
 	var hanchor = "hanchor" in opts ? opts.hanchor : DEFAULT.hanchor
 	var vanchor = "vanchor" in opts ? opts.vanchor : DEFAULT.vanchor
-	var margin = opts.margin || UFX.gltext.fontmargins[fontname] || DEFAULT.margin
+	var margin = "margin" in opts ? opts.margin : (UFX.gltext.fontmargins[fontname] || DEFAULT.margin)
+	var lineheight = "lineheight" in opts ? opts.lineheight : DEFAULT.lineheight
 	var width = opts.width
 
 	var x = null, y = null
@@ -96,21 +102,28 @@ UFX.gltext._draw = function (text, pos, opts) {
 	if ("bottom" in opts) { y = opts.bottom ; vanchor = 0 }
 	if (x == null || y == null) throw "Position insufficiently specified"
 
+	var align = hanchor
+	if ("align" in opts) {
+		switch (opts.align) {
+			case "left": align = 0 ; break
+			case "center": align = 0.5 ; break
+			case "right": align = 1 ; break
+			default: align = opts.align
+		}
+	}
+
 	var tbbox = this.gettexture(
-		gl, text, fontsize, fontname, color, hanchor, margin, width,
-		gcolor, owidth, ocolor, shadow, scolor
+		gl, text, fontsize, fontname, align, margin, width, lineheight,
+		color, gcolor, owidth, ocolor, shadow, scolor
 	)
 	tbbox[3] = ++this.texturedata.tick
 	var texture = tbbox[0], bbox = tbbox[1]
 	var rotation = "rotation" in opts ? opts.rotation : DEFAULT.rotation
-	if (rotation) rotation = Math.round(rotation / CONSTANTS.ANGLE_RESOLUTION) * CONSTANTS.ROTATION_RESOLUTION
-	var alpha = "alpha" in opts ? opts.alpha : DEFAULT.alpha
-	if (alpha < 1) alpha = Math.round(alpha / CONSTANTS.ALPHA_RESOLUTION) * CONSTANTS.ALPHA_RESOLUTION
-	if (alpha > 1) alpha = 1
-	if (alpha < 0) alpha = 0
+	var alpha = Math.min(Math.max("alpha" in opts ? opts.alpha : DEFAULT.alpha, 0), 1)
 
 	gl.activeTexture(gl.TEXTURE0)
 	gl.bindTexture(gl.TEXTURE_2D, texture)
+	
 	this.set({
 		w: [gl.canvas.width, gl.canvas.height],
 		p0: [x, y],
@@ -118,15 +131,81 @@ UFX.gltext._draw = function (text, pos, opts) {
 		t: 0,
 		s: [texture.width, texture.height],
 		alpha: alpha,
-		A: rotation * CONSTANTS.RADIANS_PER_ROTATION_UNIT,
+		A: rotation * CONSTANTS.RADIANS_PER_ROTATION_UNIT % (2 * Math.PI),
 	})
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
-	if (CONSTANTS.AUTO_CLEAN) this.clear()
+	if (CONSTANTS.AUTO_CLEAN) this.clean()
 }
-UFX.gltext._clear = function () {
+UFX.gltext._drawbox = function (text, box, opts) {
+	opts = opts ? Object.create(opts) : {}
+	var DEFAULT = UFX.gltext.DEFAULT
+	if (!opts.fontname) opts.fontname = DEFAULT.fontname
+	//if (!("margin" in opts)) opts.margin = (UFX.gltext.fontmargins[fontname] || DEFAULT.margin)
+	if (!("lineheight" in opts)) opts.lineheight = DEFAULT.lineheight
+	opts.width = box[2]
+	opts.fontsize = UFX.gltext._fitsize(text, opts.fontname, box[2], box[3], opts.lineheight)
+	var hanchor = "hanchor" in opts ? opts.hanchor : DEFAULT.hanchor
+	var vanchor = "vanchor" in opts ? opts.vanchor : DEFAULT.vanchor
+	var x = box[0] + hanchor * box[2], y = box[1] + vanchor * box[3]
+	this.draw(text, [x, y], opts)
+}
+UFX.gltext._fitcache = {}
+UFX.gltext._fitsize = function (text, fontname, width, height, lineheight) {
+	var key = [text, fontname, width, height, lineheight].toString()
+	if (this._fitcache[key]) return this._fitcache[key]
+	var canvas = document.createElement("canvas")
+	var context = canvas.getContext("2d")
+	function fits(fontsize) {
+		context.font = fontsize + "px " + fontname
+		var texts = UFX.gltext._split(context, text, width)
+		var wmax = Math.max.apply(Math, texts.map(line => context.measureText(line).width))
+		if (wmax > width) return false
+		var n = texts.length
+		var s = (lineheight - 1) * fontsize, h = fontsize
+		return s * (n - 1) + h * n <= height
+	}
+	var a = 1, b = 2, fontsize
+	if (fits(a)) {
+		while (fits(b)) {
+			a = b
+			b <<= 1
+		}
+		while (b - a > 1) {
+			var c = Math.floor((a + b) / 2)
+			if (fits(c)) {
+				a = c
+			} else {
+				b = c
+			}
+		}
+	}
+	this._fitcache[key] = a
+	return a
+}
+
+UFX.gltext._split = function (context, text, width) {
+	var texts = []
+	function twidth(line) {
+		return context.measureText(line).width
+	}
+	function addline(line) {
+		if (!width || twidth(line) <= width || !line.includes(" ")) { texts.push(line) ; return }
+		var i = line.indexOf(" "), j
+		while ((j = line.indexOf(" ", i + 1)) != -1) {
+			if (twidth(line.slice(0, j)) > width) break
+			i = j
+		}
+		texts.push(line.slice(0, i))
+		addline(line.slice(i + 1))
+	}
+	text.split("\n").forEach(addline)
+	return texts
+}
+UFX.gltext._clean = function () {
 	var CONSTANTS = UFX.gltext.CONSTANTS
 	var tdata = this.texturedata, textures = tdata.textures
-	if (tdata.sizetotal < CONSTANTS.MEMORY_LIMIT_MB) return
+	if (tdata.sizetotal < CONSTANTS.MEMORY_LIMIT_MB * (1 << 20)) return
+	console.log("cleaning", tdata.sizetotal)
 	if (CONSTANTS.MEMORY_LIMIT_MB <= 0) {
 		for (var key in textures) {
 			this.gl.deleteTexture(textures[key][0])
@@ -152,6 +231,7 @@ UFX.gltext.DEFAULT = {
 	fontname: "sans-serif",
 	color: "#CCCCCC",
 	margin: 0.2,
+	lineheight: 1,
 	owidth: 1,
 	ocolor: null,
 	shadow: [1, 1],
@@ -165,8 +245,6 @@ UFX.gltext.DEFAULT = {
 }
 UFX.gltext.CONSTANTS = {
 	RADIANS_PER_ROTATION_UNIT: Math.PI / 180,
-	ROTATION_RESOLUTION: 3,
-	ALPHA_RESOLUTION: 1 / 16,
 	AUTO_CLEAN: true,
 	MEMORY_LIMIT_MB: 64,
 	MEMORY_REDUCTION_FACTOR: 0.5,
@@ -177,16 +255,18 @@ UFX.gltext.fontmargins = {
 // Returns a 2-tuple of [texture, bounding box], where bounding box has 6 elements: texture width,
 // texture height, x, y, w, h. The x, y, w, h are the effective subrectangle of where the text is
 // drawn within the image, for the purpose of positioning.
-UFX.gltext._gettexture = function (gl, text, fontsize, fontname, color, hanchor, margin, width, gcolor, owidth, ocolor, shadow, scolor) {
+UFX.gltext._gettexture = function (gl,
+	text, fontsize, fontname, align, margin, width, lineheight,
+	color, gcolor, owidth, ocolor, shadow, scolor) {
 	var key = [
-		text, fontsize, fontname, color, hanchor, margin, width,
-		gcolor, owidth, ocolor, shadow, scolor
+		text, fontsize, fontname, align, margin, width, lineheight,
+		color, gcolor, owidth, ocolor, shadow, scolor
 	].toString()
 	if (this.texturedata.textures[key]) return this.texturedata.textures[key]
 	var DEBUG = false
 
 	var d = Math.ceil(margin * fontsize)
-	var s = 1 * d  // line spacing
+	var s = Math.ceil((lineheight - 1) * fontsize)  // line spacing
 	var h = Math.ceil(fontsize)  // line height
 	var lw = ocolor ? Math.ceil(fontsize * owidth) : 0
 	var sx = scolor ? fontsize * shadow[0] : 0
@@ -203,25 +283,11 @@ UFX.gltext._gettexture = function (gl, text, fontsize, fontname, color, hanchor,
 	var context = canvas.getContext("2d")
 	var font = fontsize + "px " + fontname
 	context.font = font
-	var texts = []
-	function twidth(line) {
-		return context.measureText(line).width
-	}
-	function addline(line) {
-		if (!width || twidth(line) <= width || !line.includes(" ")) { texts.push(line) ; return }
-		var i = line.indexOf(" "), j
-		while ((j = line.indexOf(" ", i + 1)) != -1) {
-			if (twidth(line.slice(0, j)) > width) break
-			i = j
-		}
-		texts.push(line.slice(0, i))
-		addline(line.slice(i + 1))
-	}
-	text.split("\n").forEach(addline)
+	var texts = UFX.gltext._split(context, text, width)
 	var n = texts.length
-	var twidths = texts.map(twidth)
+	var twidths = texts.map(line => context.measureText(line).width)
 	var w0 = Math.max.apply(Math, twidths)
-	var x0s = twidths.map(w => mleft + Math.round(hanchor * (w0 - w)))
+	var x0s = twidths.map(w => mleft + Math.round(align * (w0 - w)))
 	var y0s = twidths.map((w, j) => mbottom + s * j + h * (j + 1))
 	canvas.width = mleft + mright + w0
 	canvas.height = mtop + mbottom + h * n + s * (n - 1)
