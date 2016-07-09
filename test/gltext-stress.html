@@ -6,6 +6,7 @@ body {
     background: #444; color: white;
     font-family: 'Viga';
     font-size: 110%;
+	text-align: center;
 }
 h1 {
     font-size: 160%;
@@ -15,36 +16,101 @@ h1 {
 }
 canvas {
 	border: medium white solid;
+	margin: auto;
+}
+input {
+	font: 36px 'Boogaloo';
+	border: none;
+	background: transparent;
+	color: inherit;
+	width: 600px;
 }
 </style>
 <script src="../src/gl.js"></script>
 <script src="../src/gltext.js"></script>
 <script src="../src/resource.js"></script>
 <script src="../src/ticker.js"></script>
-<script src="../src/maximize.js"></script>
+<script src="../src/draw.js"></script>
 <h1>UFX.gltext stress test</h1>
-<canvas id=canvas></canvas>
+<p><canvas id=canvas></canvas>
+<p><canvas id=graph></canvas>
+<p><input type=text disabled id=rates></input>
 <script>
 var canvas = document.getElementById("canvas")
+canvas.width = 800
+canvas.height = 300
 var gl = UFX.gl(canvas)
-UFX.maximize.onadjust = function (canvas, sx, sy) {
-	gl.viewport(0, 0, sx, sy)
-}
-UFX.maximize.fill(canvas, "total")
 gl.clearColor(0, 0, 0, 1)
 var prog = UFX.gltext.init(gl)
 
-UFX.gltext.DEFAULT.fontsize = 36
+var graph = document.getElementById("graph")
+graph.width = 800
+graph.height = 300
+var gcontext = graph.getContext("2d")
 
-var n = 0
+
+UFX.gltext.DEFAULT.fontsize = 36
+UFX.gltext.CONSTANTS.MEMORY_LIMIT_MB = 0
+
+var n = 0, gwidth = 1, wfactors = [], ys = []
+var nseen = 0, seen = {}
 function think(dt) {
-	gl.clear(gl.COLOR_BUFFER_BIT)
+	gl.enable(gl.SCISSOR_TEST)
+	for (var x = 0 ; x < canvas.width ; x += 100) {
+		for (var y = 0 ; y < canvas.height ; y += 100) {
+			gl.scissor(x, y, 100, 100)
+			if ((x + y) % 200) {
+				gl.clearColor(0.2, 0, 0, 1)
+			} else {
+				gl.clearColor(0.4, 0, 0, 1)
+			}
+			gl.clear(gl.COLOR_BUFFER_BIT)
+		}
+	}
+	gl.disable(gl.SCISSOR_TEST)
 	prog.use()
 	var sx2 = canvas.width / 2, sy2 = canvas.height / 2
-	prog.draw("" + ++n, { midbottom: [sx2, sy2], fontsize: 200, fontname: "Boogaloo" })
-	prog.draw(UFX.ticker.getrates(), { midbottom: [sx2, 40], fontsize: 40, fontname: "Boogaloo" })
-	prog.draw("Total texture size: " + (prog.texturedata.sizetotal / (1 << 20)).toFixed(2) + "MB",
-		{ midbottom: [sx2, 100], fontsize: 40, fontname: "Boogaloo" })
+	++n
+	prog.draw("" + n, [sx2, canvas.height],
+		{ hanchor: 0.5, vanchor: 1, fontsize: 200, fontname: "Boogaloo" })
+	for (var key in prog.texturedata.textures) {
+		if (!seen[key]) {
+			seen[key] = 1
+			++nseen
+		}
+	}
+	if (true) {
+		prog.draw(UFX.ticker.getrates(), { midbottom: [sx2, 40], fontsize: 40, fontname: "Boogaloo" })
+		prog.draw("Current texture size: " + (prog.texturedata.sizetotal / (1 << 20)).toFixed(2) + "MB",
+			{ midbottom: [sx2, 100], fontsize: 40, fontname: "Boogaloo" })
+		prog.draw("Total texture count: " + Object.keys(seen).length,
+			{ midbottom: [sx2, 160], fontsize: 40, fontname: "Boogaloo" })
+		prog.draw("Current texture count: " + Object.keys(prog.texturedata.textures).length,
+			{ midbottom: [sx2, 220], fontsize: 40, fontname: "Boogaloo" })
+//		prog.draw("" + n, { midbottom: [sx2, 160], fontsize: 40, fontname: "Boogaloo" })
+	}
+//	document.getElementById("rates").value = UFX.ticker.getrates()
+
+	wfactors.push(UFX.ticker.wfactor)
+	var y = 1 - UFX.ticker.wfactor * UFX.ticker.fps / 80
+	ys.push(y)
+	if (n >= gwidth) {
+		gwidth *= 2
+		UFX.draw(gcontext, "fs black f0 font 16px~'Boogaloo' tab right bottom")
+		for (var a = 10 ; a < 80 ; a += 10) {
+			UFX.draw(gcontext, a % 30 ? "ss #008 fs #008" : "ss #44F fs #44F")
+			UFX.draw(gcontext, "[ t 0", Math.floor(graph.height * (1 - a / 80)),
+				"b m 0 0 l", graph.width, "0 s",
+				"ft " + a + "fps", graph.width - 4, 0,
+				"]")
+		}
+		UFX.draw(gcontext, "fs white")
+		ys.forEach(function (y, x) {
+			UFX.draw(gcontext, "fr", graph.width * x / gwidth, graph.height * y, 1, 1)
+		})
+	}
+	UFX.draw(gcontext, "fs white fr",
+		graph.width * (n - 1) / gwidth, graph.height * y, 1, 1)
 }
 
 UFX.resource.onload = function () {

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<title>UFX.gl texture stress test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body {
+    background: #444; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+canvas {
+	border: medium white solid;
+}
+input {
+	font: 36px 'Boogaloo';
+	border: none;
+	background: transparent;
+	color: inherit;
+	width: 600px;
+}
+</style>
+<script type="x-shader/x-vertex" id="vsource">
+attribute vec2 p;
+uniform vec2 c, a;
+varying vec2 t;
+void main () {
+	gl_Position = vec4((2.0 * p - 1.0) * a + c, 0.0, 1.0);
+	t = p;
+}
+</script>
+<script type="x-shader/x-fragment" id="fsource">
+precision highp float;
+varying vec2 t;
+uniform sampler2D s;
+void main () {
+	gl_FragColor = texture2D(s, t);
+}
+</script>
+<script src="../src/gl.js"></script>
+<script src="../src/resource.js"></script>
+<script src="../src/ticker.js"></script>
+<script src="../src/draw.js"></script>
+<h1>UFX.gl texture stress test</h1>
+<canvas id=canvas></canvas>
+<p><input type=text disabled id=rates></input>
+<canvas id=graph></canvas>
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 512
+canvas.height = 512
+var graph = document.getElementById("graph")
+graph.width = 800
+graph.height = 300
+var gcontext = graph.getContext("2d")
+var gl = UFX.gl(canvas)
+gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
+gl.clearColor(0, 0, 0, 1)
+var prog = gl.buildProgram("vsource", "fsource")
+var buffer = gl.makeArrayBuffer([0, 0, 0, 1, 1, 1, 1, 0])
+prog.assignAttribOffsets({ p: 0 })
+prog.use()
+prog.set.s(0)
+
+
+function drawtexture(text, s) {
+	var image = document.createElement("canvas")
+	image.width = s ; image.height = s
+	var context = image.getContext("2d")
+	UFX.draw(context,
+		"fs black f0 fs white t", s/2, s/2,
+		"font " + s/4 + "px~'Boogaloo' tab center middle ft0 " + text)
+	return image
+}
+
+var texture = gl.buildTexture({ source: drawtexture(0, 512), flip: true, npot: true })
+gl.activeTexture(gl.TEXTURE0)
+gl.bindTexture(gl.TEXTURE_2D, texture)
+
+var n = 0, gwidth = 1, wfactors = []
+var textures = []
+function think(dt) {
+//	var image = drawtexture(n++, 512)
+//	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
+	prog.set({s: 0, a: [0.5, 0.5], c: [-0.5, -0.5]})
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, drawtexture("a" + n, 256))
+	gl.drawArrays(gl.TRIANGLE_FAN, 0, 4)
+	prog.set({s: 0, a: [0.5, 0.5], c: [0.5, -0.5]})
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, drawtexture("b" + n, 256))
+	gl.drawArrays(gl.TRIANGLE_FAN, 0, 4)
+	prog.set({s: 0, a: [0.5, 0.5], c: [-0.5, 0.5]})
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, drawtexture("c" + n, 256))
+	gl.drawArrays(gl.TRIANGLE_FAN, 0, 4)
+	prog.set({s: 0, a: [0.5, 0.5], c: [0.5, 0.5]})
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, drawtexture("d" + n, 256))
+	gl.drawArrays(gl.TRIANGLE_FAN, 0, 4)
+	prog.set({s: 0, a: [0.5, 0.5], c: [0, 0]})
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, drawtexture("e" + n, 256))
+	gl.drawArrays(gl.TRIANGLE_FAN, 0, 4)
+
+	++n
+ 	
+
+	wfactors.push(UFX.ticker.wfactor)
+	if (n >= gwidth) {
+		gwidth *= 2
+		UFX.draw(gcontext, "fs black f0 fs white ss #A00")
+		for (var y = 0.25 ; y < 2 ; y += 0.25) {
+			UFX.draw(gcontext, "[ t 0", graph.height * y / 2, "b m 0 0 l", graph.width, "0 s ]")
+		}
+		wfactors.forEach(function (y, x) {
+			UFX.draw(gcontext, "fr", graph.width * x / gwidth, graph.height * (1 - y / 2), 1, 1)
+		})
+	}
+	UFX.draw(gcontext, "fs white fr",
+		graph.width * (n - 1) / gwidth, graph.height * (1 - UFX.ticker.wfactor / 2), 1, 1)
+}
+
+UFX.resource.onload = function () {
+	UFX.ticker.init(think, null, { fps: 60 })
+}
+UFX.resource.loadwebfonts("Boogaloo")
+//UFX.resource.onload()
+</script>
+

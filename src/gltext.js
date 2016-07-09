@@ -21,6 +21,7 @@ UFX.gltext.init = function (gl) {
 		tick: 0,
 		sizetotal: 0,
 		fitcache: {},
+		spares: [],
 	}
 	prog.posbuffer = gl.makeArrayBuffer([0, 0, 1, 0, 0, 1, 1, 1])
 	prog.assignAttribOffsets({ p: 0 })
@@ -78,6 +79,8 @@ UFX.gltext._draw = function (text, pos, opts) {
 	var margin = "margin" in opts ? opts.margin : (UFX.gltext.fontmargins[fontname] || DEFAULT.margin)
 	var lineheight = "lineheight" in opts ? opts.lineheight : DEFAULT.lineheight
 	var width = opts.width
+	var cache = "cache" in opts ? opts.cache : true
+	if (!CONSTANTS.MEMORY_LIMIT_MB) cache = false
 
 	var x = null, y = null
 	if (pos) {
@@ -114,7 +117,8 @@ UFX.gltext._draw = function (text, pos, opts) {
 
 	var tbbox = this.gettexture(
 		gl, text, fontsize, fontname, align, margin, width, lineheight,
-		color, gcolor, owidth, ocolor, shadow, scolor
+		color, gcolor, owidth, ocolor, shadow, scolor,
+		cache
 	)
 	tbbox[3] = ++this.texturedata.tick
 	var texture = tbbox[0], bbox = tbbox[1]
@@ -205,9 +209,14 @@ UFX.gltext._clean = function () {
 	var CONSTANTS = UFX.gltext.CONSTANTS
 	var tdata = this.texturedata, textures = tdata.textures
 	if (tdata.sizetotal < CONSTANTS.MEMORY_LIMIT_MB * (1 << 20)) return
+	var gl = this.gl
+	gl.activeTexture(gl.TEXTURE0)
 	if (CONSTANTS.MEMORY_LIMIT_MB <= 0) {
 		for (var key in textures) {
-			this.gl.deleteTexture(textures[key][0])
+			gl.bindTexture(gl.TEXTURE_2D, textures[key][0])
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+//			gl.deleteTexture(textures[key][0])
+			tdata.spares.push(textures[key][0])
 		}
 		tdata.textures = {}
 		tdata.sizetotal = 0
@@ -220,7 +229,10 @@ UFX.gltext._clean = function () {
 		while (tdata.sizetotal > limit && keys.length) {
 			var key = keys.pop()
 			tdata.sizetotal -= textures[key][2]
-			this.gl.deleteTexture(textures[key][0])
+			gl.bindTexture(gl.TEXTURE_2D, textures[key][0])
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+//			gl.deleteTexture(textures[key][0])
+			tdata.spares.push(textures[key][0])
 			delete tdata.textures[key]
 		}
 	}
@@ -256,12 +268,13 @@ UFX.gltext.fontmargins = {
 // drawn within the image, for the purpose of positioning.
 UFX.gltext._gettexture = function (gl,
 	text, fontsize, fontname, align, margin, width, lineheight,
-	color, gcolor, owidth, ocolor, shadow, scolor) {
-	var key = [
+	color, gcolor, owidth, ocolor, shadow, scolor,
+	cache) {
+	var key = cache ? [
 		text, fontsize, fontname, align, margin, width, lineheight,
 		color, gcolor, owidth, ocolor, shadow, scolor
-	].toString()
-	if (this.texturedata.textures[key]) return this.texturedata.textures[key]
+	].toString() : null
+	if (key && this.texturedata.textures[key]) return this.texturedata.textures[key]
 	var DEBUG = false
 
 	var d = Math.ceil(margin * fontsize)
@@ -336,10 +349,24 @@ UFX.gltext._gettexture = function (gl,
 		if (gcolor || color) context.fillText(tline, 0, 0)
 		context.restore()
 	})
-	var texture = gl.buildTexture({ source: canvas, npot: true, flip: true, filter: gl.LINEAR })
+	var texture
+	if (this.texturedata.spares.length) {
+		texture = this.texturedata.spares.pop()
+		texture.width = canvas.width
+		texture.height = canvas.height
+		gl.activeTexture(gl.TEXTURE0)
+		gl.bindTexture(gl.TEXTURE_2D, texture)
+		var flip0 = gl.getParameter(gl.UNPACK_FLIP_Y_WEBGL)
+		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas)
+		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, flip0)
+	} else {
+		texture = gl.buildTexture({ source: canvas, npot: true, flip: true, filter: gl.LINEAR })
+	}
 	var bbox = [canvas.width, canvas.height, mleft, mbottom, w0, h * n + s * (n - 1)]
 	var size = 4 * canvas.width * canvas.height
 	this.texturedata.sizetotal += size
-	var ret = this.texturedata.textures[key] = [texture, bbox, size, null]
+	var ret = [texture, bbox, size, null]
+	if (key) this.texturedata.textures[key] = ret
 	return ret
 }

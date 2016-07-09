@@ -252,7 +252,7 @@ UFX._gl = {
 		}
 
 		if ("flip" in opts) {
-			this.pixelStorei(this.UNPACK_FLIP_Y_WEBGL, opts.flip)
+			this.pixelStorei(this.UNPACK_FLIP_Y_WEBGL, flip0)
 		}
 
 		var min_filter = opts.min_filter || opts.filter

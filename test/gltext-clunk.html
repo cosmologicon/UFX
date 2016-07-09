@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<title>Clooky Clunker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="../src/gl.js"></script>
+<script src="../src/gltext.js"></script>
+<script src="../src/resource.js"></script>
+<script src="../src/ticker.js"></script>
+<script src="../src/mouse.js"></script>
+<script src="../src/touch.js"></script>
+<script src="../src/maximize.js"></script>
+<script src="../src/random.js"></script>
+<canvas id=canvas></canvas>
+<script type="x-shader/x-vertex" id="vcircle">
+attribute vec2 pos;
+uniform vec2 center, s;
+uniform float r;
+varying vec2 tpos;
+void main () {
+	vec2 p = pos * r + center; // viewport coordinates
+	gl_Position = vec4(p / s * 2.0 - 1.0, 0.0, 1.0);
+	tpos = pos;
+}
+</script>
+<script type="x-shader/x-fragment" id="fcircle">
+precision highp float;
+uniform float r;
+uniform vec3 color;
+varying vec2 tpos;
+void main () {
+	float d = length(tpos) * r;
+	float alpha = mix(0.0, 1.0, r - d);
+	gl_FragColor = vec4(color, alpha);
+}
+</script>
+<script type="x-shader/x-vertex" id="vbox">
+attribute vec2 pos;
+uniform vec2 center, r, s;
+void main () {
+	vec2 p = pos * r + center; // viewport coordinates
+	gl_Position = vec4(p / s * 2.0 - 1.0, 0.0, 1.0);
+}
+</script>
+<script type="x-shader/x-fragment" id="fbox">
+precision highp float;
+uniform vec3 color;
+void main () {
+	gl_FragColor = vec4(color, 1.0);
+}
+</script>
+<script>
+var DEBUG = window.location.href.includes("DEBUG")
+window.onerror = function (error, url, line) {
+	document.body.innerHTML = "<p>Error in: "+url+"<p>line "+line+"<pre>"+error+"</pre>"
+}
+var buttonnames = ["auto-clunker", "clunkutron", "turbo enclunkulator", "clunx capacitor"]
+var state = {
+	score: 0,
+	totalscore: 0,
+	clunkers: 0,
+	nextgoal: 0,
+	tgoal: -100,
+	clunks: [],
+	tbuy: -100,
+	buytext: "",
+	t: 0,
+	costs: [10, 400, 12000, 250000],
+}
+
+var canvas = document.getElementById("canvas")
+canvas.width = 160 ; canvas.height = 90
+var gl = UFX.gl(canvas)
+UFX.maximize.onadjust = function (canvas, sx, sy) {
+	gl.viewport(0, 0, sx, sy)
+}
+UFX.maximize.fill(canvas, "aspect")
+gl.clearColor(0, 0.2, 0.2, 1)
+gl.enable(gl.BLEND)
+gl.disable(gl.DEPTH_TEST)
+gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, 0, 1)
+var sqbuffer = gl.makeArrayBuffer([-1, -1, 1, -1, -1, 1, 1, 1])
+
+UFX.gltext.init(gl)
+gl.addProgram("circle", "vcircle", "fcircle")
+gl.addProgram("box", "vbox", "fbox")
+
+function drawcircle(color, center, r) {
+	gl.progs.circle.use()
+	sqbuffer.bind()
+	gl.progs.circle.assignAttribOffsets({ pos: 0 })
+	gl.progs.circle.set({
+		color: color,
+		r: r,
+		center: center,
+		s: [canvas.width, canvas.height],
+	})
+	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+
+}
+function drawbox(color, center, r) {
+	gl.progs.box.use()
+	sqbuffer.bind()
+	gl.progs.box.assignAttribOffsets({ pos: 0 })
+	gl.progs.box.set({
+		color: color,
+		r: r,
+		center: center,
+		s: [canvas.width, canvas.height],
+	})
+	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+}
+
+var layout = {}
+function think(dt) {
+	var mstate = UFX.mouse.state()
+	var tstate = UFX.touch.state()
+	var sx = canvas.width, sy = canvas.height
+	layout = {
+		center: [sx / 2, sy / 2],
+		R: 0.2 * sy,
+		titlesize: 0.15 * sy,
+		titlemidtop: [sx / 2, sy * 0.95],
+		statssize: 0.05 * sy,
+		statsmidright: [sx * 0.97, sy * 0.5],
+		clunksize: 0.05 * sy,
+		goalsize: 0.08 * sy,
+		buysize0: 0.05 * sy,
+		goalpos: [0.95 * sx, 0.05 * sy],
+	}
+	layout.button = [0,1,2,3].map(function (j) {
+		return {
+			center: [sy * 0.22, sy * (0.60 - 0.16 * j)],
+			s0: [sy * 0.18, sy * 0.07],
+			s1: [sy * 0.17, sy * 0.06],
+			s2: [sy * 0.16, sy * 0.05],
+		}
+	})
+
+
+	state.t += dt
+	state.score += state.clunkers * dt
+	state.totalscore += state.clunkers * dt
+	if (state.totalscore > 100 << state.nextgoal) {
+		state.goaltext = "Achievement unlocked:\nCL" + "O".repeat(state.nextgoal) + "OOKY!"
+		state.tgoal = state.t
+		state.nextgoal++
+	}
+
+	canvas.style.cursor = "default"
+	function overclunk(pos) {
+		var dx = pos[0] - layout.center[0], dy = pos[1] - layout.center[1]
+		return dx * dx + dy * dy < layout.R * layout.R
+	}
+	function overbutton(pos, j) {
+		var b = layout.button[j]
+		var dx = pos[0] - b.center[0], dy = pos[1] - b.center[1]
+		return Math.abs(dx) <= b.s0[0] && Math.abs(dy) <= b.s0[1]
+	}
+	function clickclunk() {
+		state.score += 1
+		state.totalscore += 1
+		// Add a "clunk" indicator at a random place near the center
+		state.clunks.push([state.t, UFX.random(-1, 1), UFX.random(-1, 1)])	
+	}
+	function buy(j) {
+		state.score -= state.costs[j]
+		state.clunkers += Math.pow(10, j)
+		state.tbuy = state.t
+		state.buytext = "+" + Math.pow(10, j) + " clunk/s"
+		state.costs[j] += Math.round(state.costs[j] * 0.2)
+	}
+
+	if (mstate && mstate.pos) {
+		var mpos = [mstate.pos[0], sy - mstate.pos[1]]
+		if (overclunk(mpos)) {
+			canvas.style.cursor = "pointer"
+			if (mstate.left.down) clickclunk()
+		}
+		for (var j = 0 ; j < 4 ; ++j) {
+			if (overbutton(mpos, j) && state.costs[j] <= state.score) {
+				canvas.style.cursor = "pointer"
+				if (mstate.left.down) buy(j)
+			}
+		}
+	}
+	if (tstate && tstate.end.length) {
+		var tpos = tstate.end[0].pos
+		tpos = [tpos[0], sy - tpos[1]]
+		if (overclunk(tpos)) clickclunk()
+		for (var j = 0 ; j < 4 ; ++j) {
+			if (overbutton(tpos, j) && state.costs[j] <= state.score) buy(j)
+		}
+	}
+}
+function draw() {
+	gl.clear(gl.COLOR_BUFFER_BIT)
+	drawcircle([0, 0, 0], layout.center, layout.R)
+	drawcircle([0.5, 0.25, 0], layout.center, layout.R * 0.93)
+	layout.button.forEach(function (button) {
+		drawbox([0.5, 0.3, 0], button.center, button.s0)
+		drawbox([0.3, 0.2, 0], button.center, button.s1)
+	})
+	gl.progs.text.use()
+	layout.button.forEach(function (button, j) {
+		var x0 = button.center[0], y0 = button.center[1], w2 = button.s2[0], h2 = button.s2[1]
+		y0 += 0.2 * h2
+		var text = buttonnames[j] + ":\n" + state.costs[j] + "\u00A0clunks"
+		gl.progs.text.drawbox(text, [x0 - w2, y0 - h2, 2 * w2, 2 * h2], {
+			hanchor: 0.5, vanchor: 0.5, lineheight: 0.9,
+			fontname: "'Bubblegum Sans'", ocolor: "black",
+			color: state.costs[j] <= state.score ? "white" : "#666",
+		})
+	})
+	gl.progs.text.draw("Clooky Clunker", {
+		midtop: layout.titlemidtop,
+		fontname: "'Cherry Cream Soda'", fontsize: layout.titlesize,
+		owidth: 1.2, ocolor: "black",
+		color: "#884400", gcolor: "#442200",
+	})
+	if (DEBUG) {
+		gl.progs.text.draw(UFX.ticker.getrates(), {
+			bottomright: layout.goalpos,
+			fontsize: layout.goalsize, fontname: "'Roboto Condensed'",
+			owidth: 2, ocolor: "black", gcolor: "gray",
+		})
+	}
+	var statstext = [
+		"time played: " + state.t.toFixed(0),
+		"clunks: " + state.score.toFixed(0),
+		"all-time clunks: " + state.totalscore.toFixed(0),
+		"clunks per second: " + state.clunkers.toFixed(0),
+	].join("\n")
+	gl.progs.text.draw(statstext, {
+		midright: layout.statsmidright,
+		fontname: "'Roboto Condensed'", fontsize: layout.statssize,
+		lineheight: 1.3,
+		shadow: [-1, 1], scolor: "rgb(0,50,0)",
+		color: "rgb(0,200,0)"
+	})
+	state.clunks = state.clunks.filter(function (clunk) {
+		var dt = state.t - clunk[0]
+		var x = layout.center[0] + layout.R * clunk[1]
+		var y = layout.center[1] + layout.R * clunk[2]
+		gl.progs.text.draw("clunk", {
+			center: [x, y], fontname: "'Bubblegum Sans'", fontsize: layout.clunksize,
+			shadow: [1, 1], scolor: "black", alpha: 1 - dt,
+		})
+		return dt < 1
+	})
+	if (state.t - state.tbuy < 1) {
+		var dt = state.t - state.tbuy
+		var fontsize = layout.buysize0 * Math.pow(1 + 60 * dt, 0.3)
+		gl.progs.text.draw(state.buytext, layout.center, {
+			hanchor: 0.5, vanchor: 0.1, fontname: "'Bubblegum Sans'", fontsize: fontsize,
+			alpha: 1 - dt, shadow: [1, 1], scolor: "black"
+		})
+	}
+
+	if (state.t - state.tgoal < 2) {
+		var alpha = Math.min(2 - (state.t - state.tgoal), 1)
+		gl.progs.text.draw(state.goaltext, {
+			fontname: "Boogaloo", fontsize: layout.goalsize,
+			bottomright: layout.goalpos, align: "center",
+			color: "#AAAAFF", gcolor: "#4444AA",
+			shadow: [1.5, 1.5], scolor: "black",
+			alpha: alpha,
+		})
+	}
+}
+
+UFX.gltext.CONSTANTS.MEMORY_LIMIT_MB
+
+UFX.resource.onload = function () {
+	UFX.ticker.init(think, draw, { minups: 5, maxups: 30, })
+	UFX.mouse.init(canvas)
+	UFX.touch.init(canvas)
+	UFX.touch.multi = false
+}
+UFX.resource.loadwebfonts("Boogaloo", "Bubblegum Sans", "Cherry Cream Soda", "Roboto Condensed")
+UFX.gltext.fontmargins["'Cherry Cream Soda'"] = 0.3
+</script>
+

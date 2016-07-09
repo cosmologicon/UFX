@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<title>UFX.gltext stress test</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body {
+    background: #444; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+	text-align: center;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+canvas {
+	border: medium white solid;
+	margin: auto;
+}
+input {
+	font: 36px 'Boogaloo';
+	border: none;
+	background: transparent;
+	color: inherit;
+	width: 600px;
+}
+</style>
+<script src="../src/gl.js"></script>
+<script src="../src/resource.js"></script>
+<script src="../src/ticker.js"></script>
+<script src="../src/draw.js"></script>
+<h1>UFX.gltext stress test</h1>
+<p><canvas id=canvas></canvas>
+<p><canvas id=graph></canvas>
+<p><input type=text disabled id=rates></input>
+<script type="x-shader/x-vertex" id="vsource">
+attribute vec2 p;
+varying highp vec2 a;
+uniform vec2 w, s, p0, c;
+void main() {
+	gl_Position = vec4((p0 + p * s - c) / w * 2.0 - 1.0, 0.0, 1.0);
+	a = p;
+}
+</script>
+<script type="x-shader/x-vertex" id="fsource">
+varying highp vec2 a;
+uniform sampler2D t;
+void main() {
+	gl_FragColor = texture2D(t, a);
+}
+</script>
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 800
+canvas.height = 300
+var gl = UFX.gl(canvas)
+gl.clearColor(0.3, 0, 0, 1)
+gl.enable(gl.BLEND)
+gl.disable(gl.DEPTH_TEST)
+gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, 0, 1)
+gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
+
+var prog = gl.addProgram("text", "vsource", "fsource")
+prog.texturedata = {
+	textures: {},
+	tick: 0,
+	sizetotal: 0,
+}
+var posbuffer = gl.makeArrayBuffer([0, 0, 1, 0, 0, 1, 1, 1])
+prog.assignAttribOffsets({ p: 0 })
+
+var graph = document.getElementById("graph")
+graph.width = 800
+graph.height = 300
+var gcontext = graph.getContext("2d")
+
+
+function getimage(text, fontsize) {
+	var canvas = document.createElement("canvas")
+	var context = canvas.getContext("2d")
+	var font = fontsize + "px 'Boogaloo'"
+	context.font = font
+	canvas.width = context.measureText(text).width
+	canvas.height = fontsize
+	context.fillStyle = "white"
+	context.font = font
+	context.textBaseline = "bottom"
+	context.textAlign = "left"
+	context.fillText(text, 0, canvas.height)
+	return canvas
+}
+function gettexture(text, fontsize) {
+	var key = [text, ":", fontsize].toString()
+	if (key in prog.texturedata.textures) return prog.texturedata.textures[key]
+	var img = getimage(text, fontsize)
+	var texture = gl.createTexture()
+	gl.bindTexture(gl.TEXTURE_2D, texture)
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img)
+	texture.width = img.width
+	texture.height = img.height
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+	prog.texturedata.textures[key] = texture
+	var size = 4 * img.width * img.height
+	texture.size = size
+	prog.texturedata.sizetotal += size
+	return texture
+}
+function drawtext(text, pos, fontsize) {
+	var texture = gettexture(text, fontsize)
+	texture.lastusage = prog.texturedata.tick++
+	gl.activeTexture(gl.TEXTURE0)
+	gl.bindTexture(gl.TEXTURE_2D, texture)
+	
+	prog.set({
+		w: [gl.canvas.width, gl.canvas.height],
+		p0: pos,
+		c: [texture.width / 2, texture.height / 2],
+		t: 0,
+		s: [texture.width, texture.height],
+	})
+	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+}
+function purge() {
+	if (prog.texturedata.sizetotal < 64 << 20) return
+	gl.activeTexture(gl.TEXTURE0)
+	var textures = prog.texturedata.textures
+	var keys = Object.keys(textures)
+	keys.sort(function (a, b) { return textures[b].lastusage - textures[a].lastusage })
+	while (prog.texturedata.sizetotal > 32 << 20) {
+		var key = keys.pop()
+		prog.texturedata.sizetotal -= textures[key].size
+		gl.deleteTexture(textures[key])
+		delete textures[key]
+	}
+}
+
+
+
+var n = 0, gwidth = 1, wfactors = [], ys = []
+var nseen = 0, seen = {}
+function think(dt) {
+	gl.clear(gl.COLOR_BUFFER_BIT)
+	var sx2 = canvas.width / 2, sy2 = canvas.height / 2
+	++n
+	drawtext("" + n, [sx2, sy2], 200)
+	if (true) {
+		drawtext(UFX.ticker.getrates(), [sx2, 40], 40)
+		drawtext("Current texture size: " + (prog.texturedata.sizetotal / (1 << 20)).toFixed(2) + "MB",
+			[sx2, 100], 40)
+		drawtext("Current texture count: " + Object.keys(prog.texturedata.textures).length,
+			[sx2, 220], 40)
+	}
+	purge()
+	document.getElementById("rates").value = UFX.ticker.getrates()
+
+	wfactors.push(UFX.ticker.wfactor)
+	var y = 1 - UFX.ticker.wfactor * UFX.ticker.fps / 80
+	ys.push(y)
+	if (n >= gwidth) {
+		gwidth *= 2
+		UFX.draw(gcontext, "fs black f0 font 16px~'Boogaloo' tab right bottom")
+		for (var a = 10 ; a < 80 ; a += 10) {
+			UFX.draw(gcontext, a % 30 ? "ss #008 fs #008" : "ss #44F fs #44F")
+			UFX.draw(gcontext, "[ t 0", Math.floor(graph.height * (1 - a / 80)),
+				"b m 0 0 l", graph.width, "0 s",
+				"ft " + a + "fps", graph.width - 4, 0,
+				"]")
+		}
+		UFX.draw(gcontext, "fs white")
+		ys.forEach(function (y, x) {
+			UFX.draw(gcontext, "fr", graph.width * x / gwidth, graph.height * y, 1, 1)
+		})
+	}
+	UFX.draw(gcontext, "fs white fr",
+		graph.width * (n - 1) / gwidth, graph.height * y, 1, 1)
+}
+
+UFX.resource.onload = function () {
+	UFX.ticker.init(think, null, { fps: 60 })
+}
+UFX.resource.loadwebfonts("Boogaloo")
+//UFX.resource.onload()
+</script>
+
