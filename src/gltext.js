@@ -57,7 +57,7 @@ void main() {
 }
 `
 UFX.gltext._draw = function (text, pos, opts) {
-	if (!opts && typeof pos == "object") {
+	if (!opts && !Array.isArray(pos)) {
 		opts = pos
 		pos = null
 	}
