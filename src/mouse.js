@@ -31,6 +31,8 @@ UFX.mouse.capture = { left: true, middle: false, right: false, wheel: false }
 UFX.mouse.watchdrag = true
 UFX.mouse.drag = {}
 
+UFX.mouse.within = false
+
 UFX.mouse.events = function () {
     var r = UFX.mouse._events
     UFX.mouse._clearevents()
@@ -40,6 +42,7 @@ UFX.mouse.events = function () {
 UFX.mouse.state = function () {
     var r = {}
     r.pos = UFX.mouse.pos
+    r.within = UFX.mouse.within
     if (r.pos && UFX.mouse._opos) {
         r.dpos = [r.pos[0] - UFX.mouse._opos[0], r.pos[1] - UFX.mouse._opos[1]]
     } else {
@@ -233,6 +236,8 @@ UFX.mouse._onmousemove = function (event) {
     if (!UFX.mouse.active) return true
     var pos = UFX.mouse._geteventpos(event, UFX.mouse._element)
     UFX.mouse.pos = pos
+    UFX.mouse.within = pos[0] >= 0 && pos[0] < UFX.mouse._element.width &&
+    	pos[1] >= 0 && pos[1] < UFX.mouse._element.height
     var ret = true
     for (var bname in UFX.mouse.drag) {
         var d = UFX.mouse.drag[bname]
