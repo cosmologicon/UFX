@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<script src="../src/mouse.js"></script>
+<script src="../src/touch.js"></script>
+<script src="../src/gl.js"></script>
+<script src="../src/gltext.js"></script>
+<script src="../src/maximize.js"></script>
+<script src="../src/random.js"></script>
+<script src="../src/resource.js"></script>
+<script src="../src/ticker.js"></script>
+<script src="UFX.js"></script>
+<script type="x-shader" id=vblob>
+uniform vec2 Rview, center;
+uniform float Rblob;
+attribute vec2 pos;
+varying vec2 tpos;
+void main() {
+	gl_Position = vec4((center + Rblob * pos) / Rview, 0.0, 1.0);
+	tpos = pos;
+}
+</script>
+<script type="x-shader" id=fblob>
+precision highp float;
+const float tau = 6.2831853;
+// blob parameters
+const int Nblob = 14;
+uniform float h0s[Nblob], rs[Nblob], A0s[Nblob], ds[Nblob], ws[Nblob];
+
+uniform vec3 ocolor, color;
+uniform float Rblob, t;
+uniform vec2 pull;
+
+vec2 hill0(float A0, float d, float w, bool back) {
+	float A = tau * mod(A0 + w * t, 1.0);
+	return d * vec2(cos(A), (back ? -sin(A) : sin(A)));
+}
+
+vec2 L = normalize(vec2(1.0, 1.0));
+
+// Returns h and dh
+vec2 hdh(vec2 p, float h0, float r, float A0, float d, float w, bool back) {
+	vec2 center = hill0(A0, d, w, back);
+	vec2 ph = p - center;
+	float k = length(ph) / r;
+	if (k >= 1.0) return vec2(0.0);
+	float h = h0 * (1.0 - smoothstep(0.0, 1.0, k));
+	float dh = k * (1.0 - k) * dot(ph, L) / r;
+	return vec2(h, dh);
+}
+
+varying vec2 tpos;
+void main() {
+	vec2 hdh0 = hdh(tpos, 1.0, 1.0, 0.0, 0.0, 0.0, false);
+	float z = hdh0.x, dz = hdh0.y;
+	for (int i = 0; i < Nblob; ++i) {
+		vec2 apos = tpos + float(i) / float(Nblob) * pull;
+		bool back = bool(mod(float(i), 2.0));
+		vec2 hdhi = hdh(apos, h0s[i], rs[i], A0s[i], ds[i], ws[i], back);
+		z += hdhi.x;
+		dz += hdhi.y;
+	}
+	z *= 3.0;
+	z -= 0.5;
+	z *= Rblob;
+	dz = clamp(1.0 * dz, -0.2, 0.2);
+	if (z > 1.4) dz = 0.0;
+	if (z < 0.0) discard;
+	if (z < 0.3) {
+		gl_FragColor = vec4(ocolor, 1.0);
+	} else {
+		gl_FragColor = vec4(color * (1.0 + dz), 1.0);
+	}
+}
+</script>
+<canvas id=canvas>
+<script>
+window.onerror = function (error, url, line) { document.body.innerHTML = "<p>Error in: "+url+"<p>line "+line+"<pre>"+error+"</pre>" }
+var canvas = document.getElementById("canvas")
+canvas.width = 160
+canvas.height = 90
+var gl = UFX.gl(canvas)
+UFX.gltext.init(gl)
+gl.addProgram("blob", "vblob", "fblob")
+var Nblob = 14
+var randset = (n, a, b) => [...new Array(n)].map(() => UFX.random(a, b))
+var randints = (n, a, b) => [...new Array(n)].map(() => UFX.random.rand(a, b))
+gl.progs.blob.set({
+	h0s: randset(Nblob, 0.4, 0.8),
+	rs: randset(Nblob, 0.4, 0.8),
+	A0s: randset(Nblob, 0, 1),
+	ds: randset(Nblob, 0.3, 0.5),
+	ws: randints(Nblob, 10, 20),
+	ocolor: [0, 0, 0],
+	color: [0, 0.5, 0.5],
+})
+var blobbuffer = gl.makeArrayBuffer([-2, -2, 2, -2, 2, 2, -2, 2])
+UFX.maximize.onadjust = function (canvas, x, y) {
+	gl.viewport(0, 0, x, y)
+}
+UFX.maximize.fill(canvas, "aspect")
+UFX.mouse.init(canvas)
+UFX.touch.active = false
+canvas.ontouchstart = function () {
+	UFX.touch.init(canvas)
+	UFX.touch.active = true
+	UFX.mouse.active = false
+}
+gl.clearColor(0, 0.5, 0.1, 1)
+
+function Blob(x, y, Rblob) {
+	this.x = x
+	this.y = y
+	this.Rblob = Rblob
+	this.tanim = UFX.random()
+	this.color = [UFX.random(0, 0.2), UFX.random(0.4, 0.7), UFX.random(0.4, 0.7)]
+	this.pullx = 0
+	this.pully = 0
+}
+Blob.prototype = {
+	think: function (dt) {
+		this.tanim = (this.tanim + 0.01 * dt) % 1
+		var r2 = 1 + 5 * (this.pullx * this.pullx + this.pully * this.pully)
+		var f = Math.exp(-r2 * dt)
+		this.pullx *= f
+		this.pully *= f
+	},
+	over: function (p) {
+		var dx = p[0] - this.x, dy = p[1] - this.y
+		return dx * dx + dy * dy < this.Rblob * this.Rblob
+	},
+	scootchto: function (p) {
+		this.pullx -= this.x
+		this.pully -= this.y
+		this.x = p[0]
+		this.y = p[1]
+		this.pullx += this.x
+		this.pully += this.y
+	},
+	draw: function () {
+		gl.progs.blob.set({
+			Rblob: this.Rblob,
+			center: [this.x, this.y],
+			t: this.tanim,
+			color: this.color,
+			pull: [this.pullx, this.pully],
+		})
+		gl.drawArrays(gl.TRIANGLE_FAN, 0, 4)
+	},
+}		
+
+
+var blobs = [...new Array(10)].map(() => new Blob(UFX.random(-6, 6), UFX.random(-4, 4), UFX.random(0.5, 1.5)))
+
+function toworld(mpos) {
+	return [
+		16 * (mpos[0] / canvas.width - 0.5),
+		9 * -(mpos[1] / canvas.height - 0.5),
+	]
+}
+
+var cursor = null
+function think(dt) {
+	if (UFX.mouse.active) {
+		var mstate = UFX.mouse.state()
+		var pos = mstate.pos, pdown = mstate.left.down, pup = mstate.left.up
+	} else {
+		var tstate = UFX.touch.state()
+		var ps = Object.keys(tstate.ps)
+		var pos = ps.length == 1 ? tstate.ps[ps[0]] : null
+		var pdown = tstate.start && tstate.start.length
+		var pup = tstate.end && tstate.end.length
+	}
+	if (pos) {
+		var gpos = toworld(pos)
+		var over = null
+		blobs.forEach(function (b) {
+			if (b.over(gpos)) over = b
+		})
+		if (over && pdown) cursor = over
+		if (cursor) cursor.scootchto(gpos)
+	}
+	if (cursor && pup) cursor = null
+
+	blobs.forEach(b => b.think(dt))
+
+	gl.clear(gl.COLOR_BUFFER_BIT)
+	gl.progs.text.use()
+	gl.progs.text.draw(UFX.ticker.getrates(), [10, 10], {
+		fontsize: 54, fontname: "Viga", color: "yellow", gcolor: "#F40", scolor: "#770" })
+	gl.progs.blob.use()
+	blobbuffer.bind()
+	gl.progs.blob.assignAttribOffsets({ pos: 0 })
+	gl.progs.blob.set({
+		Rview: [8, 4.5],
+	})
+	blobs.forEach(b => b.draw())
+
+
+}
+UFX.resource.onload = function () {
+	UFX.ticker.init(think, null, { maxups: 60 })
+}
+UFX.resource.loadwebfonts("Viga", "Skranji")
+</script>
+
