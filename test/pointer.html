@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta name=viewport content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<canvas id=canvas></canvas>
+<script src="../src/pointer.js"></script>
+<script src="../src/ticker.js"></script>
+<script src="../src/draw.js"></script>
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 300
+canvas.height = 300
+UFX.pointer(canvas)
+UFX.draw.setcontext(canvas.getContext("2d"))
+UFX.ticker.init(function (dt) {
+	var pstate = UFX.pointer()
+	UFX.draw("fs black f0")
+	if (pstate.click) {
+		UFX.draw("b o", pstate.click.pos, "10 fs orange f")
+	}
+	if (pstate.rclick) {
+		UFX.draw("b o", pstate.rclick.pos, "10 fs red f")
+	}
+})
+
+</script>

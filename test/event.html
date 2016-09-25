@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<div id=div style="width: 400px ; height: 400px ; background: yellow ; border: 30px black solid"></div>
+<p><input type=text id=pos></input>
+<p><textarea id=etextarea style="width: 30em ; height: 30em"></textarea>
+<script>
+window.onerror = function (error, url, line) { document.body.innerHTML = "<p>Error in: "+url+"<p>line "+line+"<pre>"+error+"</pre>" }
+var div = document.getElementById("div")
+div.addEventListener("mousemove", function (event) {
+	var text = event.clientX + "," + event.clientY + " m=" + event.movementX + "," + event.movementY
+	document.getElementById("pos").value = text
+})
+function eventinfo(etype, event) {
+	if (["mouseover", "mouseout"].includes(etype)) {
+		return event.clientX + "," + event.clientY
+	}
+	if (["mousedown", "mouseup", "click", "dblclick"].includes(etype)) {
+		return event.clientX + "," + event.clientY + " b=" + event.button + " m=[" + event.movementX + "," + event.movementY + "]"
+	}
+	if (["mousewheel"].includes(etype)) {
+		return event.clientX + "," + event.clientY + " [" + event.deltaX + "," + event.deltaY + "," + event.deltaZ + "]+" + event.deltaMode
+	}
+	if (["touchstart", "touchend", "touchmove", "touchcancel"].includes(etype)) {
+		var tinfo = t => t.identifier + "@" + t.clientX + "," + t.clientY
+		return ("[" +
+			[].map.call(event.touches, tinfo).join(":") + "/" +
+			[].map.call(event.targetTouches, tinfo).join(":") + "/" +
+			[].map.call(event.changedTouches, tinfo).join(":") + "]"
+		)
+	}
+	return ""
+}
+var etypes = "mousedown mouseup click dblclick mouseout mouseover mousewheel touchstart touchend touchmove touchcancel".split(" ")
+etypes.forEach(function (etype) {
+	div.addEventListener(etype, function (event) {
+		var events = document.getElementById("etextarea")
+		events.value += etype + " " + eventinfo(etype, event) + "\n"
+		events.scrollTop = events.scrollHeight
+		event.preventDefault()
+	})
+})
+div.addEventListener("contextmenu", function (e){
+	e.preventDefault()
+	return false
+}, false);
+
+</script>

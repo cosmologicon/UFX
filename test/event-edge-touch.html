@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<p>You shouldn't be able to turn the div red on mobile, but seems like you can by clicking near the edge.
+<div id=div style="width: 400px; height: 400px; background: yellow"></div>
+<script>
+var div = document.getElementById("div")
+div.addEventListener("touchend", event => event.preventDefault())
+div.addEventListener("click", () => div.style.background = "red")
+</script>
