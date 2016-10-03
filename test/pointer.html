@@ -12,12 +12,21 @@ UFX.pointer(canvas)
 UFX.draw.setcontext(canvas.getContext("2d"))
 UFX.ticker.init(function (dt) {
 	var pstate = UFX.pointer()
-	UFX.draw("fs black f0")
+	UFX.draw("fs", pstate.within ? "black" : "#333", "f0")
+	if (pstate.pos) {
+		UFX.draw("b o", pstate.pos, "30 lw 1 ss white s")
+	}
 	if (pstate.click) {
 		UFX.draw("b o", pstate.click.pos, "10 fs orange f")
 	}
 	if (pstate.rclick) {
 		UFX.draw("b o", pstate.rclick.pos, "10 fs red f")
+	}
+	if (pstate.move) {
+		UFX.draw("[ t", pstate.move.pos, "b m 0 0 l", -pstate.move.dpos[0], -pstate.move.dpos[1], "lw 10 ss orange s ]")
+	}
+	if (pstate.rmove) {
+		UFX.draw("[ t", pstate.rmove.pos, "b m 0 0 l", -pstate.rmove.dpos[0], -pstate.rmove.dpos[1], "lw 10 ss red s ]")
 	}
 })
 

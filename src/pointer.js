@@ -18,18 +18,19 @@ UFX.pointer = function (element) {
 		state.reset()
 		return pstate
 	}
+	state.shiftevents().forEach(function (event) {
+		var ptype = event.ptype == "p" ? "" : event.ptype
+		pstate[ptype + event.etype] = event
+		UFX.pointer.pos = event.pos
+	})
 	if (UFX.pointer.pos) {
 		pstate.pos = UFX.pointer.pos
 		if (state.posL) {
 			pstate.dpos = UFX.pointer._util.dpos(state.posL, UFX.pointer.pos)
 		}
+		if (UFX.pointer.within) pstate.within = true
 	}
 	state.posL = UFX.pointer.pos
-	while (state.events.length) {
-		var event = state.events.shift()
-		var ptype = event.ptype == "p" ? "" : event.ptype
-		pstate[ptype + event.etype] = event
-	}
 	return pstate
 }
 
@@ -63,6 +64,8 @@ UFX.pointer._handlers = {
 		if (UFX.pointer._element) this.removelisteners(UFX.pointer._element)
 		UFX.pointer._element = element
 		this.addlisteners(element)
+		document.addEventListener("mousemove", this.documentmousemove)
+		document.addEventListener("mouseup", this.documentmouseup)
 	},
 
 	// Capture all event types for the given element.
@@ -84,17 +87,29 @@ UFX.pointer._handlers = {
 		}
 	},
 	mousedown: function (event) {
-		UFX.pointer._state.startbutton(UFX.pointer._handlers.getbuttonspec(event))
+		var spec = UFX.pointer._handlers.getbuttonspec(event)
+		UFX.pointer._state.startbutton(spec)
+		UFX.pointer._state.updatepos(spec.pos)
 	},
 	mousemove: function (event) {
-		UFX.pointer._state.updatebutton(UFX.pointer._handlers.getbuttonspec(event))
 	},
 	mouseup: function (event) {
-		UFX.pointer._state.endbutton(UFX.pointer._handlers.getbuttonspec(event))
 	},
 	mouseout: function (event) {
+		UFX.pointer._state.updatepos(UFX.pointer._handlers.getpos(event))
 	},
 	mouseover: function (event) {
+		UFX.pointer._state.updatepos(UFX.pointer._handlers.getpos(event))
+	},
+	documentmousemove: function (event) {
+		var spec = UFX.pointer._handlers.getbuttonspec(event)
+		UFX.pointer._state.updatebutton(spec)
+		UFX.pointer._state.updatepos(spec.pos)
+	},
+	documentmouseup: function (event) {
+		var spec = UFX.pointer._handlers.getbuttonspec(event)
+		UFX.pointer._state.endbutton(spec)
+		UFX.pointer._state.updatepos(spec.pos)
 	},
 
 	touchend: function (event) {
@@ -156,12 +171,54 @@ UFX.pointer._state = {
 		this.events = []
 	},
 
-	addevent: function (etype, ptype, spec) {
+	addevent: function (etype, ptype, spec0) {
 		if (this.borked) return
+		var spec = {}
+		if (spec0) {
+			for (var s in spec0) spec[s] = spec0[s]
+		}
 		spec.t = Date.now()
 		spec.etype = etype
 		spec.ptype = ptype == "l" || ptype == "t" ? "p" : ptype
 		this.events.push(spec)
+	},
+	// Returns a set of events from the front of the event queue such that all events have the same
+	// ptype and any "down" events appear at the beginning.
+	shiftevents: function () {
+		var revents = [], last = null
+		while (this.events.length) {
+			var event = this.events[0]
+			if (last) {
+				if (event.etype == "down") break
+				if (event.ptype != last.ptype) break
+				if (last.etype == "move" && event.etype == "move") {
+					event = this.coalescemove(last, event)
+					revents.pop()
+				}
+			}
+			revents.push(event)
+			last = event
+			this.events.shift()
+		}
+		return revents
+	},
+
+	coalescemove: function (mevent1, mevent2) {
+		return {
+			etype: "move",
+			ptype: mevent1.ptype,
+			t: mevent2.t,
+			pos: mevent2.pos,
+			dpos: [mevent1.dpos[0] + mevent2.dpos[0], mevent1.dpos[1] + mevent2.dpos[1]],
+		}
+	},
+
+	updatepos: function (pos) {
+		UFX.pointer.pos = pos
+		var x = pos[0], y = pos[1]
+		UFX.pointer.within =
+			0 <= x && x < UFX.pointer._element.width &&
+			0 <= y && y < UFX.pointer._element.height
 	},
 
 	startbutton: function (buttonspec) {
@@ -226,7 +283,7 @@ UFX.pointer._state = {
 		var button = this.buttons[buttonspec.ptype]
 		var event = {
 			pos: buttonspec.pos,
-			t: 0.001 * (Date.now() - button.t0),
+			dt: 0.001 * (Date.now() - button.t0),
 			fly: [0, 0],
 		}
 		this.addevent("up", buttonspec.ptype, event)
@@ -261,7 +318,7 @@ UFX.pointer._state = {
 	},
 
 	cancelcurrent: function () {
-	
+		this.addevent("cancel", this.current, {})
 	},
 
 	// Enter a borked state, and cancel out any pending watches.
