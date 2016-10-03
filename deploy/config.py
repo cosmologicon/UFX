@@ -25,6 +25,8 @@ core = "draw key mouse random resource scene ticker Thing".split()
 codes = {
 	"core": "c",
 	"draw": "d",
+	"gl": "g",
+	"gltext": "X",
 	"key": "k",
 	"maximize": "M",
 	"mouse": "m",
