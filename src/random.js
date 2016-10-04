@@ -98,6 +98,18 @@ UFX.random.popseed = function () {
     return UFX.random.seed
 }
 
+// Random angle in [0, tau)
+UFX.random.angle = function () {
+	return UFX.random(0, 2 * Math.PI)
+}
+
+// Random 2-d unit vector
+UFX.random.direction = function (d) {
+	if (typeof d != "number") d = 1
+	var a = UFX.random.angle()
+	return [Math.cos(a), Math.sin(a)]
+}
+
 // Select a random element from the array arr.
 // If remove is set to true, the selected element is removed.
 UFX.random.choice = function (arr, remove) {

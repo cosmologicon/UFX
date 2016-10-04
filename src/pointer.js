@@ -50,6 +50,15 @@ UFX.pointer._util = {
 	dpos: function (pos0, pos1) {
 		return [pos1[0] - pos0[0], pos1[1] - pos0[1]]
 	},
+	avgpos: function (pos0, pos1) {
+		return [(pos1[0] + pos0[0]) / 2, (pos1[1] + pos0[1]) / 2]
+	},
+	jointouchlists: function (tlist1, tlist2) {
+		var list = []
+		list.push.apply(list, tlist1)
+		list.push.apply(list, tlist2)
+		return list
+	},
 }
 
 UFX.pointer._handlers = {
@@ -64,19 +73,19 @@ UFX.pointer._handlers = {
 		if (UFX.pointer._element) this.removelisteners(UFX.pointer._element)
 		UFX.pointer._element = element
 		this.addlisteners(element)
-		document.addEventListener("mousemove", this.documentmousemove)
-		document.addEventListener("mouseup", this.documentmouseup)
 	},
 
 	// Capture all event types for the given element.
 	addlisteners: function (element) {
 		this.etypes.forEach(function (etype) {
 			element.addEventListener(etype, UFX.pointer._handlers[etype])
+			document.addEventListener(etype, UFX.pointer._handlers["document" + etype])
 		})
 	},
 	removelisteners: function (element) {
 		this.etypes.forEach(function (etype) {
 			element.removeEventListener(etype, UFX.pointer._handlers[etype])
+			document.removeEventListener(etype, UFX.pointer._handlers["document" + etype])
 		})
 	},
 
@@ -86,24 +95,16 @@ UFX.pointer._handlers = {
 			return false
 		}
 	},
+
+	// Mouse handlers
 	mousedown: function (event) {
 		var spec = UFX.pointer._handlers.getbuttonspec(event)
 		UFX.pointer._state.startbutton(spec)
 		UFX.pointer._state.updatepos(spec.pos)
 	},
-	mousemove: function (event) {
-	},
-	mouseup: function (event) {
-	},
-	mouseout: function (event) {
-		UFX.pointer._state.updatepos(UFX.pointer._handlers.getpos(event))
-	},
-	mouseover: function (event) {
-		UFX.pointer._state.updatepos(UFX.pointer._handlers.getpos(event))
-	},
 	documentmousemove: function (event) {
 		var spec = UFX.pointer._handlers.getbuttonspec(event)
-		UFX.pointer._state.updatebutton(spec)
+		if (event.buttons) UFX.pointer._state.updatebutton(spec)
 		UFX.pointer._state.updatepos(spec.pos)
 	},
 	documentmouseup: function (event) {
@@ -111,9 +112,55 @@ UFX.pointer._handlers = {
 		UFX.pointer._state.endbutton(spec)
 		UFX.pointer._state.updatepos(spec.pos)
 	},
+	mouseout: function (event) {
+		UFX.pointer._state.updatepos(UFX.pointer._handlers.getpos(event))
+	},
+	mouseover: function (event) {
+		UFX.pointer._state.updatepos(UFX.pointer._handlers.getpos(event))
+	},
 
+	// Touch handlers
+	touchstart: function (event) {
+		var spec = UFX.pointer._handlers.gettouchspec(event.touches)
+		if (spec == null) {
+			UFX.pointer._state.bork()
+			return
+		}
+		UFX.pointer._state.startbutton(spec)
+		UFX.pointer._state.updatepos(spec.pos)
+		event.preventDefault()
+	},
+	touchmove: function (event) {
+		event.preventDefault()
+	},
 	touchend: function (event) {
-		UFX.pointer._state.cleartouches(event.changedTouches)
+		event.preventDefault()
+	},
+	documenttouchmove: function (event) {
+		var spec = UFX.pointer._handlers.gettouchspec(event.touches)
+		if (spec == null) {
+			UFX.pointer._state.bork()
+			return
+		}
+		UFX.pointer._state.updatebutton(spec)
+		UFX.pointer._state.updatepos(spec.pos)
+	},
+	documenttouchend: function (event) {
+		var touches = UFX.pointer._util.jointouchlists(event.targetTouches, event.changedTouches)
+		var spec = UFX.pointer._handlers.gettouchspec(touches)
+		if (spec == null) {
+			UFX.pointer._state.bork()
+			return
+		}
+		UFX.pointer._state.endbutton(spec)
+		UFX.pointer._state.updatepos(spec.pos)
+	},
+	documenttouchcancel: function (event) {
+		var spec = UFX.pointer._handlers.gettouchspec(event.touches)
+		if (spec) {
+			UFX.pointer._state.cancelbutton(spec)
+			UFX.pointer._state.updatepos(spec.pos)
+		}
 	},
 
 	getbuttonspec: function (event) {
@@ -122,6 +169,21 @@ UFX.pointer._handlers = {
 		return {
 			ptype: button,
 			pos: this.getpos(event),
+		}
+	},
+	gettouchspec: function (touches) {
+		if (touches.length == 1) {
+			return {
+				ptype: "t",
+				pos: this.getpos(touches[0]),
+			}
+		} else if (touches.length == 2) {
+			return {
+				ptype: "d",
+				pos: UFX.pointer._util.avgpos(this.getpos(touches[0]), this.getpos(touches[1])),
+			}
+		} else {
+			return null
 		}
 	},
 
@@ -151,10 +213,10 @@ UFX.pointer._state = {
 	borked: false,
 	// Mouse buttons currently down.
 	buttons: {},
-	nbuttons: 0,
+	nbutton: 0,
 	// Touch points currently active.
 	touchpoints: {},
-	ntouchpoints: 0,
+	ntouchpoint: 0,
 	// event queue
 	events: [],
 
@@ -165,9 +227,9 @@ UFX.pointer._state = {
 		this.current = null
 		this.borked = false
 		this.buttons = {}
-		this.nbuttons = 0
+		this.nbutton = 0
 		this.touchpoints = {}
-		this.ntouchpoints = 0
+		this.ntouchpoint = 0
 		this.events = []
 	},
 
@@ -226,6 +288,8 @@ UFX.pointer._state = {
 			this.current = buttonspec.ptype
 		} else if (this.current == buttonspec.ptype) {
 			this.cancelcurrent()
+		} else if (this.current == "t" && buttonspec.ptype == "d") {
+			this.cancelcurrent()
 		} else {
 			this.bork()
 		}
@@ -281,6 +345,10 @@ UFX.pointer._state = {
 	endbutton: function (buttonspec) {
 		this.updatebutton(buttonspec)
 		var button = this.buttons[buttonspec.ptype]
+		if (!button) {
+			// Button was initially clicked outside the element.
+			return
+		}
 		var event = {
 			pos: buttonspec.pos,
 			dt: 0.001 * (Date.now() - button.t0),
@@ -294,6 +362,12 @@ UFX.pointer._state = {
 		this.updatecounts()
 		this.checkunbork()
 	},
+	cancelbutton: function (buttonspec) {
+		if (this.current == buttonspec.ptype) {
+			this.cancelcurrent()
+		}
+	},
+
 	// Determine whether the given button info passes thresholds for a change to the held state.
 	checkhold: function (button) {
 		if (Date.now() - button.t0 >= 1000 * UFX.pointer.thold) return true
@@ -339,7 +413,7 @@ UFX.pointer._state = {
 	// Whether we're in a "clean slate" state, i.e., no buttons are down and no touch points are
 	// active. Used to determine when to leave a borked state.
 	allclear: function () {
-		return this.nbuttons == 0 && this.ntouchpoints == 0
+		return this.nbutton == 0 && this.ntouchpoint == 0
 	},
 	updatecounts: function () {
 		this.nbutton = Object.keys(this.buttons).length
