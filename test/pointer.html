@@ -61,7 +61,8 @@ UFX.ticker.init(function (dt) {
 	})
 	UFX.draw("fs white font 12px~'sans-serif' tab left top")
 	context.fillText("current: " + pstate.current, 4, 4)
-	var y = 16
+	context.fillText("wheel: " + JSON.stringify(pstate.wheel), 4, 16)
+	var y = 28
 	;["isdown", "isheld"].forEach(function (etype) {
 		;["", "m", "r", "d"].forEach(function (ename) {
 			var s = ename + etype

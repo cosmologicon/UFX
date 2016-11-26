@@ -12,7 +12,7 @@ UFX.pointer = function (element) {
 	UFX.pointer._state.updatenoevent()
 	var state = UFX.pointer._state
 	var pstate = {
-		wheel: {},
+		wheel: state.getwheel(),
 	}
 	if (element && element !== UFX.pointer._element) {
 		UFX.pointer._handlers.setelement(element)
@@ -70,7 +70,7 @@ UFX.pointer._util = {
 
 UFX.pointer._handlers = {
 	etypes: [
-		"mousedown", "mouseup", "click", "dblcick", "mousewheel",
+		"mousedown", "mouseup", "click", "dblcick", "wheel",
 		"mousemove", "mouseover", "mouseout",
 		"touchstart", "touchend", "touchmove", "touchcancel",
 		"contextmenu",
@@ -124,6 +124,10 @@ UFX.pointer._handlers = {
 	},
 	mouseover: function (event) {
 		UFX.pointer._state.updatepos(UFX.pointer._handlers.getpos(event))
+	},
+	wheel: function (event) {
+		UFX.pointer._state.updatepos(UFX.pointer._handlers.getpos(event))
+		UFX.pointer._state.addwheel(event.deltaX, event.deltaY, event.deltaZ)
 	},
 
 	// Touch handlers
@@ -226,6 +230,8 @@ UFX.pointer._state = {
 	ntouchpoint: 0,
 	// event queue
 	events: [],
+	// wheel values
+	wheel: {},
 
 	// Called when a new element is assigned.
 	reset: function () {
@@ -238,6 +244,7 @@ UFX.pointer._state = {
 		this.touchpoints = {}
 		this.ntouchpoint = 0
 		this.events = []
+		this.wheel = {}
 	},
 
 	addevent: function (etype, ptype, spec0) {
@@ -387,6 +394,17 @@ UFX.pointer._state = {
 				pos: button.pos0,
 			})
 		}
+	},
+
+	addwheel: function (dx, dy, dz) {
+		if (dx) this.wheel.dx = (this.wheel.dx || 0) + dx
+		if (dy) this.wheel.dy = (this.wheel.dy || 0) + dy
+		if (dz) this.wheel.dz = (this.wheel.dz || 0) + dz
+	},
+	getwheel: function () {
+		var wheel = this.wheel
+		this.wheel = {}
+		return wheel
 	},
 
 	// Determine whether the given button info passes thresholds for a change to the held state.
