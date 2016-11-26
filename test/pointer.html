@@ -11,17 +11,21 @@ var canvas = document.getElementById("canvas")
 canvas.width = 300
 canvas.height = 300
 UFX.pointer(canvas)
-UFX.draw.setcontext(canvas.getContext("2d"))
+var context = canvas.getContext("2d")
+UFX.draw.setcontext(context)
 
 var texts = [], phi = 0, tau = 2 * Math.PI, dphi = 0.618 * tau
 UFX.ticker.init(function (dt) {
 	var pstate = UFX.pointer()
-	for (var s in pstate) {
-		if (pstate[s].pos) {
-			texts.push({ text: s, t: 0, pos: pstate[s].pos, dx: Math.sin(phi), dy: Math.cos(phi) })
-			phi += dphi
-		}
-	}
+	;["down", "up", "click", "drag", "cancel", "hold", "move"].forEach(function (etype) {
+		;["", "m", "r", "d"].forEach(function (ename) {
+			var s = ename + etype
+			if (pstate[s] && pstate[s].pos) {
+				texts.push({ text: s, t: 0, pos: pstate[s].pos, dx: Math.sin(phi), dy: Math.cos(phi) })
+				phi += dphi
+			}
+		})
+	})
 	var color = UFX.pointer._state.borked ? "#006" : pstate.within ? "black" : "#333"
 	UFX.draw("fs", color, "f0")
 	if (pstate.pos) {
@@ -42,6 +46,9 @@ UFX.ticker.init(function (dt) {
 	if (pstate.rmove) {
 		UFX.draw("[ t", pstate.rmove.pos, "b m 0 0 l", -pstate.rmove.dpos[0], -pstate.rmove.dpos[1], "lw 10 ss red s ]")
 	}
+	if (pstate.mmove) {
+		UFX.draw("[ t", pstate.mmove.pos, "b m 0 0 l", -pstate.mmove.dpos[0], -pstate.mmove.dpos[1], "lw 10 ss yellow s ]")
+	}
 	if (pstate.dmove) {
 		UFX.draw("[ t", pstate.dmove.pos, "b m 0 0 l", -pstate.dmove.dpos[0], -pstate.dmove.dpos[1], "lw 10 ss blue s ]")
 	}
@@ -52,6 +59,20 @@ UFX.ticker.init(function (dt) {
 			"fs white tab center middle font 20px~sans-serif ft0", text.text, "]")
 		return text.t < 1
 	})
+	UFX.draw("fs white font 12px~'sans-serif' tab left top")
+	context.fillText("current: " + pstate.current, 4, 4)
+	var y = 16
+	;["isdown", "isheld"].forEach(function (etype) {
+		;["", "m", "r", "d"].forEach(function (ename) {
+			var s = ename + etype
+			if (pstate[s]) {
+				context.fillText(s, 4, y)
+				y += 12
+			}
+		})
+	})
+
+
 })
 
 </script>

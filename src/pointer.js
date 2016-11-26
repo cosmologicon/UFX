@@ -24,6 +24,12 @@ UFX.pointer = function (element) {
 		pstate[ptype + event.etype] = event
 		UFX.pointer.pos = event.pos
 	})
+	if (state.current) {
+		pstate.current = state.current == "l" || state.current == "t" ? "p" : state.current
+		var ptype = pstate.current == "p" ? "" : pstate.current
+		pstate[ptype + "isdown"] = true
+		if (UFX.pointer._state.currentisheld()) pstate[ptype + "isheld"] = true
+	}
 	if (UFX.pointer.pos) {
 		pstate.pos = UFX.pointer.pos
 		if (state.posL) {
@@ -265,7 +271,6 @@ UFX.pointer._state = {
 		}
 		return revents
 	},
-
 	coalescemove: function (mevent1, mevent2) {
 		return {
 			etype: "move",
@@ -274,6 +279,11 @@ UFX.pointer._state = {
 			pos: mevent2.pos,
 			dpos: [mevent1.dpos[0] + mevent2.dpos[0], mevent1.dpos[1] + mevent2.dpos[1]],
 		}
+	},
+	currentisheld: function () {
+		if (!this.current) return false
+		var button = this.buttons[this.current]
+		return button && button.held
 	},
 
 	updatepos: function (pos) {
@@ -362,6 +372,7 @@ UFX.pointer._state = {
 		delete this.buttons[buttonspec.ptype]
 		this.updatecounts()
 		this.checkunbork()
+		if (buttonspec.ptype === this.current) this.current = null
 	},
 	cancelbutton: function (buttonspec) {
 		if (this.current == buttonspec.ptype) {
@@ -389,8 +400,7 @@ UFX.pointer._state = {
 	checkholdnoevent: function () {
 		if (!this.current || this.current == "b") return false
 		var button = this.buttons[this.current]
-		if (!button) return false
-		if (button.held) return false
+		if (!button || button.held) return false
 		return Date.now() - button.t0 >= 1000 * UFX.pointer.thold
 	},
 
