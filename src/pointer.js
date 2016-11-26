@@ -13,6 +13,7 @@ UFX.pointer = function (element) {
 	var state = UFX.pointer._state
 	var pstate = {
 		wheel: state.getwheel(),
+		pinch: state.getpinch(),
 	}
 	if (element && element !== UFX.pointer._element) {
 		UFX.pointer._handlers.setelement(element)
@@ -57,8 +58,24 @@ UFX.pointer._util = {
 	dpos: function (pos0, pos1) {
 		return [pos1[0] - pos0[0], pos1[1] - pos0[1]]
 	},
+	sep: function (pos0, pos1) {
+		var p = UFX.pointer._util.dpos(pos0, pos1)
+		return Math.sqrt(p[0] * p[0] + p[1] * p[1])
+	},
 	avgpos: function (pos0, pos1) {
 		return [(pos1[0] + pos0[0]) / 2, (pos1[1] + pos0[1]) / 2]
+	},
+	tilt: function (pos0, pos1) {
+		var dx = pos1[0] - pos0[0], dy = pos1[1] - pos0[1]
+		return dx && dy ? Math.atan2(dx, -dy) * 180 / Math.PI : 0
+	},
+	// Map to range [0, 360)
+	normtilt: function (tilt) {
+		return (tilt % 360 + 360) % 360
+	},
+	// Round toward zero.
+	dtilt: function (tilt0, tilt1) {
+		return ((tilt1 - tilt0 + 180) % 360 + 360) % 360 - 180
 	},
 	jointouchlists: function (tlist1, tlist2) {
 		var list = []
@@ -189,9 +206,12 @@ UFX.pointer._handlers = {
 				pos: this.getpos(touches[0]),
 			}
 		} else if (touches.length == 2) {
+			var t0 = this.getpos(touches[0]), t1 = this.getpos(touches[1])
 			return {
 				ptype: "d",
-				pos: UFX.pointer._util.avgpos(this.getpos(touches[0]), this.getpos(touches[1])),
+				pos: UFX.pointer._util.avgpos(t0, t1),
+				sep: UFX.pointer._util.sep(t0, t1),
+				tilt: UFX.pointer._util.tilt(t0, t1),
 			}
 		} else {
 			return null
@@ -232,6 +252,7 @@ UFX.pointer._state = {
 	events: [],
 	// wheel values
 	wheel: {},
+	pinch: null,
 
 	// Called when a new element is assigned.
 	reset: function () {
@@ -245,6 +266,7 @@ UFX.pointer._state = {
 		this.ntouchpoint = 0
 		this.events = []
 		this.wheel = {}
+		this.pinch = null
 	},
 
 	addevent: function (etype, ptype, spec0) {
@@ -313,7 +335,7 @@ UFX.pointer._state = {
 			this.bork()
 		}
 		var t = Date.now()
-		this.buttons[buttonspec.ptype] = {
+		var button = this.buttons[buttonspec.ptype] = {
 			ptype: buttonspec.ptype,
 			pos0: buttonspec.pos,
 			pos: buttonspec.pos,
@@ -321,6 +343,13 @@ UFX.pointer._state = {
 			t0: t,
 			tL: t,
 			held: false,
+		}
+		if (button.ptype == "d") {
+			this.pinch = {}
+			var tilt = UFX.pointer.roundpos ? Math.round(buttonspec.tilt) : buttonspec.tilt
+			var sep = UFX.pointer.roundpos ? Math.round(buttonspec.sep) : buttonspec.sep
+			this.pinch.tilt = this.pinch.tilt0 = this.pinch.tiltL = tilt
+			this.pinch.sep = this.pinch.sep0 = this.pinch.sepL = sep
 		}
 		this.addevent("down", buttonspec.ptype, {
 			pos: buttonspec.pos,
@@ -358,6 +387,11 @@ UFX.pointer._state = {
 					})
 				}
 			}
+		}
+		if (button.ptype == "d") {
+			var tilt = UFX.pointer.roundpos ? Math.round(buttonspec.tilt) : buttonspec.tilt
+			this.pinch.tilt = UFX.pointer._util.normtilt(tilt)
+			this.pinch.sep = UFX.pointer.roundpos ? Math.round(buttonspec.sep) : buttonspec.sep
 		}
 		this.updatecounts()
 	},
@@ -406,6 +440,25 @@ UFX.pointer._state = {
 		var wheel = this.wheel
 		this.wheel = {}
 		return wheel
+	},
+	getpinch: function () {
+		if (!this.pinch) return null
+		var dlogsep = this.pinch.sepL && this.pinch.sep ? Math.log(this.pinch.sep / this.pinch.sepL) : 0
+		if (UFX.pointer.roundpos) dlogsep = Math.round(dlogsep * 10000) / 10000
+		var ret = {
+			tilt: this.pinch.tilt,
+			dtilt: UFX.pointer._util.dtilt(this.pinch.tiltL, this.pinch.tilt),
+			sep: this.pinch.sep,
+			dsep: this.pinch.sep - this.pinch.sepL,
+			dlogsep: dlogsep,
+		}
+		if (this.current == "d") {
+			this.pinch.tiltL = this.pinch.tilt
+			this.pinch.sepL = this.pinch.sep
+		} else {
+			this.pinch = null
+		}
+		return ret
 	},
 
 	// Determine whether the given button info passes thresholds for a change to the held state.
