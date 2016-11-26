@@ -308,6 +308,7 @@ UFX.pointer._state = {
 			this.cancelcurrent()
 		} else if (this.current == "t" && buttonspec.ptype == "d") {
 			this.cancelcurrent()
+			this.current = buttonspec.ptype
 		} else {
 			this.bork()
 		}
@@ -439,7 +440,7 @@ UFX.pointer._state = {
 	},
 
 	cancelcurrent: function () {
-		this.addevent("cancel", this.current, {})
+		this.addevent("cancel", this.current, { pos: this.buttons[this.current].pos })
 	},
 
 	// Enter a borked state, and cancel out any pending watches.
