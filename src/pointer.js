@@ -9,6 +9,7 @@
 var UFX = UFX || {}
 
 UFX.pointer = function (element) {
+	UFX.pointer._state.updatenoevent()
 	var state = UFX.pointer._state
 	var pstate = {
 		wheel: {},
@@ -367,12 +368,30 @@ UFX.pointer._state = {
 			this.cancelcurrent()
 		}
 	},
+	updatenoevent: function () {
+		if (this.checkholdnoevent()) {
+			var button = this.buttons[this.current]
+			button.held = true
+			this.addevent("hold", this.current, {
+				pos: button.pos0,
+			})
+		}
+	},
 
 	// Determine whether the given button info passes thresholds for a change to the held state.
 	checkhold: function (button) {
 		if (Date.now() - button.t0 >= 1000 * UFX.pointer.thold) return true
 		var dpos = UFX.pointer._util.dpos(button.pos0, button.pos)
 		return dpos[0] * dpos[0] + dpos[1] * dpos[1] >= UFX.pointer.rhold * UFX.pointer.rhold
+	},
+	// Determine whether the current button (with no new mouse events as updates) passes timing
+	// threshold for a change to the held state.
+	checkholdnoevent: function () {
+		if (!this.current || this.current == "b") return false
+		var button = this.buttons[this.current]
+		if (!button) return false
+		if (button.held) return false
+		return Date.now() - button.t0 >= 1000 * UFX.pointer.thold
 	},
 
 	// Given a list of active touch points, update the positions and active status.
