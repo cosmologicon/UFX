@@ -334,6 +334,11 @@ UFX.pointer._state = {
 		} else {
 			this.bork()
 		}
+		if (buttonspec.ptype == "l" || buttonspec.ptype == "m" || buttonspec.ptype == "r") {
+			UFX.pointer.touch = false
+		} else if (buttonspec.ptype == "t" || buttonspec.ptype == "d") {
+			UFX.pointer.touch = true
+		}
 		var t = Date.now()
 		var button = this.buttons[buttonspec.ptype] = {
 			ptype: buttonspec.ptype,

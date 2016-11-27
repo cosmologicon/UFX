@@ -63,6 +63,7 @@ UFX.ticker.init(function (dt) {
 	UFX.draw("fs white font 12px~'sans-serif' tab left top")
 	var y = 4
 	context.fillText("current: " + pstate.current, 4, y)
+	context.fillText("touch: " + UFX.pointer.touch, 4, (y += 12))
 	context.fillText("wheel: " + JSON.stringify(pstate.wheel), 4, (y += 12))
 	context.fillText("pinch: " + JSON.stringify(pstate.pinch), 4, (y += 12))
 	;["isdown", "isheld"].forEach(function (etype) {
