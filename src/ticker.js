@@ -77,6 +77,9 @@ UFX.ticker = {
 		this._dtu = 0  // average wall dt between updates (ms)
 		this._dtg = 0  // average game dt between updates (ms)
 		this._dtf = 0  // average wall dt between frames (ms)
+		this._tu = 0  // average duration of update callbacks (ms)
+		this._tu0 = 0  // average duration of 0-index update callbacks (ms)
+		this._tf = 0  // average duration of render callbacks (ms)
 		this._lastthink = Date.now()
 		this._lastdraw = Date.now()
 		this.wfactor = 1
@@ -87,6 +90,11 @@ UFX.ticker = {
 			this.wfps.toPrecision(3) + "fps",
 			this.wups.toPrecision(3) + "ups",
 			this.wfactor.toPrecision(3) + "x",
+			[
+				this._tu.toFixed(1),
+				this._tu0.toFixed(1),
+				this._tf.toFixed(1),
+			].join("/") + "ms",
 		].join(" ")
 	},
 
@@ -141,17 +149,23 @@ UFX.ticker = {
 			this._lastthink = now
 			dt /= nthink
 			for (var jthink = 0 ; jthink < nthink ; ++jthink) {
+				var tstart = Date.now()
 				this._tcallback.call(this.cthis, dt, jthink, nthink)
+				var tu = Date.now() - tstart
+				this._tu = (1 - cfac) * this._tu + cfac * tu
+				if (jthink == 0) this._tu0 = (1 - cfac) * this._tu0 + cfac * tu
 			}
 		}
 
 		// Invoke the draw callback
 		if (dodraw && this._dcallback) {
 			var f = this._accumulator * minups
+			var tstart = Date.now()
 			this._dcallback.call(this.cthis, f)
 			now = Date.now()
 			this._dtf = (1 - cfac) * this._dtf + cfac * 0.001 * (now - this._lastdraw)
 			this._lastdraw = now
+			this._tf = (1 - cfac) * this._tf + cfac * (now - tstart)
 		}
 
 		// Accumulators should never be allowed to stay over 1 update
