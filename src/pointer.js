@@ -54,6 +54,12 @@ UFX.pointer.allowcontextmenu = false
 UFX.pointer.thold = 0.5
 UFX.pointer.rhold = 5
 
+// Pinch thresholds
+UFX.pointer.spinch = 0  // Required change in separation
+UFX.pointer.lpinch = 0.25  // Required change in log(separation)
+// Tilt threshold
+UFX.pointer.atilt = 10  // Required change in tilt
+
 UFX.pointer._util = {
 	dpos: function (pos0, pos1) {
 		return [pos1[0] - pos0[0], pos1[1] - pos0[1]]
@@ -350,7 +356,10 @@ UFX.pointer._state = {
 			held: false,
 		}
 		if (button.ptype == "d") {
-			this.pinch = {}
+			this.pinch = {
+				pinched: false,
+				tilted: false,
+			}
 			var tilt = UFX.pointer.roundpos ? Math.round(buttonspec.tilt) : buttonspec.tilt
 			var sep = UFX.pointer.roundpos ? Math.round(buttonspec.sep) : buttonspec.sep
 			this.pinch.tilt = this.pinch.tilt0 = this.pinch.tiltL = tilt
@@ -393,10 +402,23 @@ UFX.pointer._state = {
 				}
 			}
 		}
-		if (button.ptype == "d") {
+		if (button.ptype == "d" && this.pinch) {
 			var tilt = UFX.pointer.roundpos ? Math.round(buttonspec.tilt) : buttonspec.tilt
 			this.pinch.tilt = UFX.pointer._util.normtilt(tilt)
 			this.pinch.sep = UFX.pointer.roundpos ? Math.round(buttonspec.sep) : buttonspec.sep
+			if (!this.pinch.pinched) {
+				// Has it passed the sep threshold?
+				var sep = Math.abs(this.pinch.sep - this.pinch.sep0) >= UFX.pointer.spinch
+				// Has it passed the log(sep) threshold?
+				var lsep = this.pinch.sep0 == 0 || this.pinch.sep == 0 ||
+					Math.abs(Math.log(this.pinch.sep / this.pinch.sep0)) >= UFX.pointer.lpinch
+				if (sep && lsep) this.pinch.pinched = true
+			}
+			if (!this.pinch.tilted) {
+				this.pinch.tilted =
+					Math.abs(UFX.pointer._util.dtilt(this.pinch.tilt0, this.pinch.tilt)) >=
+					UFX.pointer.atilt
+			}
 		}
 		this.updatecounts()
 	},
@@ -448,18 +470,20 @@ UFX.pointer._state = {
 	},
 	getpinch: function () {
 		if (!this.pinch) return null
-		var dlogsep = this.pinch.sepL && this.pinch.sep ? Math.log(this.pinch.sep / this.pinch.sepL) : 0
+		var sep = this.pinch.pinched ? this.pinch.sep : this.pinch.sepL
+		var tilt = this.pinch.tilted ? this.pinch.tilt : this.pinch.tiltL
+		var dlogsep = this.pinch.sepL && sep ? Math.log(sep / this.pinch.sepL) : 0
 		if (UFX.pointer.roundpos) dlogsep = Math.round(dlogsep * 10000) / 10000
 		var ret = {
-			tilt: this.pinch.tilt,
-			dtilt: UFX.pointer._util.dtilt(this.pinch.tiltL, this.pinch.tilt),
-			sep: this.pinch.sep,
-			dsep: this.pinch.sep - this.pinch.sepL,
+			tilt: tilt,
+			dtilt: UFX.pointer._util.dtilt(this.pinch.tiltL, tilt),
+			sep: sep,
+			dsep: sep - this.pinch.sepL,
 			dlogsep: dlogsep,
 		}
 		if (this.current == "d") {
-			this.pinch.tiltL = this.pinch.tilt
-			this.pinch.sepL = this.pinch.sep
+			this.pinch.tiltL = tilt
+			this.pinch.sepL = sep
 		} else {
 			this.pinch = null
 		}
