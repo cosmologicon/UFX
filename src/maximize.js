@@ -49,7 +49,7 @@ UFX.maximize.setup = function () {
 	var state = UFX.maximize.state, element = UFX.maximize.element, style = element.style
 	state.aspect0 = [element.width, element.height]
 	UFX.maximize.style0 = {}
-	;"position left top width height borderLeft borderRight borderTop borderBottom".
+	;"position left top bottom right margin width height borderLeft borderRight borderTop borderBottom".
 		split(" ").forEach(function (sname) {
 		UFX.maximize.style0[sname] = style[sname]
 	})
@@ -97,18 +97,16 @@ UFX.maximize.setoptions = function (options) {
 
 	var element = UFX.maximize.element, style = element.style
 	var fullscreened = element === UFX.maximize.getfullscreenelement()
-	if (state.fullscreen && !fullscreened) {
+	if (state.fullscreen && fullscreened) {
+		UFX.maximize.onresize()
+	} else if (state.fullscreen && !fullscreened) {
 		UFX.maximize.tofill = !state.mustfullscreen
 		if (element.requestFullscreen) {
-			try {
-				element.requestFullscreen()
-			} catch (e) {
-				console.log("a")
-			}
+			element.requestFullscreen()
 		} else {
 			UFX.maximize.onfullscreenerror()
 		}
-	} else if (!state.fullscreen) {
+	} else {
 		UFX.maximize.fillscreen()
 	}
 }
@@ -223,6 +221,9 @@ UFX.maximize.onresize = function () {
 	element.style.height = ssize[1] + "px"
 
 	if (element === this.getfullscreenelement()) {
+		element.style.top = element.style.bottom = 0
+		element.style.left = element.style.right = 0
+		element.style.margin = "auto"
 		element.style.borderLeft = element.style.borderRight = "none"
 		element.style.borderTop = element.style.borderBottom = "none"
 	} else {
