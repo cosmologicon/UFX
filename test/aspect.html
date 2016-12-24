@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<script>
+function getwsize(wx, wy, aspect, exact) {
+	var ispair = aspect instanceof Array
+	if (ispair && !exact) {
+		aspect = aspect[0] / aspect[1]
+		ispair = false
+	}
+	if (ispair) {
+		function gcd(a, b) {
+			return b == 0 ? a : gcd(b, a % b)
+		}
+		var x = aspect[0], y = aspect[1]
+		var g = gcd(x, y)
+		x /= g
+		y /= g
+		var n = Math.floor(Math.min(wx / x, wy / y))
+		return n ? [x * n, y * n] : null
+	} else {
+		return wy * aspect > wx
+			? [wx, Math.round(wx / aspect)]
+			: [Math.round(wy * aspect), wx]
+	}
+}
+console.log(getwsize(1024, 768, [16, 9], true))
+console.log(getwsize(1023, 768, [16, 9], true))
+</script>

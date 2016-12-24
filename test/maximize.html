@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<script src="../src/maximize.js"></script>
+<script src="../src/key.js"></script>
+<script src="../src/ticker.js"></script>
+<script src="../src/draw.js"></script>
+<body style="background: yellow"></body>
+<canvas id=rcanvas></canvas>
+<canvas id=bcanvas></canvas>
+<ul>
+<li>1: UFX.maximize(rcanvas)
+<li>2: UFX.maximize(bcanvas)
+<li>3: UFX.maximize.stop()
+<li>4: UFX.maximize(rcanvas, { fullscreen: true })
+<li>5: UFX.maximize(rcanvas, { exact: true })
+<li>6: UFX.maximize(rcanvas, { resize: false })
+<li>7: UFX.maximize(rcanvas, { resize: false, stretch: false })
+<li>8: UFX.maximize(rcanvas, { aspects: [[16, 9], 1, [9, 16]] })
+<li>9: UFX.maximize(rcanvas, { aspects: [[16, 9], 1, [9, 16]], exact: true })
+</ul>
+<p>
+<button onclick="UFX.maximize(rcanvas, { fullscreen: true })">fullscreen rcanvas</button>
+<button onclick="UFX.maximize(rcanvas, { fullscreen: true, mustfullscreen: true })">must fullscreen rcanvas</button>
+<script>
+UFX.key.init()
+let rcontext = document.getElementById("rcanvas").getContext("2d")
+let bcontext = document.getElementById("bcanvas").getContext("2d")
+
+// polyfill
+rcanvas.requestFullscreen = rcanvas.requestFullscreen
+	|| rcanvas.mozRequestFullScreen
+	|| rcanvas.webkitRequestFullScreen
+window.addEventListener("mozfullscreenchange", UFX.maximize.onfullscreenchange)
+window.addEventListener("webkitfullscreenchange", UFX.maximize.onfullscreenchange)
+UFX.maximize.getfullscreenelement = () => document.fullscreenElement
+	|| document.mozFullscreenElement
+	|| document.webkitFullscreenElement
+
+UFX.maximize.onadjust = (canvas, x, y, aspect) => console.log(x, y, aspect)
+
+UFX.ticker.init(function () {
+	let kstate = UFX.key.state()
+	if (kstate.down[1]) UFX.maximize(rcanvas)
+	if (kstate.down[2]) UFX.maximize(bcanvas)
+	if (kstate.down[3]) UFX.maximize.stop()
+	if (kstate.down[4]) UFX.maximize(rcanvas, { fullscreen: true })
+	if (kstate.down[5]) UFX.maximize(rcanvas, { exact: true })
+	if (kstate.down[6]) UFX.maximize(rcanvas, { resize: false })
+	if (kstate.down[7]) UFX.maximize(rcanvas, { resize: false, stretch: false })
+	if (kstate.down[8]) UFX.maximize(rcanvas, { aspects: [[16, 9], 1, [9, 16]] })
+	if (kstate.down[9]) UFX.maximize(rcanvas, { aspects: [[16, 9], 1, [9, 16]], exact: true })
+	UFX.draw(bcontext, "fs blue f0")
+	UFX.draw(rcontext, "fs red f0 fs white font 14px~'monospace' tab left top")
+	let texts = [
+		`rcanvas: ${rcanvas.width}x${rcanvas.height}`,
+	]
+	texts.forEach((text, j) => rcontext.fillText(text, 4, 4 + 14 * j))
+})
+</script>
+
