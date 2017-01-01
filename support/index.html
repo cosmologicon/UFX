@@ -20,6 +20,9 @@ table * {
 td, th {
 	padding: 0.2em 0.4em;
 }
+#gltable {
+	background-color: rgba(255,127,0,0.2);
+}
 </style>
 <h1>UFX browser feature support survey</h1>
 <p>No action is necessary. The results of this survey have been automatically uploaded to ufx.space.
@@ -28,18 +31,36 @@ Thank you.
 <table id=table>
 <tr><th>test name<th>expected<th>match<th>result
 </table>
+<p>
+<table id=gltable>
+<tr><th>GL parameter name<th>value
+</table>
+<noscript>Javascript disabled.</noscript>
 <script>
 "use strict"
+window.onerror = function (message, url, line, col, errorobj) {
+	var stack = errorobj === undefined ? undefined : errorobj.stack
+	document.body.innerHTML = [
+		"<p>Error in: " + url,
+		"<p>line " + line,
+		"<pre>" + message,
+		"",
+		"" + stack + "</pre>"
+	].join("\n")
+}
+
 var useragent = window.navigator.userAgent
 var testid = Math.floor(Math.random() * 90000) + 10000
 var report = {
-	version: 1,  // Increment this every time you add something.  0 = testing.
+	version: 2,  // Increment this every time you add something.
 	useragent: useragent,
 	tests: {},
 	testid: testid,
 	matchtests: {}
 }
+//report.version = 0  // 0 = testing. Will not send report.
 var table = document.getElementById("table")
+var gltable = document.getElementById("gltable")
 var output = document.getElementById("output")
 output.innerHTML += "<br>test ID: " + testid
 output.innerHTML += "<br>user agent: " + useragent
@@ -73,7 +94,7 @@ function runmatchtest(testname, evalstring, expected) {
 	table.innerHTML += "<tr class=" + rclass + "><td>" + row.join("<td>")
 }
 runmatchtest("json.stringify", "JSON.stringify([3])", "[3]")
-runmatchtest("array t-comma", "[1,2,3,].length", 3)
+runmatchtest("array trailing comma", "[1,2,3,].length", 3)
 runmatchtest("array map", "[1].map(function (x) { return x + 2 })[0]", 3)
 runmatchtest("array reduce", "[1,2,0].reduce(function (x, y) { return x + y })", 3)
 runmatchtest("array filter", "[1,2,3].filter(function (x) { return x % 2 })[1]", 3)
@@ -91,10 +112,55 @@ runmatchtest("date.now", "Date.now() == new Date().getTime()", true)
 runmatchtest("function bind", "(function (a) { return this + a }.bind(1, 2))(1)", 3)
 runmatchtest("2d context", "'' + document.createElement('canvas').getContext('2d')", "[object CanvasRenderingContext2D]")
 runmatchtest("webgl context", "'' + document.createElement('canvas').getContext('webgl')", "[object WebGLRenderingContext]")
+runmatchtest("experimental webgl context", "'' + document.createElement('canvas').getContext('experimental-webgl')", "[object WebGLRenderingContext]")
 
-var req = new XMLHttpRequest()
-req.open("POST", "http://universefactory.net/tools/dump/", true)
-req.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
-req.send("project=ufxsupport&data=" + encodeURIComponent(JSON.stringify(report)))
+function addparameter(gl, name) {
+	var value = gl[name] ? gl.getParameter(gl[name]) : null
+	report.webgl.parameters[name] = value
+	var row = [name, "" + value]
+	gltable.innerHTML += "<tr><td>" + row.join("<td>")
+}
+
+
+if (report.matchtests["webgl context"].match) {
+	// A lot of good stuff at webglreport.com but not everything.
+	var gl = document.createElement("canvas").getContext("webgl")
+	report.webgl = {
+		parameters: {}
+	}
+	addparameter(gl, "ALIASED_LINE_WIDTH_RANGE")
+	addparameter(gl, "ALIASED_POINT_SIZE_RANGE")
+	addparameter(gl, "ALPHA_BITS")
+	addparameter(gl, "BLUE_BITS")
+	addparameter(gl, "COMPRESSED_TEXTURE_FORMATS")
+	addparameter(gl, "DEPTH_BITS")
+	addparameter(gl, "GREEN_BITS")
+	addparameter(gl, "MAX_COMBINED_TEXTURE_IMAGE_UNITS")
+	addparameter(gl, "MAX_CUBE_MAP_TEXTURE_SIZE")
+	addparameter(gl, "MAX_FRAGMENT_UNIFORM_VECTORS")
+	addparameter(gl, "MAX_RENDERBUFFER_SIZE")
+	addparameter(gl, "MAX_TEXTURE_IMAGE_UNITS")
+	addparameter(gl, "MAX_TEXTURE_SIZE")
+	addparameter(gl, "MAX_VARYING_VECTORS")
+	addparameter(gl, "MAX_VERTEX_ATTRIBS")
+	addparameter(gl, "MAX_VERTEX_TEXTURE_IMAGE_UNITS")
+	addparameter(gl, "MAX_VERTEX_UNIFORM_VECTORS")
+	addparameter(gl, "MAX_VIEWPORT_DIMS")
+	addparameter(gl, "RED_BITS")
+	addparameter(gl, "RENDERER")
+	addparameter(gl, "SHADING_LANGUAGE_VERSION")
+	addparameter(gl, "STENCIL_BITS")
+	addparameter(gl, "SUBPIXEL_BITS")
+	addparameter(gl, "VENDOR")
+	addparameter(gl, "VERSION")
+}
+
+
+if (report.verision > 0) {
+	var req = new XMLHttpRequest()
+	req.open("POST", "http://universefactory.net/tools/dump/", true)
+	req.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
+	req.send("project=ufxsupport&data=" + encodeURIComponent(JSON.stringify(report)))
+}
 
 </script>
