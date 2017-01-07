@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <title>UFX browser feature support survey</title>
+<script src="support.js"></script>
 <style type="text/css">
 body {
 	background: #444;
@@ -10,6 +11,9 @@ h1 {
 }
 table .yes {
 	background-color: rgba(0,255,0,0.2);
+}
+table .partial {
+	background-color: rgba(255,255,0,0.2);
 }
 table .no {
 	background-color: rgba(255,0,0,0.2);
@@ -29,7 +33,11 @@ td, th {
 Thank you.
 <p id=output>
 <table id=table>
-<tr><th>test name<th>expected<th>match<th>result
+<tr><th>test name<th>result
+</table>
+<p>
+<table id=ftable>
+<tr><th>feature name<th>unprefixed<th>prefixed
 </table>
 <p>
 <table id=gltable>
@@ -49,118 +57,41 @@ window.onerror = function (message, url, line, col, errorobj) {
 	].join("\n")
 }
 
-var useragent = window.navigator.userAgent
-var testid = Math.floor(Math.random() * 90000) + 10000
-var report = {
-	version: 2,  // Increment this every time you add something.
-	useragent: useragent,
-	tests: {},
-	testid: testid,
-	matchtests: {}
-}
-//report.version = 0  // 0 = testing. Will not send report.
 var table = document.getElementById("table")
+var ftable = document.getElementById("ftable")
 var gltable = document.getElementById("gltable")
 var output = document.getElementById("output")
-output.innerHTML += "<br>test ID: " + testid
-output.innerHTML += "<br>user agent: " + useragent
-function runmatchtest(testname, evalstring, expected) {
-	var valid = true, match, value, error
-	try {
-		value = eval(evalstring)
-		match = value === expected
-	} catch (exception) {
-		valid = false
-		error = "" + exception
+
+document.addEventListener("DOMContentLoaded", function(event) {
+	output.innerHTML += "<br>test ID: " + UFX.support.testid
+	output.innerHTML += "<br>user agent: " + UFX.support.useragent
+	output.innerHTML += "<br>screen size: " + UFX.support.screensize.join("x")
+	output.innerHTML += "<br>viewport size: " + UFX.support.viewportsize.join("x")
+
+	for (var testname in UFX.support.matchtests) {
+		var test = UFX.support.matchtests[testname]
+		var row = [
+			testname,
+			test.valid ? (test.match ? "YES" : "NO") : "ERROR",
+		]
+		var rclass = row[1].toLowerCase()
+		table.innerHTML += "<tr class=" + rclass + "><td>" + row.join("<td>")
 	}
-	var info = {
-		testname: testname,
-		valid: valid
+	for (var featurename in UFX.support.features) {
+		var feature = UFX.support.features[featurename]
+		var row = [
+			featurename,
+			"" + feature.exists,
+			(feature.prefixed.length > 0
+				? feature.prefixed[0].substr(0, feature.prefixed[0].length - featurename.length)
+				: "")
+		]
+		var rclass = feature.exists ? "yes" : feature.prefixed.length ? "partial" : "no"
+		ftable.innerHTML += "<tr class=" + rclass + "><td>" + row.join("<td>")
 	}
-	if (valid) {
-		info.value = value
-		info.match = match
-	} else {
-		info.error = error
+	for (var pname in UFX.support.webgl.parameters) {
+		var row = [pname, "" + UFX.support.webgl.parameters[pname]]
+		gltable.innerHTML += "<tr><td>" + row.join("<td>")
 	}
-	report.matchtests[testname] = info
-	var row = [
-		testname,
-		"" + expected,
-		valid ? (match ? "YES" : "NO") : "ERROR",
-		valid ? "" + value : error
-	]
-	var rclass = row[2].toLowerCase()
-	table.innerHTML += "<tr class=" + rclass + "><td>" + row.join("<td>")
-}
-runmatchtest("json.stringify", "JSON.stringify([3])", "[3]")
-runmatchtest("array trailing comma", "[1,2,3,].length", 3)
-runmatchtest("array map", "[1].map(function (x) { return x + 2 })[0]", 3)
-runmatchtest("array reduce", "[1,2,0].reduce(function (x, y) { return x + y })", 3)
-runmatchtest("array filter", "[1,2,3].filter(function (x) { return x % 2 })[1]", 3)
-runmatchtest("array foreach", "var a = 0 ; [1,2].forEach(function (x) { a += x }) ; a", 3)
-runmatchtest("array every", "[1].every(function (x) { return x })", true)
-runmatchtest("array indexof", "[1,2,3,4,5].indexOf(4)", 3)
-runmatchtest("object.keys", "Object.keys({3: 0})[0]", "3")
-runmatchtest("let", "let x = 2 ; x + 1", 3)
-runmatchtest("const", "const x = 2 ; x + 1", 3)
-runmatchtest("arrow function", "(x => x + 1)(2)", 3)
-runmatchtest("destructuring", "var [x, y] = [3, 4] ; x", 3)
-runmatchtest("backtick", "`a`", "a")
-runmatchtest("template string", "var x = 2 ; `${x+1}`", "3")
-runmatchtest("date.now", "Date.now() == new Date().getTime()", true)
-runmatchtest("function bind", "(function (a) { return this + a }.bind(1, 2))(1)", 3)
-runmatchtest("2d context", "'' + document.createElement('canvas').getContext('2d')", "[object CanvasRenderingContext2D]")
-runmatchtest("webgl context", "'' + document.createElement('canvas').getContext('webgl')", "[object WebGLRenderingContext]")
-runmatchtest("experimental webgl context", "'' + document.createElement('canvas').getContext('experimental-webgl')", "[object WebGLRenderingContext]")
-
-function addparameter(gl, name) {
-	var value = gl[name] ? gl.getParameter(gl[name]) : null
-	report.webgl.parameters[name] = value
-	var row = [name, "" + value]
-	gltable.innerHTML += "<tr><td>" + row.join("<td>")
-}
-
-
-if (report.matchtests["webgl context"].match) {
-	// A lot of good stuff at webglreport.com but not everything.
-	var gl = document.createElement("canvas").getContext("webgl")
-	report.webgl = {
-		parameters: {}
-	}
-	addparameter(gl, "ALIASED_LINE_WIDTH_RANGE")
-	addparameter(gl, "ALIASED_POINT_SIZE_RANGE")
-	addparameter(gl, "ALPHA_BITS")
-	addparameter(gl, "BLUE_BITS")
-	addparameter(gl, "COMPRESSED_TEXTURE_FORMATS")
-	addparameter(gl, "DEPTH_BITS")
-	addparameter(gl, "GREEN_BITS")
-	addparameter(gl, "MAX_COMBINED_TEXTURE_IMAGE_UNITS")
-	addparameter(gl, "MAX_CUBE_MAP_TEXTURE_SIZE")
-	addparameter(gl, "MAX_FRAGMENT_UNIFORM_VECTORS")
-	addparameter(gl, "MAX_RENDERBUFFER_SIZE")
-	addparameter(gl, "MAX_TEXTURE_IMAGE_UNITS")
-	addparameter(gl, "MAX_TEXTURE_SIZE")
-	addparameter(gl, "MAX_VARYING_VECTORS")
-	addparameter(gl, "MAX_VERTEX_ATTRIBS")
-	addparameter(gl, "MAX_VERTEX_TEXTURE_IMAGE_UNITS")
-	addparameter(gl, "MAX_VERTEX_UNIFORM_VECTORS")
-	addparameter(gl, "MAX_VIEWPORT_DIMS")
-	addparameter(gl, "RED_BITS")
-	addparameter(gl, "RENDERER")
-	addparameter(gl, "SHADING_LANGUAGE_VERSION")
-	addparameter(gl, "STENCIL_BITS")
-	addparameter(gl, "SUBPIXEL_BITS")
-	addparameter(gl, "VENDOR")
-	addparameter(gl, "VERSION")
-}
-
-
-if (report.verision > 0) {
-	var req = new XMLHttpRequest()
-	req.open("POST", "http://universefactory.net/tools/dump/", true)
-	req.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
-	req.send("project=ufxsupport&data=" + encodeURIComponent(JSON.stringify(report)))
-}
-
+})
 </script>
