@@ -36,26 +36,26 @@ UFX.gltext.init = function (gl) {
 	}
 	return prog
 }
-UFX.gltext._vsource = `
-attribute vec2 p;
-varying highp vec2 a;
-uniform vec2 w, s, p0, c;
-uniform float A;
-void main() {
-	mat2 R = mat2(cos(A), sin(A), -sin(A), cos(A));
-	gl_Position = vec4((p0 + R * (p * s - c)) / w * 2.0 - 1.0, 0.0, 1.0);
-	a = p;
-}
-`
-UFX.gltext._fsource = `
-varying highp vec2 a;
-uniform sampler2D t;
-uniform highp float alpha;
-void main() {
-	gl_FragColor = texture2D(t, a);
-	gl_FragColor.a *= alpha;
-}
-`
+UFX.gltext._vsource = [
+	"attribute vec2 p;",
+	"varying highp vec2 a;",
+	"uniform vec2 w, s, p0, c;",
+	"uniform float A;",
+	"void main() {",
+	"	mat2 R = mat2(cos(A), sin(A), -sin(A), cos(A));",
+	"	gl_Position = vec4((p0 + R * (p * s - c)) / w * 2.0 - 1.0, 0.0, 1.0);",
+	"	a = p;",
+	"}"
+].join("\n")
+UFX.gltext._fsource = [
+	"varying highp vec2 a;",
+	"uniform sampler2D t;",
+	"uniform highp float alpha;",
+	"void main() {",
+	"	gl_FragColor = texture2D(t, a);",
+	"	gl_FragColor.a *= alpha;",
+	"}",
+].join("\n")
 UFX.gltext._draw = function (text, pos, opts) {
 	if (!opts && !Array.isArray(pos)) {
 		opts = pos
