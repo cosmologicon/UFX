@@ -36,6 +36,7 @@ td {
 <p><button type=button onclick="qplay(UFX.resource.sounds.jumpwav)">Play wav</button>
 <p><button type=button onclick="qplay(UFX.resource.sounds.jumpogg)">Play ogg</button>
 <p><button type=button onclick="qplay(UFX.resource.sounds.jumpmp3)">Play mp3</button>
+<p><button type=button onclick="aplay(UFX.resource.data.jumpbuffer)">Play ogg buffer</button>
 <p><button type=button onclick="qplay(multijump)">Play Multisound</button>
 
 <p><button type=button onclick="UFX.resource.stopmusic()">Stop music</button>
@@ -49,23 +50,33 @@ td {
 
 <script>
 window.onerror = function (error, url, line) {
-    document.body.innerHTML = "<p>Error in: "+url+"<p>line "+line+"<pre>"+error+"</pre>"
+	document.body.innerHTML = "<p>Error in: "+url+"<p>line "+line+"<pre>"+error+"</pre>"
 }
+let acontext = new AudioContext()
+let asource = null
 UFX.resource.onload = function () {
-    context.fillStyle = "#004"
-    context.fillRect(0, 0, 300, 300)
-    context.font = "40px 'Viga'"
-    context.fillStyle = "white"
-    context.fillText("resource!", 80, 100)
-    context.scale(0.5, 0.5)
-    context.drawImage(UFX.resource.images.abigail, 0, 0)
-    multijump = UFX.resource.Multisound([UFX.resource.sounds.jumpwav])
+	context.fillStyle = "#004"
+	context.fillRect(0, 0, 300, 300)
+	context.font = "40px 'Viga'"
+	context.fillStyle = "white"
+	context.fillText("resource!", 80, 100)
+	context.scale(0.5, 0.5)
+	context.drawImage(UFX.resource.images.abigail, 0, 0)
+	multijump = UFX.resource.Multisound([UFX.resource.sounds.jumpwav])
 }
 
+
 function qplay (sound) {
-    sound.pause()
-    sound.currentTime = 0
-    sound.play()
+	sound.pause()
+	sound.currentTime = 0
+	sound.play()
+}
+
+function aplay (buffer) {
+	let source = acontext.createBufferSource()
+	source.buffer = buffer
+	source.connect(acontext.destination)
+	source.start(0)
 }
 
 UFX.resource.base = "data"
@@ -76,6 +87,9 @@ UFX.resource.load({
 	jumpmp3: "jump.mp3",
 	song1: "song1.ogg",
 	song2: "song2.ogg",
+})
+UFX.resource.loadaudiobuffer(acontext, {
+	jumpbuffer: "data/jump.ogg",
 })
 UFX.resource.loadwebfonts("Viga")
 

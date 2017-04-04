@@ -89,9 +89,11 @@ document.addEventListener("DOMContentLoaded", function(event) {
 		var rclass = feature.exists ? "yes" : feature.prefixed.length ? "partial" : "no"
 		ftable.innerHTML += "<tr class=" + rclass + "><td>" + row.join("<td>")
 	}
-	for (var pname in UFX.support.webgl.parameters) {
-		var row = [pname, "" + UFX.support.webgl.parameters[pname]]
-		gltable.innerHTML += "<tr><td>" + row.join("<td>")
+	if (UFX.support.webgl) {
+		for (var pname in UFX.support.webgl.parameters) {
+			var row = [pname, "" + UFX.support.webgl.parameters[pname]]
+			gltable.innerHTML += "<tr><td>" + row.join("<td>")
+		}
 	}
 })
 </script>

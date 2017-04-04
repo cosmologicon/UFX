@@ -4,7 +4,7 @@
 "use strict"
 var UFX = UFX || {}
 UFX.support = {
-	version: 5,  // Increment this every time you add something.
+	version: 6,  // Increment this every time you add something.
 	testid: Math.floor(Math.random() * 90000) + 10000,
 	useragent: window.navigator.userAgent
 }
@@ -107,6 +107,7 @@ document.addEventListener("DOMContentLoaded", function () {
 	runfeaturecheck(document, "cancelFullscreen")
 	runfeaturecheck(window, "AudioContext")
 	runfeaturecheck(window, "OfflineAudioContext")
+	runfeaturecheck(window, "devicePixelRatio")
 
 	// WebGL parameter values
 	function addparameter(gl, name) {

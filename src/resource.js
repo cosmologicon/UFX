@@ -85,6 +85,20 @@ UFX.resource = {
 			this._loadjson(res[0], res[1])
 		}
 	},
+	loadbuffer: function () {
+		var resnames = this._extractlist(arguments)
+		for (var j = 0 ; j < resnames.length ; ++j) {
+			var res = resnames[j]
+			this._loadbuffer(res[0], res[1])
+		}
+	},
+	loadaudiobuffer: function (audiocontext) {
+		var resnames = this._extractlist([].slice.call(arguments, 1))
+		for (var j = 0 ; j < resnames.length ; ++j) {
+			var res = resnames[j]
+			this._loadaudiobuffer(audiocontext, res[0], res[1])
+		}
+	},
 
 	// Load Google web fonts
 	loadwebfonts: function () {
@@ -312,25 +326,49 @@ UFX.resource = {
 	_loadjson: function (jname, jsonurl) {
 		var req = new XMLHttpRequest()
 		req.overrideMimeType("application/json")
-		req.open('GET', jsonurl, true);  
-		var target = this;
-		req.onload  = function() {
+		req.open('GET', jsonurl, true); 
+		req.onload = function() {
 			UFX.resource.data[jname] = JSON.parse(req.responseText)
 			UFX.resource._onload()
 		}
-		req.send(null);
+		req.send(null)
 		++this._toload
 	},
-	// Load a single raw data resource
+	// Load a raw data resource
 	_loaddata: function (dname, dataurl) {
 		var req = new XMLHttpRequest()
-		req.open('GET', dataurl, true);  
-		var target = this;
-		req.onload  = function() {
+		req.open('GET', dataurl, true)
+		req.onload = function() {
 			UFX.resource.data[dname] = req.responseText
 			UFX.resource._onload()
 		}
-		req.send(null);
+		req.send(null)
+		++this._toload
+	},
+	// Load a raw data resource as an arraybuffer
+	_loadbuffer: function (dname, dataurl) {
+		var req = new XMLHttpRequest()
+		req.open("GET", dataurl, true)
+		req.responseType = "arraybuffer"
+		req.onload  = function () {
+			UFX.resource.data[dname] = req.response
+			UFX.resource._onload()
+		}
+		req.send(null)
+		++this._toload
+	},
+	// Load a raw data resource as an audio buffer
+	_loadaudiobuffer: function (audiocontext, dname, dataurl) {
+		var req = new XMLHttpRequest()
+		req.open("GET", dataurl, true)
+		req.responseType = "arraybuffer"
+		req.onload  = function () {
+			audiocontext.decodeAudioData(req.response, function (buffer) {
+				UFX.resource.data[dname] = buffer
+				UFX.resource._onload()
+			})
+		}
+		req.send(null)
 		++this._toload
 	},
 
