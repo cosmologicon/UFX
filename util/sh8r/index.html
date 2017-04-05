@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<title>sh8r</title>
+<script src="http://ufx.space/UFX.js"></script>
+<link href="https://fonts.googleapis.com/css?family=Inconsolata|Rubik" rel="stylesheet">
+<style type=text/css>
+body {
+	background: #444;
+	color: white;
+	font-size: 200%;
+	font-family: 'Rubik', 'sans-serif';
+}
+td {
+	margin: auto;
+	text-align: center;
+}
+#uniforms, #attributes {
+	margin: auto;
+	border: medium blue solid;
+	border-spacing: 0;
+	background: rgba(0,0,0,0.1);
+}
+#uniforms td, #attributes td {
+	font-family: 'Inconsolata', monospace;
+}
+#uniforms td, #uniforms th, #attributes td, #attributes th {
+	border: thin blue solid;
+	padding: 0.1em 0.3em;
+}
+#lpanel {
+	width: 60%;
+}
+textarea {
+	font-family: 'Inconsolata', monospace;
+	font-size: 80%;
+	background: #333;
+	color: white;
+	width: 100%;
+	height: 12em;
+}
+button {
+	font-size: 100%;
+	font-family: inherit;
+	background: #447;
+	color: white;
+	padding: 0.3em;
+}
+#canvas {
+	width: 600px;
+	height: 600px;
+	border: 0.5em blue outset;
+}
+input {
+	border: none;
+	background: #222;
+	color: white;
+	font-size: 100%;
+	padding: 0.2em;
+	width: 5em;
+	font-family: 'Inconsolata', monospace;
+}
+</style>
+<table>
+<tr><td id=lpanel>
+<p>Vertex shader
+<textarea id=vshader>
+attribute vec2 pos;
+void main() {
+  gl_Position = vec4(pos, 0.0, 1.0);
+}
+</textarea>
+<p>fragment shader
+<textarea id=fshader>
+void main() {
+  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+}
+</textarea>
+<button id=compile onclick="compile()">Build program</button>
+<td id=rpanel>
+<p>Uniforms
+<table id=uniforms>
+<tr><th>name<th>size<th>value
+</table>
+<p>Vector attributes
+<table id=attributes>
+<tr><th>name<th>size<th>value
+</table>
+<select id=mode>
+	<option value="POINTS" selected>gl.POINTS</option>
+	<option value="LINES">gl.LINES</option>
+	<option value="TRIANGLES">gl.TRIANGLES</option>
+</select>
+<input id=count value=1></count>
+<br>
+<button id=compile onclick="run()">Run program</button>
+<br>
+<canvas id=canvas></canvas>
+</table>
+<script>
+let canvas = document.getElementById("canvas")
+canvas.width = canvas.height = 600
+let gl = UFX.gl(canvas)
+gl.clearColor(0, 0, 0, 1)
+gl.clear(gl.COLOR_BUFFER_BIT)
+let prog = null
+
+function compile() {
+	prog = gl.buildProgram(vshader.value, fshader.value, "prog")
+	let keys = Object.keys(prog.uniforms)
+	keys.sort()
+	uniforms.innerHTML = `
+	<tr><th>name<th>size<th>value
+	` + keys.map(kname => {
+		let uinfo = prog.uniforminfo[kname]
+		return `<tr><th>${kname}<td>${uinfo.size}<td><input id="u${kname}"></input>`
+	}).join("\n")
+	keys = Object.keys(prog.attribs)
+	keys.sort()
+	attributes.innerHTML = `
+	<tr><th>name<th>size<th>value
+	` + keys.map(kname => {
+		let ainfo = prog.attribinfo[kname]
+		let typesize = gl.getTypeSize(ainfo.type)
+		return `<tr><th>${kname}<td>${ainfo.size}x${typesize}<td><input id="a${kname}"></input>`
+	}).join("\n")
+}
+function run() {
+	gl.clear(gl.COLOR_BUFFER_BIT)
+	prog.use()
+	for (let kname in prog.uniforms) {
+		let value = +document.getElementById(`u${kname}`).value
+		prog.set[kname](value)
+	}
+	for (let kname in prog.attribs) {
+		let value = document.getElementById(`a${kname}`).value
+		let buffer = gl.makeArrayBuffer(value.split(",").map(x => +x))
+		buffer.bind()
+		let obj = {}
+		obj[kname] = 0
+		prog.assignAttribOffsets(obj)
+	}
+	gl.drawArrays(gl[mode.value], 0, +count.value)
+}
+</script>
+
