@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!-- Cause initial zoom to be 1 and prevent resize -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
+<script src="../src/maximize.js"></script>
+<script src="../src/draw.js"></script>
+<script src="../src/random.js"></script>
+<canvas id=canvas></canvas>
+<p>
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+once
+<script>
+setTimeout(() => window.scrollTo(0, 1), 1)
+let canvas = document.getElementById("canvas")
+let context = canvas.getContext("2d")
+UFX.draw.setcontext(context)
+
+let color = "purple"
+
+UFX.maximize.onadjust = function () {
+	UFX.draw("fs", color, "f0 fs white tab left top",
+		`ft size:~${canvas.width}x${canvas.height} 10 10`)
+	for (let j = 50 ; j < 70 ; ++j) {
+		UFX.draw("ss", (j % 2 ? "black" : "yellow"), "b m 0", j, "l 100", j, "lw 1 s")
+	}
+}
+
+canvas.requestFullscreen = canvas.requestFullscreen
+	|| canvas.mozRequestFullScreen
+	|| canvas.webkitRequestFullScreen
+window.addEventListener("mozfullscreenchange", UFX.maximize.onfullscreenchange)
+window.addEventListener("webkitfullscreenchange", UFX.maximize.onfullscreenchange)
+UFX.maximize.getfullscreenelement = () => document.fullscreenElement
+	|| document.mozFullscreenElement
+	|| document.webkitFullscreenElement
+
+UFX.maximize(canvas, { free: true })
+canvas.addEventListener("click", function () {
+	color = UFX.random.color()
+	UFX.maximize(canvas, { fullscreen: true })
+})
+canvas.addEventListener("touchstart", function () {
+	color = UFX.random.color()
+	UFX.maximize(canvas, { fullscreen: true })
+})
+</script>

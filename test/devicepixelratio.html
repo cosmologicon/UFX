@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+<script src="../src/gl.js"></script>
+<script src="../src/gltext.js"></script>
+<title>Device pixel ratio test</title>
+<canvas id=canvas></canvas>
+<script>
+let R = window.devicePixelRatio
+let canvas = document.getElementById("canvas")
+let gl = UFX.gl(canvas)
+UFX.gltext.init(gl)
+let size = 200
+
+canvas.width = size * R
+canvas.height = size * R
+canvas.style.width = size + "px"
+canvas.style.height = size + "px"
+
+gl.viewport(0, 0, size * R, size * R)
+gl.clearColor(0, 0, 0, 1)
+gl.clear(gl.COLOR_BUFFER_BIT)
+gl.progs.text.use()
+gl.progs.text.draw(`ratio = ${R}`, {
+	fontsize: 30 * R,
+	bottomleft: [10 * R, 10 * R],
+})
+gl.progs.text.draw(`illegible???`, {
+	fontsize: 5 * R,
+	bottomleft: [10 * R, 40 * R],
+})
+</script>
+

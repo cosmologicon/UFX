@@ -85,11 +85,11 @@ UFX.glutil = {
 		var typesize = this.typesize(type, _gl)
 		var typeletter = this.typeletter(type, _gl)
 		if (this.ismatrixtype(type, _gl)) {
-			return `uniformMatrix${typesize}${typeletter}v`
+			return "uniformMatrix" + typesize + typeletter + "v"
 		} else if (typesize == 1) {
-			return `uniform${typesize}${typeletter}`
+			return "uniform" + typesize + typeletter
 		} else {
-			return `uniform${typesize}${typeletter}v`
+			return "uniform" + typesize + typeletter + "v"
 		}
 	},
 
@@ -131,12 +131,14 @@ UFX.glutil = {
 		}
 		if (true) {  // Add argument checking
 			var typename = UFX.glutil.enumasstring(type, _gl)
-			if (count > 1) typename += `[${count}]`
+			if (count > 1) typename += "[" + count + "]"
 			if (nvalues == 1) {
-				var message = `Setter gl.${settername} for uniform ${uname} requires a single scalar argument of type ${typename}.`
+				var message = "Setter gl." + settername + " for uniform " + uname +
+					" requires a single scalar argument of type " + typename + "."
 				setter = this._wrapargcheckscalar(setter, message)
 			} else {
-				var message = `Setter gl.${settername} for uniform ${uname} requires a single length-${nvalues} Array argument of type ${typename}.`
+				var message = "Setter gl." + settername + " for uniform " + uname + +
+					" requires a single length-" + nvalues + " Array argument of type " + typename + "."
 				setter = this._wrapargcheckarray(setter, nvalues, message)
 			}
 		}
@@ -162,12 +164,14 @@ UFX.glutil = {
 		}
 		if (true) {  // Add argument checking
 			var typename = UFX.glutil.enumasstring(type, _gl)
-			if (count > 1) typename += `[${count}]`
+			if (count > 1) typename += "[" + count + "]"
 			if (nvalues == 1) {
-				var message = `Constant setter gl.${settername} for vertex attribute ${aname} requires a single scalar argument of type ${typename}.`
+				var message = "Constant setter gl." + settername + " for vertex attribute " + aname + 
+					" requires a single scalar argument of type " + typename + "."
 				setter = this._wrapargcheckscalar(setter, message)
 			} else {
-				var message = `Constant setter gl.${settername} for vertex attribute ${aname} requires a single length-${nvalues} Array argument of type ${typename}.`
+				var message = "Constant setter gl." + settername + " for vertex attribute " + aname +
+					" requires a single length-" + nvalues + " Array argument of type " + typename + "."
 				setter = this._wrapargcheckarray(setter, nvalues, message)
 			}
 		}
@@ -194,7 +198,8 @@ UFX.glutil = {
 				return function (arg) {
 					var isarray = Array.isArray(arg) || arg instanceof Float32Array
 					if (arguments.length != 1 || !isarray) {
-						throw `Setter for vertex attribute ${aname} requires a single argument Array or Float32Array.`
+						throw "Setter for vertex attribute " + aname +
+							" requires a single argument Array or Float32Array."
 					}
 					func(arg)
 				}

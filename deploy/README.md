@@ -12,6 +12,7 @@ rsync -avz ./ night@night.xen.prgmr.com:/var/www/UFX/repo
 
 
 Update copies
+cd /var/www/UFX
 rm *.js
 for fname in `ls repo/src` ; do cp repo/src/$fname UFX.${fname%.js}.orig.js ; done
 cat UFX.*.orig.js > UFX.orig.js

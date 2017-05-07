@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<title>UFX browser feature support survey</title>
+<script src="support.js"></script>
+<style type="text/css">
+body {
+	background: #444;
+	color: white;
+}
+h1 {
+	font-size: 130%;
+}
+table .yes {
+	background-color: rgba(0,255,0,0.2);
+}
+table .partial {
+	background-color: rgba(255,255,0,0.2);
+}
+table .no {
+	background-color: rgba(255,0,0,0.2);
+}
+table * {
+	text-align: center;
+}
+td, th {
+	padding: 0.2em 0.4em;
+}
+#gltable {
+	background-color: rgba(255,127,0,0.2);
+}
+</style>
+<h1>UFX browser feature support survey</h1>
+<p>No action is necessary. The results of this survey have been automatically uploaded to ufx.space.
+Thank you.
+<p id=output>
+<table id=table>
+<tr><th>test name<th>result
+</table>
+<p>
+<table id=ftable>
+<tr><th>feature name<th>unprefixed<th>prefixed
+</table>
+<p>
+<table id=gltable>
+<tr><th>GL parameter name<th>value
+</table>
+<noscript>Javascript disabled.</noscript>
+<script>
+"use strict"
+window.onerror = function (message, url, line, col, errorobj) {
+	var stack = errorobj === undefined ? undefined : errorobj.stack
+	document.body.innerHTML = [
+		"<p>Error in: " + url,
+		"<p>line " + line,
+		"<pre>" + message,
+		"",
+		"" + stack + "</pre>"
+	].join("\n")
+}
+
+var table = document.getElementById("table")
+var ftable = document.getElementById("ftable")
+var gltable = document.getElementById("gltable")
+var output = document.getElementById("output")
+
+document.addEventListener("DOMContentLoaded", function(event) {
+	output.innerHTML += "<br>test ID: " + UFX.support.testid
+	output.innerHTML += "<br>user agent: " + UFX.support.useragent
+	output.innerHTML += "<br>screen size: " + UFX.support.screensize.join("x")
+	output.innerHTML += "<br>viewport size: " + UFX.support.viewportsize.join("x")
+
+	for (var testname in UFX.support.matchtests) {
+		var test = UFX.support.matchtests[testname]
+		var row = [
+			testname,
+			test.valid ? (test.match ? "YES" : "NO") : "ERROR",
+		]
+		var rclass = row[1].toLowerCase()
+		table.innerHTML += "<tr class=" + rclass + "><td>" + row.join("<td>")
+	}
+	for (var featurename in UFX.support.features) {
+		var feature = UFX.support.features[featurename]
+		var row = [
+			featurename,
+			"" + feature.exists,
+			(feature.prefixed.length > 0
+				? feature.prefixed[0].substr(0, feature.prefixed[0].length - featurename.length)
+				: "")
+		]
+		var rclass = feature.exists ? "yes" : feature.prefixed.length ? "partial" : "no"
+		ftable.innerHTML += "<tr class=" + rclass + "><td>" + row.join("<td>")
+	}
+	if (UFX.support.webgl) {
+		for (var pname in UFX.support.webgl.parameters) {
+			var row = [pname, "" + UFX.support.webgl.parameters[pname]]
+			gltable.innerHTML += "<tr><td>" + row.join("<td>")
+		}
+	}
+})
+</script>
