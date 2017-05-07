@@ -16,7 +16,7 @@ UFX.maximize = function (element, options) {
 	window.addEventListener("resize", UFX.maximize.onresize)
 	window.addEventListener("fullscreenchange", UFX.maximize.onfullscreenchange)
 	window.addEventListener("fullscreenerror", UFX.maximize.onfullscreenerror)
-	document.body.addEventListener("touchstart", UFX.maximize.ontouchstart)
+	document.body.addEventListener("touchstart", UFX.maximize.ontouchstart, { passive: false })
 
 	if (element !== UFX.maximize.state.element) {
 		UFX.maximize.takedown()
