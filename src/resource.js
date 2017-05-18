@@ -99,6 +99,11 @@ UFX.resource = {
 			this._loadaudiobuffer(audiocontext, res[0], res[1])
 		}
 	},
+	// Called if the given audio context returns an error when decoding the audio buffer specified
+	// by the given name. Override if you want a different error handler.
+	onaudiobuffererror: function (audiocontext, buffer, name, error) {
+		console.error('UFX.resource error decoding audio "' + name + '": ' + error)
+	},
 
 	// Load Google web fonts
 	loadwebfonts: function () {
@@ -362,9 +367,12 @@ UFX.resource = {
 		var req = new XMLHttpRequest()
 		req.open("GET", dataurl, true)
 		req.responseType = "arraybuffer"
-		req.onload  = function () {
+		req.onload = function () {
 			audiocontext.decodeAudioData(req.response, function (buffer) {
 				UFX.resource.data[dname] = buffer
+				UFX.resource._onload()
+			}, function (err) {
+				UFX.resource.onaudiobuffererror(audiocontext, req.response, dname, err)
 				UFX.resource._onload()
 			})
 		}
