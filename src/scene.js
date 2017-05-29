@@ -30,9 +30,11 @@ UFX.SceneStack.prototype = {
 		opts.cthis = this
 		UFX.ticker.init(this.think, this.draw, opts, keepopts)
 	},
-	top: function () {
-		var n = this._stack.length
-		return n ? this._stack[n-1] : null
+	// top() returns the topmost scene object.
+	// top(k) returns the scene object k layers down.	
+	top: function (k) {
+		var n = this._stack.length - (k || 0) - 1
+		return n >= 0 ? this._stack[n] : null
 	},
 	getscene: function (c) {
 		if (typeof c === "string") {

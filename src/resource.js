@@ -10,6 +10,11 @@
 // The resources will be loaded into the objects UFX.resource.images, UFX.resource.sounds, and
 // UFX.resource.data, based on the url extension, and parsed into the appropriate type.
 
+// opts.skipcount: set to true for this resource to not count toward the progress bar.
+// opts.skiponloading: set to true to avoid calling UFX.resource.onloading when this resource loads.
+// opts.onload: callback specific to this resource.
+
+
 // TODO: add documentation to the unifac wiki
 
 "use strict"
@@ -29,6 +34,9 @@ UFX.resource = {
 	// Base path for loading resources
 	base: null,
 
+	// If false, then it is an error to call load for the same resource name twice.
+	allowduplicate: false,
+
 	soundvolume: undefined,
 	musicvolume: undefined,
 	audiovolume: undefined,
@@ -36,9 +44,9 @@ UFX.resource = {
 	// Set this to a function that should be called when all resources are loaded
 	onload: function () {},
 
-	// Set this to a function that should be called while resources are loading.
-	// It takes one argument, which is the fraction of resources that have loaded successfully.
-	onloading: function (f) {},
+	// Set this to a function that should be called while resources are loading. Arguments are:
+	// f: a number between 0 and 1, the fraction of resources that have loaded successfully.
+	onloading: function (f, obj, objtype, objname, url) {},
 
 	// Give it a bunch of resource URLs to preload.
 	// Resource type (image or audio) is determined by extension
@@ -51,10 +59,10 @@ UFX.resource = {
 	//   as UFX.resource.images[name1], etc.
 	// Otherwise key as UFX.resource.images[url1], etc.
 	load: function () {
-		var resnames = UFX.resource._extractlist(arguments)
-		for (var j = 0 ; j < resnames.length ; ++j) {
-			var res = resnames[j]
-			this._load(res[0], res[1])
+		var r = UFX.resource._extractlist(arguments), reslist = r[0], opts = r[1]
+		for (var j = 0 ; j < reslist.length ; ++j) {
+			var res = reslist[j]
+			this._load(res[0], res[1], opts)
 		}
 		if (this._toload === 0) {
 			setTimeout(this.onload, 0)
@@ -65,38 +73,38 @@ UFX.resource = {
 	//   from the URL. Or if you just want to be explicit about it.
 	// Same calling conventions as load.
 	loadimage: function () {
-		var resnames = this._extractlist(arguments)
-		for (var j = 0 ; j < resnames.length ; ++j) {
-			var res = resnames[j]
-			this._loadimage(res[0], res[1])
+		var r = UFX.resource._extractlist(arguments), reslist = r[0], opts = r[1]
+		for (var j = 0 ; j < reslist.length ; ++j) {
+			var res = reslist[j]
+			this._loadimage(res[0], res[1], opts)
 		}
 	},
 	loadsound: function () {
-		var resnames = this._extractlist(arguments)
-		for (var j = 0 ; j < resnames.length ; ++j) {
-			var res = resnames[j]
-			this._loadsound(res[0], res[1])
+		var r = UFX.resource._extractlist(arguments), reslist = r[0], opts = r[1]
+		for (var j = 0 ; j < reslist.length ; ++j) {
+			var res = reslist[j]
+			this._loadsound(res[0], res[1], opts)
 		}
 	},
 	loadjson: function () {
-		var resnames = this._extractlist(arguments)
-		for (var j = 0 ; j < resnames.length ; ++j) {
-			var res = resnames[j]
-			this._loadjson(res[0], res[1])
+		var r = UFX.resource._extractlist(arguments), reslist = r[0], opts = r[1]
+		for (var j = 0 ; j < reslist.length ; ++j) {
+			var res = reslist[j]
+			this._loadjson(res[0], res[1], opts)
 		}
 	},
 	loadbuffer: function () {
-		var resnames = this._extractlist(arguments)
-		for (var j = 0 ; j < resnames.length ; ++j) {
-			var res = resnames[j]
-			this._loadbuffer(res[0], res[1])
+		var r = UFX.resource._extractlist(arguments), reslist = r[0], opts = r[1]
+		for (var j = 0 ; j < reslist.length ; ++j) {
+			var res = reslist[j]
+			this._loadbuffer(res[0], res[1], opts)
 		}
 	},
 	loadaudiobuffer: function (audiocontext) {
-		var resnames = this._extractlist([].slice.call(arguments, 1))
-		for (var j = 0 ; j < resnames.length ; ++j) {
-			var res = resnames[j]
-			this._loadaudiobuffer(audiocontext, res[0], res[1])
+		var r = UFX.resource._extractlist([].slice.call(arguments, 1)), reslist = r[0], opts = r[1]
+		for (var j = 0 ; j < reslist.length ; ++j) {
+			var res = reslist[j]
+			this._loadaudiobuffer(audiocontext, res[0], res[1], opts)
 		}
 	},
 	// Called if the given audio context returns an error when decoding the audio buffer specified
@@ -107,16 +115,23 @@ UFX.resource = {
 
 	// Load Google web fonts
 	loadwebfonts: function () {
+		var args = [].slice.call(arguments), opts = {}
+		if (typeof args[args.length - 1] != "string") {
+			var oopts = args.pop()
+			for (var s in oopts) opts[s] = oopts[s]
+		}
 		WebFontConfig = {
-			google: { families: Array.prototype.slice.call(arguments) },
-			fontactive: UFX.resource._onload,
+			google: { families: args },
+			fontactive: function (familyname, fvd) {
+				UFX.resource._onload(null, "fonts", familyname + "-" + fvd, familyname, opts)
+			},
 		}
 		var wf = document.createElement("script")
 		wf.src = "https://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js"
 		wf.type = "text/javascript"
 		wf.async = "true"
 		document.getElementsByTagName("head")[0].appendChild(wf)
-		this._toload += arguments.length
+		if (!opts.skipcount) this._toload += args.length
 	},
 
 	setsoundvolume: function (v) {
@@ -294,118 +309,191 @@ UFX.resource = {
 	},
 
 	// Try to deduce what type the resource is based on the url
-	_load: function (name, url) {
+	_load: function (name, url, opts) {
+		if (url.indexOf(".") == -1) {
+			console.log("Treating extensionless URL " + url + " as raw data")
+			return this._loaddata(name, url, opts)
+		}
 		var ext = url.split(".").pop()
 		if (this.imagetypes.indexOf(ext) > -1) {
-			return this._loadimage(name, url)
+			return this._loadimage(name, url, opts)
 		} else if (this.soundtypes.indexOf(ext) > -1) {
-			return this._loadsound(name, url)
+			return this._loadsound(name, url, opts)
 		} else if (this.jsontypes.indexOf(ext) > -1) {
-			return this._loadjson(name, url)
+			return this._loadjson(name, url, opts)
 		} else if (this.rawtypes.indexOf(ext) > -1) {
-			return this._loaddata(name, url)
+			return this._loaddata(name, url, opts)
 		}
 		console.log("Treating unknown extension " + ext + " as raw data")
-		return this._loaddata(name, url)
+		return this._loaddata(name, url, opts)
 	},
 
 	// Load a single image with the given name
-	_loadimage: function (iname, imageurl) {
+	_loadimage: function (iname, imageurl, opts) {
+		this._checkdupe("images", iname)
 		var img = new Image()
-		img.onload = this._onload
-		img.src = this._seturl(imageurl)
+		img.onload = function () {
+			UFX.resource._onload(img, "images", iname, imageurl, opts)
+		}
+		imageurl = this._seturl(imageurl)
+		img.src = imageurl
 		img.iname = iname
 		this.images[iname] = img
-		++this._toload
+		if (!opts.skipcount) ++this._toload
 	},
 	// Load a single audio file with the given name
-	_loadsound: function (aname, audiourl) {
+	_loadsound: function (aname, audiourl, opts) {
+		this._checkdupe("sounds", aname)
 		var audio = new Audio()
-		audio.addEventListener("canplaythrough", this._onload, false)
+		audio.addEventListener("canplaythrough", function () {
+			UFX.resource._onload(audio, "sounds", aname, audiourl, opts)
+		}, false)
 		audio.src = this._seturl(audiourl)
 		audio.aname = aname
 		this.sounds[aname] = audio
-		++this._toload
+		if (!opts.skipcount) ++this._toload
 	},
 	// Load a single json resource
-	_loadjson: function (jname, jsonurl) {
+	_loadjson: function (jname, jsonurl, opts) {
+		this._checkdupe("data", jname)
 		var req = new XMLHttpRequest()
 		req.overrideMimeType("application/json")
 		req.open('GET', jsonurl, true); 
 		req.onload = function() {
 			UFX.resource.data[jname] = JSON.parse(req.responseText)
-			UFX.resource._onload()
+			UFX.resource._onload(UFX.resource.data[jname], "data", jname, jsonurl, opts)
 		}
 		req.send(null)
-		++this._toload
+		if (!opts.skipcount) ++this._toload
 	},
 	// Load a raw data resource
-	_loaddata: function (dname, dataurl) {
+	_loaddata: function (dname, dataurl, opts) {
+		this._checkdupe("data", dname)
 		var req = new XMLHttpRequest()
 		req.open('GET', dataurl, true)
 		req.onload = function() {
 			UFX.resource.data[dname] = req.responseText
-			UFX.resource._onload()
+			UFX.resource._onload(UFX.resource.data[dname], "data", dname, dataurl, opts)
 		}
 		req.send(null)
-		++this._toload
+		if (!opts.skipcount) ++this._toload
 	},
 	// Load a raw data resource as an arraybuffer
-	_loadbuffer: function (dname, dataurl) {
+	_loadbuffer: function (dname, dataurl, opts) {
+		this._checkdupe("data", dname)
 		var req = new XMLHttpRequest()
 		req.open("GET", dataurl, true)
 		req.responseType = "arraybuffer"
 		req.onload  = function () {
 			UFX.resource.data[dname] = req.response
-			UFX.resource._onload()
+			UFX.resource._onload(UFX.resource.data[dname], "data", dname, dataurl, opts)
 		}
 		req.send(null)
-		++this._toload
+		if (!opts.skipcount) ++this._toload
 	},
 	// Load a raw data resource as an audio buffer
-	_loadaudiobuffer: function (audiocontext, dname, dataurl) {
+	_loadaudiobuffer: function (audiocontext, dname, dataurl, opts) {
+		this._checkdupe("data", dname)
 		var req = new XMLHttpRequest()
 		req.open("GET", dataurl, true)
 		req.responseType = "arraybuffer"
 		req.onload = function () {
 			audiocontext.decodeAudioData(req.response, function (buffer) {
 				UFX.resource.data[dname] = buffer
-				UFX.resource._onload()
+				UFX.resource._onload(UFX.resource.data[dname], "data", dname, dataurl, opts)
 			}, function (err) {
 				UFX.resource.onaudiobuffererror(audiocontext, req.response, dname, err)
-				UFX.resource._onload()
+				UFX.resource._onload(UFX.resource.data[dname], "data", dname, dataurl, opts)
 			})
 		}
 		req.send(null)
-		++this._toload
+		if (!opts.skipcount) ++this._toload
 	},
 
+
+	_seenvalues: {},
+	_checkdupe: function (otype, oname) {
+		var key = otype + "." + oname
+		var isdupe = this._seenvalues[key]
+		this._seenvalues[key] = true
+		if (isdupe && !this.allowduplicate) {
+			throw 'Duplicate resource loaded: "' + oname + '" of type: ' + otype
+		}
+	},
+
+	// Extracts one of several forms of argument lists:
+	//   s1 s2 s3 ... [opts]
+	//   [s1 s2 s3 ...] [opts]
+	//   [[k1, v1] [k2, v2], ...] [opts]
+	//   {k1: v1, k2: v2, ...} [opts]
+	// The s, k, and v values are strings. opts is an object. If no object is specified, the empty
+	// object is returned.
 	_extractlist: function (args) {
+		if (args.length < 1) throw "Error extracting arguments: empty argument list"
 		var ret = []
+		var opts = {}
+		var seenobj = false
 		for (var j = 0 ; j < args.length ; ++j) {
 			var arg = args[j]
-			if (typeof arg == "string") {
+			var isstring = typeof arg == "string"
+			var isarray = arg instanceof Array
+			var islast = j == args.length - 1
+			if (isstring) {
+				if (seenobj) throw "Error extracting arguments: string mixed with non-string."
 				ret.push([arg, arg])
-			} else if (arg instanceof Array) {
+			} else if (isarray) {
+				if (j != 0) throw "Error extracting arguments: Array must be first arg."
 				for (var k = 0 ; k < arg.length ; ++k) {
-					ret.push([arg[k], arg[k]])
+					if (arg[k] instanceof Array) {
+						ret.push([arg[k][0], arg[k][1]])
+					} else  {
+						ret.push([arg[k], arg[k]])
+					}
 				}
+				seenobj = true
 			} else {
-				for (var k in arg) {
-					ret.push([k, arg[k]])
+				if (j == 0) {
+					for (var k in arg) {
+						ret.push([k, arg[k]])
+					}
+				} else if (islast) {
+					opts = arg
+				} else {
+					throw "Error extracting arguments: object must be first or last arg."
 				}
+				seenobj = true
 			}
 		}
-		return ret
+		for (var j = 0 ; j < ret.length ; ++j) {
+			if (typeof ret[j][0] != "string" || typeof ret[j][1] != "string") {
+				throw "Error extracting arguments: non-string (" + ret[j][0] + ", " + ret[j][1] + ")"
+			}
+		}
+		// Prevent any changes from the given opts object from affecting callbacks.
+		var ropts = {}
+		for (var s in opts) ropts[s] = opts[s]
+		return [ret, opts]
 	},
 
 	_toload: 0,
 	_loaded: 0,
-	_onload: function () {
-		++UFX.resource._loaded
+	// obj: the newly loaded object
+	// objtype: one of "image", "sound", "data"
+	// objname: string
+	// url: string
+	// opts: options object
+	_onload: function (obj, objtype, objname, url, opts) {
+		var newlycomplete = false
+		if (!opts.skipcount) {
+			++UFX.resource._loaded
+			if (UFX.resource._loaded == UFX.resource._toload) newlycomplete = true
+		}
 		var f = UFX.resource._loaded / UFX.resource._toload
-		UFX.resource.onloading(f)
-		if (UFX.resource._loaded == UFX.resource._toload) {
+		UFX.resource.onloading(f, obj, objtype, objname, url)
+		if (opts.onload) {
+			opts.onload(obj, objtype, objname, url)
+		}
+		if (newlycomplete) {
 			UFX.resource.onload()
 		}
 	},

@@ -54,17 +54,25 @@ window.onerror = function (error, url, line) {
 }
 let acontext = new AudioContext()
 let asource = null
-UFX.resource.onload = function () {
+
+function draw() {
 	context.fillStyle = "#004"
 	context.fillRect(0, 0, 300, 300)
 	context.font = "40px 'Viga'"
 	context.fillStyle = "white"
 	context.fillText("resource!", 80, 100)
-	context.scale(0.5, 0.5)
-	context.drawImage(UFX.resource.images.abigail, 0, 0)
-	multijump = UFX.resource.Multisound([UFX.resource.sounds.jumpwav])
+	if (UFX.resource.images.abigail) {
+		context.save()
+		context.scale(0.5, 0.5)
+		context.drawImage(UFX.resource.images.abigail, 0, 0)
+		context.restore()
+	}
 }
-
+var canvas = document.getElementById("canvas")
+canvas.width = 300
+canvas.height = 300
+var context = canvas.getContext("2d")
+draw()
 
 function qplay (sound) {
 	sound.pause()
@@ -82,25 +90,29 @@ function aplay (buffer) {
 UFX.resource.base = "data"
 UFX.resource.load({
 	abigail: "abigail.png",
+}, {
+	onload: draw,
+})
+UFX.resource.load({
 	jumpwav: "jump.wav",
 	jumpogg: "jump.ogg",
 	jumpmp3: "jump.mp3",
-	song1: "song1.ogg",
-	song2: "song2.ogg",
 })
+UFX.resource.load([
+	["song1", "song1.ogg"],
+	["song2", "song2.ogg"],
+])
 UFX.resource.loadaudiobuffer(acontext, {
 	jumpbuffer: "data/jump.ogg",
 })
-UFX.resource.loadwebfonts("Viga")
+UFX.resource.loadwebfonts("Viga", {
+	onload: draw,
+})
 
-var canvas = document.getElementById("canvas")
-canvas.width = 300
-canvas.height = 300
-var context = canvas.getContext("2d")
-context.fillStyle = "black"
-context.fillRect(0, 0, 300, 300)
-context.fillStyle = "white"
-context.fillText("Loading...", 0, 0)
+UFX.resource.onload = function () {
+	document.body.style.background = "#222"
+	multijump = UFX.resource.Multisound([UFX.resource.sounds.jumpwav])
+}
 
 </script>
 

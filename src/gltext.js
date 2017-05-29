@@ -15,6 +15,7 @@ UFX.gltext.init = function (gl) {
 	prog.draw = UFX.gltext._draw
 	prog.drawbox = UFX.gltext._drawbox
 	prog.clean = UFX.gltext._clean
+	prog.clear = UFX.gltext._clear
 	prog.gettexture = UFX.gltext._gettexture
 	prog.texturedata = {
 		textures: {},
@@ -212,14 +213,7 @@ UFX.gltext._clean = function () {
 	var gl = this.gl
 	gl.activeTexture(gl.TEXTURE0)
 	if (CONSTANTS.MEMORY_LIMIT_MB <= 0) {
-		for (var key in textures) {
-			gl.bindTexture(gl.TEXTURE_2D, textures[key][0])
-			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
-//			gl.deleteTexture(textures[key][0])
-			tdata.spares.push(textures[key][0])
-		}
-		tdata.textures = {}
-		tdata.sizetotal = 0
+		this.clear()
 	} else {
 		var keys = Object.keys(textures)
 		keys.sort(function (a, b) { return textures[b][3] - textures[a][3] })
@@ -231,11 +225,20 @@ UFX.gltext._clean = function () {
 			tdata.sizetotal -= textures[key][2]
 			gl.bindTexture(gl.TEXTURE_2D, textures[key][0])
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
-//			gl.deleteTexture(textures[key][0])
 			tdata.spares.push(textures[key][0])
 			delete tdata.textures[key]
 		}
 	}
+}
+UFX.gltext._clear = function () {
+	var tdata = this.texturedata, textures = tdata.textures, gl = this.gl
+	for (var key in textures) {
+		gl.bindTexture(gl.TEXTURE_2D, textures[key][0])
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+		tdata.spares.push(textures[key][0])
+	}
+	tdata.textures = {}
+	tdata.sizetotal = 0
 }
 UFX.gltext.DEFAULT = {
 	fontsize: 18,
