@@ -200,9 +200,9 @@ UFX.maximize.onresize = function () {
 		}
 	}
 	// In the event that no aspect ratio is chosen (because the window was too small for all of
-	// them), fall back to the first apsect ratio in the list, and let it be larger than the window.
+	// them), fall back to the first aspect ratio in the list, and let it be larger than the window.
 	if (!esize) {
-		apsect = aspects[0]
+		aspect = aspects[0]
 		esize = reduced(aspect)
 	}
 
