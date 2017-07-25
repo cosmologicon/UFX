@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<title>UFX.gltext test</title>
+<style>
+body {
+    background: #444; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+canvas {
+	border: medium white solid;
+}
+</style>
+<script src="../src/gl.js"></script>
+<script src="../src/draw.js"></script>
+<script src="../src/resource.js"></script>
+<script type="x-shader/x-vertex" id="vert">
+attribute vec2 p; // Unit square
+uniform vec2 w; // viewport dimensions
+uniform vec2 s; // coverage of texture in the viewport
+uniform vec2 p0;  // position in the viewport of the anchor point
+uniform vec2 d; // position of the anchor point with respect to the lower left edge, in texture coordinates
+uniform vec2 f; // fraction of the texture that actually needs to be displayed
+varying highp vec2 a;  // Texture coordinates
+uniform float A;  // Rotation angle about anchor point
+void main() {
+	mat2 R = mat2(cos(A), sin(A), -sin(A), cos(A));
+	vec2 offsetT = p * f - d;  // Position in texture coordinates with respect to the anchor point (before rotation).
+	vec2 offsetV = offsetT * s;  // Position in viewport coordinates with respect to anchor point (before rotation).
+	vec2 pV = p0 + R * offsetV;  // Actual position in viewport coordinates.
+	gl_Position = vec4(pV / w * 2.0 - 1.0, 0.0, 1.0);
+	a = (p - 0.5) * f + 0.5;
+}
+</script>
+<script type="x-shader/x-fragment" id="frag">
+varying highp vec2 a;
+uniform sampler2D t;
+uniform highp float alpha;
+void main() {
+	gl_FragColor = texture2D(t, a);
+	gl_FragColor.a *= alpha;
+}
+</script>
+<h1>UFX.gltracer test</h1>
+<canvas id=canvas></canvas>
+<script>
+let DEBUG = false
+let mipmap = false
+let npot = true
+let exact = true
+
+
+let canvas = document.getElementById("canvas")
+canvas.width = canvas.height = 800
+let gl = UFX.gl(canvas)
+gl.clearColor(0, 0, 0, 1)
+let prog = gl.addProgram("tracer", "vert", "frag")
+
+let posbuffer = gl.makeArrayBuffer([0, 0, 1, 0, 0, 1, 1, 1])
+prog.assignAttribOffsets({ p: 0 })
+
+function Tracer(range, drawfunc) {
+	;[this.x0, this.y0, this.x1, this.y1] = range
+	this.w = this.x1 - this.x0
+	this.h = this.y1 - this.y0
+	this.drawfunc = drawfunc
+	this.textures = {}
+}
+Tracer.prototype = {
+	draw: function (pos, scale, A) {
+		let twidth = 40, theight = 40
+		this.drawtsize(pos, scale, A, twidth, theight)
+	},
+	drawtsize: function (pos, scale, A, twidth, theight) {
+		prog.use()
+		gl.enable(gl.BLEND)
+		gl.disable(gl.DEPTH_TEST)
+		gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, 0, 1)
+		posbuffer.bind()
+		prog.assignAttribOffsets({ p: 0 })
+
+		let b = Math.min(twidth / this.w, theight / this.h)
+
+		let fx = Math.ceil(this.w * b - 0.001) / twidth
+		let fy = Math.ceil(this.h * b - 0.001) / theight
+		let dx = (-this.x0 * b) / twidth, dy = (this.y1 * b) / theight
+		let texture = this.gettexture(twidth, theight, b)
+		gl.activeTexture(gl.TEXTURE0)
+		gl.bindTexture(gl.TEXTURE_2D, texture)
+		prog.set({
+			w: [gl.canvas.width, gl.canvas.height],
+			p0: pos,
+			d: [dx, dy],
+			t: 0,
+			s: [twidth / b * scale, theight / b * scale],
+			alpha: 1,
+			A: A || 0,
+			f: [fx, fy],
+		})
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+	},
+	gettexture: function (twidth, theight, zoom) {
+		let key = [twidth, theight, zoom]
+		if (this.textures[key]) return this.textures[key]
+		let canvas = document.createElement("canvas")
+		let context = canvas.getContext("2d")
+		canvas.width = twidth
+		canvas.height = theight
+
+		UFX.draw(context, "[ t", twidth / 2, theight / 2, "z", zoom, zoom,
+			"t", -0.5 * (this.x0 + this.x1), -0.5 * (this.y0 + this.y1))
+		this.drawfunc(context)
+		if (DEBUG) {
+			UFX.draw(context,
+				"lw 1 ss magenta",
+				"b m", this.x0, 0, "l", this.x1, 0, "s",
+				"b m", 0, this.y0, "l", 0, this.y1, "s",
+				"lw 1 sr", this.x0, this.y0, this.x1 - this.x0, this.y1 - this.y0)
+		}
+		UFX.draw(context, "]")
+		if (DEBUG) UFX.draw(context, "[ fs rgba(0,0,255,0.25) f0 ]")
+
+		let texture = gl.buildTexture({
+			source: canvas,
+			npot: true,
+			flip: true,
+//			min_filter: gl.LINEAR_MIPMAP_LINEAR,
+//			mag_filter: gl.LINEAR,
+			filter: gl.LINEAR,
+		})
+		this.textures[key] = texture
+		return texture
+	},
+	clear: function () {
+	},
+}
+
+let ball = new Tracer([-30, -30, 50, 40], (context) => {
+	UFX.draw(context, "b o 0 0 25 lw 5 ss red s")
+	UFX.draw(context, "tab center middle fs white font 40px~'Viga' ft R 35 25")
+})
+let checker = new Tracer([-8, -8, 8, 8], (context) => {
+	for (let x = -8; x < 8 ; ++x) {
+		for (let y = -8 ; y < 8 ; ++y) {
+			let color = (x + y) % 2 ? "red" : "white"
+			UFX.draw(context, "fs", color, "fr", x, y, 1, 1)
+		}
+	}
+})
+
+gl.clear(gl.COLOR_BUFFER_BIT)
+ball.draw([50, 50], 1)
+for (let j = 0 ; j < 5 ; ++j) {
+	ball.draw([200, 200], 2, j * 2 * Math.PI / 5)
+}
+
+checker.draw([500, 100], 16)
+checker.drawtsize([100, 600], 6, 0, 20, 20)
+checker.drawtsize([300, 600], 6, 0, 200, 200)
+checker.drawtsize([500, 600], 6, 0, 20, 200)
+checker.drawtsize([700, 600], 6, 0, 2000, 2000)
+</script>
+
