@@ -19,7 +19,7 @@ UFX.gltracer = function(gl, range, drawfunc, opts) {
 		debug: opts.debug,
 	}
 
-	if (range instanceof Number) {
+	if (typeof range == "number") {
 		obj.x0 = obj.y0 = -range
 		obj.x1 = obj.y1 = range
 	} else if (range instanceof Array && range.length == 2) {
@@ -91,9 +91,6 @@ UFX.gltracer._draw = function (pos, scale, opts) {
 	}
 
 	var b = Math.min(twidth / this.w, theight / this.h)
-	var fx = Math.ceil(this.w * b - 0.001) / twidth
-	var fy = Math.ceil(this.h * b - 0.001) / theight
-	var dx = (-this.x0 * b) / twidth, dy = (this.y1 * b) / theight
 
 	var key = [twidth, theight, b], texture
 	if (this._textures[key]) {
@@ -107,7 +104,7 @@ UFX.gltracer._draw = function (pos, scale, opts) {
 		context.translate(twidth / 2, theight / 2)
 		context.scale(b, b)
 		context.translate(-(this.x0 + this.x1) / 2, -(this.y0 + this.y1) / 2)
-		this.drawfunc(context)
+		this.drawfunc(context, b)
 		if (this.debug) {
 			UFX.draw(context,
 				"lw 1 ss magenta",
@@ -127,6 +124,10 @@ UFX.gltracer._draw = function (pos, scale, opts) {
 		})
 		this._textures[key] = texture
 	}
+
+	var fx = Math.ceil(this.w * b - 0.001) / twidth
+	var fy = Math.ceil(this.h * b - 0.001) / theight
+	var dx = (-this.x0 * b) / twidth, dy = (this.y1 * b) / theight
 
 	gl.activeTexture(gl.TEXTURE0 + this.toffset)
 	gl.bindTexture(gl.TEXTURE_2D, texture)

@@ -75,6 +75,9 @@ UFX.gltext._draw = function (text, pos, opts) {
 	var ocolor = opts.ocolor || DEFAULT.ocolor
 	var shadow = (opts.shadow || DEFAULT.shadow).map(function (a) { return a * DEFAULT.SHADOW_UNITS })
 	var scolor = opts.scolor || DEFAULT.scolor
+	var linejoin = opts.linejoin || DEFAULT.linejoin
+	var linecap = opts.linecap || DEFAULT.linecap
+	var miterlimit = "miterlimit" in opts ? opts.miterlimit : DEFAULT.miterlimit
 	var hanchor = "hanchor" in opts ? opts.hanchor : DEFAULT.hanchor
 	var vanchor = "vanchor" in opts ? opts.vanchor : DEFAULT.vanchor
 	var margin = "margin" in opts ? opts.margin : (UFX.gltext.fontmargins[fontname] || DEFAULT.margin)
@@ -118,7 +121,7 @@ UFX.gltext._draw = function (text, pos, opts) {
 
 	var tbbox = this.gettexture(
 		gl, text, fontsize, fontname, align, margin, width, lineheight,
-		color, gcolor, owidth, ocolor, shadow, scolor,
+		color, gcolor, owidth, ocolor, shadow, scolor, linejoin, linecap, miterlimit,
 		cache
 	)
 	tbbox[3] = ++this.texturedata.tick
@@ -250,6 +253,9 @@ UFX.gltext.DEFAULT = {
 	ocolor: null,
 	shadow: [1, 1],
 	scolor: null,
+	linejoin: "round",
+	linecap: "butt",
+	miterlimit: 10,
 	OUTLINE_UNITS: 1 / 24,
 	SHADOW_UNITS: 1 / 24,
 	hanchor: 0,
@@ -271,11 +277,11 @@ UFX.gltext.fontmargins = {
 // drawn within the image, for the purpose of positioning.
 UFX.gltext._gettexture = function (gl,
 	text, fontsize, fontname, align, margin, width, lineheight,
-	color, gcolor, owidth, ocolor, shadow, scolor,
+	color, gcolor, owidth, ocolor, shadow, scolor, linejoin, linecap, miterlimit,
 	cache) {
 	var key = cache ? [
 		text, fontsize, fontname, align, margin, width, lineheight,
-		color, gcolor, owidth, ocolor, shadow, scolor
+		color, gcolor, owidth, ocolor, shadow, scolor, linejoin, linecap, miterlimit,
 	].toString() : null
 	if (key && this.texturedata.textures[key]) return this.texturedata.textures[key]
 	var DEBUG = false
@@ -321,6 +327,9 @@ UFX.gltext._gettexture = function (gl,
 	context.font = font
 	context.textBaseline = "alphabetic"
 	context.textAlign = "left"
+	context.lineJoin = linejoin
+	context.lineCap = linecap
+	context.miterLimit = miterlimit
 	if (gcolor) {
 		var grad = context.createLinearGradient(0, 0, 0, -fontsize)
 		grad.addColorStop(0, gcolor)
