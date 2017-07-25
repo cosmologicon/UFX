@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>UFX.gltext test</title>
+<style>
+body {
+    background: #444; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+canvas {
+	border: medium white solid;
+}
+</style>
+<script src="../src/gl.js"></script>
+<script src="../src/gltracer.js"></script>
+<script src="../src/draw.js"></script>
+<script src="../src/resource.js"></script>
+<h1>UFX.gltracer test</h1>
+<canvas id=canvas></canvas>
+<script>
+let canvas = document.getElementById("canvas")
+canvas.width = canvas.height = 800
+let gl = UFX.gl(canvas)
+gl.clearColor(0, 0, 0, 1)
+
+UFX.resource.onload = function () {
+	let ball = UFX.gltracer(gl, [-30, -30, 50, 40], (context) => {
+		UFX.draw(context, "b o 0 0 25 lw 5 ss red s")
+		UFX.draw(context, "tab center middle fs white font 40px~'Viga' ft R 35 25")
+	}, { pot: true })
+	let checker = UFX.gltracer(gl, [-8, -8, 8, 8], (context) => {
+		for (let x = -8; x < 8 ; ++x) {
+			for (let y = -8 ; y < 8 ; ++y) {
+				let color = (x + y) % 2 ? "red" : "white"
+				UFX.draw(context, "fs", color, "fr", x, y, 1, 1)
+			}
+		}
+	})
+
+	gl.clear(gl.COLOR_BUFFER_BIT)
+	ball.draw([50, 50], 1)
+	for (let j = 0 ; j < 5 ; ++j) {
+		ball.draw([200, 200], 2, { rotation: j * 360 / 5 })
+	}
+
+	checker.draw([500, 100], 16)
+	checker.draw([500, 500], 12, { alpha: 0.2, rotation: 45 })
+	//checker.drawtsize([100, 600], 6, 0, 20, 20)
+	//checker.drawtsize([300, 600], 6, 0, 200, 200)
+	//checker.drawtsize([500, 600], 6, 0, 20, 200)
+	//checker.drawtsize([700, 600], 6, 0, 2000, 2000)
+}
+UFX.resource.loadwebfonts("Viga")
+</script>
+
