@@ -12,7 +12,7 @@ UFX.gltracer = function(gl, range, drawfunc, opts) {
 		_textures: {},
 		drawfunc: drawfunc,
 		draw: UFX.gltracer._draw,
-		clean: UFX.gltracer._clean,
+		clear: UFX.gltracer._clear,
 		autosetup: true,
 		toffset: 0,
 		pot: opts.pot,
@@ -143,3 +143,12 @@ UFX.gltracer._draw = function (pos, scale, opts) {
 	})
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
 }
+
+UFX.gltracer._clear = function () {
+	var gl = this._gl
+	for (var key in this._textures) {
+		gl.deleteTexture(this._textures[key])
+	}
+	this._textures = {}
+}
+
