@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>UFX.gltext wrapping test</title>
+<style>
+body {
+    background: #444; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+canvas {
+	border: medium white solid;
+}
+</style>
+<script src="../src/gl.js"></script>
+<script src="../src/gltext.js"></script>
+<script src="../src/resource.js"></script>
+<h1>UFX.gltext wrapping test</h1>
+<canvas id=canvas></canvas>
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = canvas.height = 800
+var gl = UFX.gl(canvas)
+gl.clearColor(0, 0, 0, 1)
+var prog = UFX.gltext.init(gl)
+
+let text = "abcdefghijklmnopqrstuvwxyzzyxwvutsrqponmlkjihgfedcba".split("").join(" ")
+
+function think() {
+	gl.clear(gl.COLOR_BUFFER_BIT)
+	prog.use()
+	let h = 50 + 30 * Math.sin(Date.now() / 1000)
+	prog.draw(text, { center: [200, 400], width: 5 * h, fontsize: h })
+	prog.draw(text, { center: [600, 400], widthem: 5, fontsize: h })
+}
+setInterval(think, 40)
+</script>
+

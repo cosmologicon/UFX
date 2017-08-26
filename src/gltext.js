@@ -83,6 +83,8 @@ UFX.gltext._draw = function (text, pos, opts) {
 	var margin = "margin" in opts ? opts.margin : (UFX.gltext.fontmargins[fontname] || DEFAULT.margin)
 	var lineheight = "lineheight" in opts ? opts.lineheight : DEFAULT.lineheight
 	var width = opts.width
+	var widthem = opts.widthem
+	if (width && widthem) throw "Width overspecified"
 	var cache = "cache" in opts ? opts.cache : true
 	if (!CONSTANTS.MEMORY_LIMIT_MB) cache = false
 
@@ -120,7 +122,7 @@ UFX.gltext._draw = function (text, pos, opts) {
 	}
 
 	var tbbox = this.gettexture(
-		gl, text, fontsize, fontname, align, margin, width, lineheight,
+		gl, text, fontsize, fontname, align, margin, width, widthem, lineheight,
 		color, gcolor, owidth, ocolor, shadow, scolor, linejoin, linecap, miterlimit,
 		cache
 	)
@@ -148,7 +150,6 @@ UFX.gltext._drawbox = function (text, box, opts) {
 	opts = opts ? Object.create(opts) : {}
 	var DEFAULT = UFX.gltext.DEFAULT
 	if (!opts.fontname) opts.fontname = DEFAULT.fontname
-	//if (!("margin" in opts)) opts.margin = (UFX.gltext.fontmargins[fontname] || DEFAULT.margin)
 	if (!("lineheight" in opts)) opts.lineheight = DEFAULT.lineheight
 	opts.width = box[2]
 	opts.fontsize = UFX.gltext._fitsize(text, opts.fontname, box[2], box[3], opts.lineheight)
@@ -276,11 +277,11 @@ UFX.gltext.fontmargins = {
 // texture height, x, y, w, h. The x, y, w, h are the effective subrectangle of where the text is
 // drawn within the image, for the purpose of positioning.
 UFX.gltext._gettexture = function (gl,
-	text, fontsize, fontname, align, margin, width, lineheight,
+	text, fontsize, fontname, align, margin, width, widthem, lineheight,
 	color, gcolor, owidth, ocolor, shadow, scolor, linejoin, linecap, miterlimit,
 	cache) {
 	var key = cache ? [
-		text, fontsize, fontname, align, margin, width, lineheight,
+		text, fontsize, fontname, align, margin, width, widthem, lineheight,
 		color, gcolor, owidth, ocolor, shadow, scolor, linejoin, linecap, miterlimit,
 	].toString() : null
 	if (key && this.texturedata.textures[key]) return this.texturedata.textures[key]
@@ -302,9 +303,16 @@ UFX.gltext._gettexture = function (gl,
 
 	var canvas = document.createElement("canvas")
 	var context = canvas.getContext("2d")
-	var font = fontsize + "px " + fontname
-	context.font = font
-	var texts = UFX.gltext._split(context, text, width)
+	var font = fontsize + "px " + fontname, texts
+	if (widthem) {
+		var referencefontsize = 100
+		context.font = referencefontsize + "px "+ fontname
+		texts = UFX.gltext._split(context, text, widthem * referencefontsize)
+		context.font = font
+	} else {
+		context.font = font
+		texts = UFX.gltext._split(context, text, width)
+	}
 	var n = texts.length
 	var twidths = texts.map(function (line) { return context.measureText(line).width })
 	var w0 = Math.max.apply(Math, twidths)
