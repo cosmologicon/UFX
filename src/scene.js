@@ -38,19 +38,18 @@ UFX.SceneStack.prototype = {
 	},
 	getscene: function (c) {
 		if (typeof c === "string") {
-			if (c.substr(0,4) == "new_") {
-				c = c.substr(4)
-				if (!(c in UFX.scenes)) throw "Unrecognized scene: " + c
-				return new UFX.scenes[c]()
-			} else if (c.substr(0,7) == "create_") {
-				c = c.substr(7)
-				if (!(c in UFX.scenes)) throw "Unrecognized scene: " + c
-				return Object.create(UFX.scenes[c])
-			}
 			if (!(c in UFX.scenes)) throw "Unrecognized scene: " + c
 			return UFX.scenes[c]
 		}
 		return c
+	},
+	indexOf: function (scene) {
+		scene = this.getscene(scene)
+		var n = this._stack.length
+		for (var j = n - 1 ; j >= 0 ; --j) {
+			if (this._stack[j] === scene) return n - 1 - j
+		}
+		return -1
 	},
 	ipush: function (cname) {
 		if (this.frozen) return
@@ -93,6 +92,34 @@ UFX.SceneStack.prototype = {
 		if (c.start) c.start.apply(c, args)
 		return c0
 	},
+	iflip: function (i, j) {
+		if (i === undefined) i = 1
+		if (j === undefined) j = 0
+		if (typeof i !== "number") {
+			var index = this.indexOf(i)
+			if (index == -1) throw "Unrecognized scene: " + i
+			i = index
+		}
+		if (typeof j !== "number") {
+			index = this.indexOf(j)
+			if (index == -1) throw "Unrecognized scene: " + j
+			j = index
+		}
+		if (i < 0 || i >= this._stack.length) throw "Invalid scene index: " + i
+		if (j < 0 || j >= this._stack.length) throw "Invalid scene index: " + j
+		if (i == j) return
+		if (i == 0) {
+			i = j
+			j = 0
+		}
+		var n = this._stack.length - 1
+		var iscene = this._stack[n - i]
+		var jscene = this._stack[n - j]
+		if (j == 0 && jscene.suspend) jscene.suspend()
+		this._stack[n - i] = jscene
+		this._stack[n - j] = iscene
+		if (j == 0 && iscene.resume) iscene.resume()
+	},
 	push: function () {
 		this._actionq.push(["push", Array.prototype.slice.call(arguments, 0)])
 	},
@@ -102,12 +129,16 @@ UFX.SceneStack.prototype = {
 	swap: function () {
 		this._actionq.push(["swap", Array.prototype.slice.call(arguments, 0)])
 	},
+	flip: function () {
+		this._actionq.push(["flip", Array.prototype.slice.call(arguments, 0)])
+	},
 	_resolveq: function () {
 		for (var j = 0 ; j < this._actionq.length ; ++j) {
 			switch (this._actionq[j][0]) {
 				case "push": this.ipush.apply(this, this._actionq[j][1]) ; break
 				case "pop": this.ipop.apply(this, this._actionq[j][1]) ; break
 				case "swap": this.iswap.apply(this, this._actionq[j][1]) ; break
+				case "flip": this.iflip.apply(this, this._actionq[j][1]) ; break
 			}
 		}
 		this._actionq = []

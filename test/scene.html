@@ -37,6 +37,39 @@ td {
 <canvas id=canvas style="border: thin blue solid"></canvas>
 
 <script>
+function S(name) {
+	this.name = name
+}
+S.prototype = {
+	start: function () { console.log("start " + this.name) },
+	suspend: function () { console.log("suspend " + this.name) },
+	resume: function () { console.log("resume " + this.name) },
+	stop: function () { console.log("stop " + this.name) },
+}
+let A = UFX.scenes.a = new S("a")
+let B = UFX.scenes.b = new S("b")
+let C = UFX.scenes.c = new S("c")
+let D = UFX.scenes.d = new S("d")
+
+UFX.scene.push(A)
+UFX.scene.push("b")
+UFX.scene.push(C)
+UFX.scene.think()
+console.assert(2 == UFX.scene.indexOf(A))
+console.assert(2 == UFX.scene.indexOf("a"))
+console.assert(C === UFX.scene.top())
+console.assert(B === UFX.scene.top(1))
+UFX.scene.iswap("d")  // [A, B, D]
+UFX.scene.iflip()     // [A, D, B]
+UFX.scene.iflip(2)    // [B, D, A]
+UFX.scene.iflip(1,2)  // [D, B, A]
+console.assert(A === UFX.scene.top())
+console.assert(B === UFX.scene.top(1))
+console.assert(D === UFX.scene.top(2))
+
+// Clear out scene stack
+while (UFX.scene.top()) UFX.scene.ipop()
+
 var canvas = document.getElementById("canvas")
 canvas.width = 400
 canvas.height = 300
