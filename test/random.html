@@ -91,8 +91,13 @@ if (3392050242 !== UFX.random.hash("a") ||
 	throw "Hash function failure!"
 }
 
-UFX.random.setseed()
-
+let seed = UFX.random.setseed()
+let word = UFX.random.word(40)
+console.assert(word == UFX.random.seedmethod(seed, "word", 40))
+let word2 = UFX.random.word(40)
+UFX.random.setseed(seed)
+console.assert(word == UFX.random.word(40))
+console.assert(word2 == UFX.random.word(40))
 
 // Set a context to white on black and set its size to 300x300
 var s = 200, n = 120

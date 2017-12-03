@@ -27,6 +27,9 @@ var UFX = UFX || {}
 // UFX.random.rand(m, n) : integer in [m, n)
 
 UFX.random = function (a, b) {
+	return UFX.random.random(a, b)
+}
+UFX.random.random = function (a, b) {
     if (typeof b == "undefined") {
         b = a
         a = 0
@@ -97,6 +100,14 @@ UFX.random.popseed = function () {
     UFX.random.seed = UFX.random._seedstack.pop()
     return UFX.random.seed
 }
+// Apply a temporary seed for a single method invocation
+UFX.random.seedmethod = function (seed, methodname) {
+	UFX.random.pushseed(seed)
+	var value = UFX.random[methodname || "random"].apply(UFX.random, [].slice.call(arguments, 2))
+	UFX.random.popseed()
+	return value
+}
+
 
 // Random angle in [0, tau)
 UFX.random.angle = function () {
@@ -107,7 +118,7 @@ UFX.random.angle = function () {
 UFX.random.direction = function (d) {
 	if (typeof d != "number") d = 1
 	var a = UFX.random.angle()
-	return [Math.cos(a), Math.sin(a)]
+	return [d * Math.cos(a), d * Math.sin(a)]
 }
 
 // Select a random element from the array arr.
