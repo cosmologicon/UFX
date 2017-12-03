@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>UFX.draw.text test</title>
+<link href='http://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+</style>
+
+<script src="../src/gltext.js"></script>
+<script src="../src/resource.js"></script>
+<script src="../src/draw.js"></script>
+<body>
+<h1>UFX.draw.text test</h1>
+<canvas id=canvas style="border: 3px cyan outset; margin: 10px"></canvas>
+<script>
+var canvas = document.getElementById("canvas")
+canvas.width = 600
+canvas.height = 600
+var context = canvas.getContext("2d")
+UFX.draw.setcontext(context)
+
+UFX.resource.onload = function () {
+	UFX.draw("fs gray f0")
+	for (let x = 0; x < 6 ; ++x) {
+		for (let y = 0 ; y < 6 ; ++y) {
+			if ((x + y) % 2) UFX.draw("[ fs black alpha 0.2 fr", 100 * x, 100 * y, 100, 100, "]")
+		}
+	}
+	UFX.draw("fs white")
+	UFX.draw.text("text color", [50, 30], 20, "sans-serif", { fill: "orange" })
+	UFX.draw.text("Font decoration", [300, 180], 20, "sans-serif", { italic: true, bold: true })
+	UFX.draw.text("bottom right aligned", [600, 600], 20, "sans-serif", { align: "right", baseline: "bottom" })
+	UFX.draw.text("Allow me to demonstrate wrapped text.", [120, 130], 20, "sans-serif", { width: 180, lineheight: 1.5 })
+	UFX.draw.text("Outlined text", [400, 70], 20, "sans-serif", { owidth: 1.5, stroke: "#ff0", fill: "black" })
+	UFX.draw.text("Drop shadow", [440, 110], 20, "sans-serif", { shadow: ["#222", 2, 2, 0] })
+	UFX.draw.text("Shade gradient", [340, 270], 20, "sans-serif", { fill: "red", shade: 2, })
+	UFX.draw.text("Shade gradient", [340, 310], 20, "sans-serif", { fill: "red", shade: -2, })
+	UFX.draw.text("Vertical text", [40, 440], 20, "sans-serif", { tab: "center middle", angle: -Math.PI / 2 })
+	UFX.draw.text("All together now:\nCombining the above options", [300, 560], 48, "Boogaloo", {
+		tab: "center bottom", width: 320, fill: "#AAFF00", shade: 6, owidth: 1.5, stroke: "black",
+		shadow: ["black", 0, 0, 2], angle: -0.1,
+	})
+	
+	let shadefont = "serif"
+
+	UFX.draw.text("Shade T", [60, 150], 40, shadefont, { shade: 10, bold: true, baseline: "top", })
+	UFX.draw.text("Shade M", [60, 210], 40, shadefont, { shade: 10, bold: true, baseline: "middle", })
+	UFX.draw.text("Shade B", [60, 270], 40, shadefont, { shade: 10, bold: true, baseline: "bottom", })
+	UFX.draw.text("Shade A", [60, 310], 40, shadefont, { shade: 10, bold: true, baseline: "alphabetic", })
+	UFX.draw.text("Shade H", [60, 320], 40, shadefont, { shade: 10, bold: true, baseline: "hanging", })
+	UFX.draw.text("Shade I", [60, 400], 40, shadefont, { shade: 10, bold: true, baseline: "ideographic", })
+}
+UFX.resource.loadwebfonts("Boogaloo")
+</script>
+

@@ -284,6 +284,94 @@ UFX._draw.radgrad = function (x0, y0, r0, x1, y1, r1) {
     }
     return grad
 }
+UFX._draw.text = function (text, pos, fontsize, fontname, opts) {
+	opts = opts || {}
+	this.save()
+	this.miterLimit = 0.1
+	this.translate(pos[0], pos[1])
+	var italic = opts.italic == true ? "italic" : (opts.italic || "")
+	if (italic) italic += " "
+	var bold = opts.bold === true ? "bold" : (opts.bold || "")
+	if (bold) bold += " "
+	this.font = italic + bold + fontsize + "px " + "'" + fontname + "'"
+	if (opts.tab) {
+		var tab = opts.tab.split(" ")
+		this.textAlign = tab[0]
+		this.textBaseline = tab[1]
+	}
+	if (opts.align) this.textAlign = opts.align
+	if (opts.baseline) this.textBaseline = opts.baseline
+	var dy = {
+		top: 0,
+		hanging: 0,
+		middle: 0.5,
+		bottom: 1,
+		ideographic: 1,
+		alphabetic: 1,
+	}[this.textBaseline] || 0
+	var texts = UFX.gltext._split(this, text, opts.width)
+	var lineheight = fontsize * ("lineheight" in opts ? opts.lineheight : 1)
+	if (opts.angle) this.rotate(opts.angle)
+	if (dy) this.translate(0, -dy * lineheight * (texts.length - 1))
+	var stroke = opts.stroke || "owidth" in opts, fill = opts.fill !== null
+	if (fill) this.fillStyle = opts.fill === true ? "white" : opts.fill
+	if (stroke) {
+		if (opts.stroke) this.strokeStyle = opts.stroke
+		this.lineWidth = ("owidth" in opts ? opts.owidth : 1) * fontsize / 12
+	}
+	var shadow = opts.shadow || ["black", 0, 0, 0]
+	if (shadow == ["black", 0, 0, 0]) shadow = null
+	if (shadow) {
+		shadow[1] *= fontsize / 18
+		shadow[2] *= fontsize / 18
+		shadow[3] *= fontsize / 18
+	}
+	if (opts.shade) {
+		var a = Math.min((opts.shade === true ? 1 : opts.shade) * 0.1, 1)
+		var color0, color1
+		if (a > 0) {
+			color1 = "rgba(0,0,0," + a + ")"
+			color0 = "rgba(255,255,255," + a + ")"
+		} else {
+			a = -a
+			color0 = "rgba(0,0,0," + a + ")"
+			color1 = "rgba(255,255,255," + a + ")"
+		}
+		var h1 = {
+			top: 0.9,
+			middle: 0.35,
+			bottom: -0.25,
+			alphabetic: 0,
+			hanging: 0.7,
+			ideographic: -0.25,
+		}[this.textBaseline] || 0
+		var h0 = h1 - 0.5
+		var shadegradient = UFX.draw.lingrad(this, 0, h0 * fontsize, 0, h1 * fontsize, 0, color0, 1, color1)
+	}
+	for (var j = 0 ; j < texts.length ; ++j) {
+		var t = texts[j]
+		if (stroke) this.strokeText(t, 0, 0)
+		if (fill) {
+			this.save()
+			if (shadow) {
+				this.shadowColor = shadow[0]
+				this.shadowOffsetX = shadow[1]
+				this.shadowOffsetY = shadow[2]
+				this.shadowBlur = shadow[3]
+			}
+			this.fillText(t, 0, 0)
+			this.restore()
+		}
+		if (opts.shade) {
+			this.save()
+			this.fillStyle = shadegradient
+			this.fillText(t, 0, 0)
+			this.restore()
+		}
+		this.translate(0, lineheight)
+	}
+	this.restore()
+}
 
 
 UFX.draw = function (context) {
