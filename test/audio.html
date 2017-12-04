@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>UFX.audio test</title>
+<style>
+body {
+    background: black; color: white;
+    font-family: 'Viga';
+    font-size: 110%;
+}
+h1 {
+    font-size: 160%;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+input {
+    background: inherit; color: inherit; border: none;
+    font-family: inherit; font-size: inherit;
+    width: 20em;
+}
+table {
+    margin: auto;
+}
+td {
+    text-align: right
+}
+</style>
+
+<script src="../src/resource.js"></script>
+<script src="../src/audio.js"></script>
+<script src="../src/random.js"></script>
+<body>
+<h1>UFX.audio test</h1>
+<p><input id=sfxvolume type="range" min=0 max=100 onchange="setsfxvolume()"> Sfx volume
+<p><input id=musicvolume type="range" min=0 max=100 onchange="setmusicvolume()"> Music volume
+<p><button type=button onclick="playsound()">Play sfx</button>
+<p><button type=button onclick="playsoundatvolume(0.5)">Play 1/2 vol sfx</button>
+<p><button type=button onclick="crossfade()">Crossfade music</button>
+<p>Audio node size:<input type=text id=nodesize></input>
+
+<p>Music CC-BY sampled from: <a href="http://ccmixter.org/files/grapes/16626">song1</a>, <a href="http://ccmixter.org/files/morgantj/18947">song2</a>
+
+<script>
+"use strict"
+
+window.onerror = function (error, url, line) {
+	document.body.innerHTML = "<p>Error in: "+url+"<p>line "+line+"<pre>"+error+"</pre>"
+}
+UFX.audio.init()
+UFX.audio.makegainnode({ name: "sfx", })
+UFX.audio.makegainnode({ name: "music", gain: 0.5 })
+
+window.setInterval(() => {
+	document.getElementById("nodesize").value = Object.keys(UFX.audio.nodes).length
+}, 20)
+
+function setsfxvolume() {
+	let volume = 0.01 * document.getElementById("sfxvolume").value
+	UFX.audio.setgain("sfx", volume)
+}
+function setmusicvolume() {
+	let volume = 0.01 * document.getElementById("musicvolume").value
+	UFX.audio.setgain("music", volume)
+}
+function crossfade() {
+	UFX.audio.setgain("song1_gain", 1 - UFX.audio.getgain("song1_gain"), {fade: 2})
+	UFX.audio.setgain("song2_gain", 1 - UFX.audio.getgain("song2_gain"), {fade: 2})
+}
+setsfxvolume()
+setmusicvolume()
+
+function playsound() {
+	UFX.audio.playbuffer("jump", {
+		output: "sfx",
+	})
+}
+function playsoundatvolume(gain) {
+	UFX.audio.playbuffer("jump", {
+		output: "sfx",
+		gain: gain,
+	})
+}
+UFX.resource.base = "data"
+UFX.audio.loadbuffers({
+	jump: "data/jump.ogg",
+	song1: "data/song1.ogg",
+	song2: "data/song2.ogg",
+})
+UFX.resource.loadwebfonts("Viga", {
+})
+
+UFX.resource.onload = function () {
+	UFX.audio.playbuffer("song1", {
+		name: "song1",
+		output: "music",
+		loop: true,
+		gain: 1,
+	})
+	UFX.audio.playbuffer("song2", {
+		name: "song2",
+		output: "music",
+		loop: true,
+		gain: 0,
+	})
+}
+
+</script>
+
+
