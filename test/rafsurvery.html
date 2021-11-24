@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<link href='http://fonts.googleapis.com/css?family=Droid+Sans+Mono|Roboto+Condensed' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Droid+Sans+Mono|Roboto+Condensed' rel='stylesheet' type='text/css'>
 <meta name=viewport content="width=device-width, initial-scale=1">
 <title>JavaScript animation survey</title>
 <style>
@@ -58,7 +58,7 @@ button:disabled {
 	display: none;
 }
 </style>
-<script src="http://ufx.space/UFX.js"></script>
+<script src="https://ufx.space/UFX.js"></script>
 <script type="text/javascript">
 "use strict"
 var tau = 2 * Math.PI
@@ -68,7 +68,7 @@ function dump(data) {
 	var s = JSON.stringify(data)
 	if (s.length > 1000000) return
 	var req = new XMLHttpRequest()
-	req.open("POST", "http://universefactory.net/tools/dump/", true)
+	req.open("POST", "https://universefactory.net/tools/dump/", true)
 	req.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
 	req.send("project=ufxsurvey&data=" + encodeURIComponent(JSON.stringify(data)))
 }

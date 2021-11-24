@@ -151,7 +151,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 	if (UFX.support.version > 0) {
 		var req = new XMLHttpRequest()
-		req.open("POST", "http://universefactory.net/tools/dump/", true)
+		req.open("POST", "https://universefactory.net/tools/dump/", true)
 		req.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
 		req.send("project=ufxsupport&data=" + encodeURIComponent(JSON.stringify(UFX.support)))
 	}

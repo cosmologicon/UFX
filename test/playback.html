@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<link href='http://fonts.googleapis.com/css?family=Contrail+One' rel='stylesheet' type='text/css'>
+<link href='https://fonts.googleapis.com/css?family=Contrail+One' rel='stylesheet' type='text/css'>
 
 <title>Playback game test</title>
 <!-- UFX libraries -->
@@ -42,7 +42,7 @@ li.cheat { display: none }
 
 <script>
 function getplayback(get, qobj) {
-	var url = "http://universefactory.net/tools/playback/get/"
+	var url = "https://universefactory.net/tools/playback/get/"
 	var qstring = ["get=" + get]
 	for (var a in qobj) {
 		qstring.push(a + "=" + encodeURIComponent(qobj[a]))
@@ -272,7 +272,7 @@ UFX.scenes = {
 					tethered: true,
 					tetherswap: true,
 					keepchapters: true,
-					postscript: "http://universefactory.net/tools/playback/post/",
+					postscript: "https://universefactory.net/tools/playback/post/",
 				})
 				session = recorder.session
 				UFX.scene.push("action", 0)

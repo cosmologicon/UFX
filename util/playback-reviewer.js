@@ -77,7 +77,7 @@ var reviewer = {
 		tbody.innerHTML = rows.join("\n")
 	},
 	getplayback: function (get, qobj) {
-		var url = "http://universefactory.net/tools/playback/get/"
+		var url = "https://universefactory.net/tools/playback/get/"
 		qobj = qobj || {}
 		var qstring = [
 			"get=" + get,
