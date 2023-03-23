@@ -418,7 +418,7 @@ UFX._gl = {
 }
 
 UFX.gl = function (canvas, opts) {
-	var gl = canvas.getContext("webgl")
+	var gl = canvas.getContext("webgl", opts)
 	if (!gl) return gl
 	for (var method in UFX._gl) gl[method] = UFX._gl[method]
 	return gl
