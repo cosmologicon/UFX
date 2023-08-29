@@ -54,6 +54,7 @@ UFX.audio = {
 		opts = opts || {}
 		var node = this.makebuffernode(buffer, opts)
 		node.start(this.context.currentTime + (opts.dt || 0))
+		return node
 	},
 	// Retrieve the node corresponding to the given node or node name.
 	_getnode: function (nodename) {
@@ -129,7 +130,8 @@ UFX.audio = {
 		}
 		var cleanup = "cleanup" in opts ? opts.cleanup : !opts.loop
 		if (cleanup) {
-			source.addEventListener("ended", () => this._cleannodes(nodes))
+			source.cleanup = () => this._cleannodes(nodes)
+			source.addEventListener("ended", source.cleanup)
 		}
 		if (output) source.connect(output)
 		return source
