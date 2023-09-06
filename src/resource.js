@@ -17,6 +17,8 @@
 
 // TODO: add documentation to the unifac wiki
 
+// TODO: look into the performance API to generate loading reports
+
 "use strict"
 var UFX = UFX || {}
 UFX.resource = {
@@ -40,6 +42,11 @@ UFX.resource = {
 	soundvolume: undefined,
 	musicvolume: undefined,
 	audiovolume: undefined,
+
+	// A value between 0 and 1 indicating the fraction of resources that have been loaded.
+	fload: 0,
+	// Whether all resources have finished loading.
+	loaded: false,
 
 	// Set this to a function that should be called when all resources are loaded
 	onload: function () {},
@@ -65,6 +72,8 @@ UFX.resource = {
 			this._load(res[0], res[1], opts)
 		}
 		if (this._toload === 0) {
+			this.fload = 1
+			this.loaded = true
 			setTimeout(this.onload, 0)
 		}
 	},
@@ -347,7 +356,7 @@ UFX.resource = {
 		var audio = new Audio()
 		audio.addEventListener("canplaythrough", function () {
 			UFX.resource._onload(audio, "sounds", aname, audiourl, opts)
-		}, false)
+		}, { capture: false, once: true, })
 		audio.src = this._seturl(audiourl)
 		audio.aname = aname
 		this.sounds[aname] = audio
@@ -488,14 +497,13 @@ UFX.resource = {
 			++UFX.resource._loaded
 			if (UFX.resource._loaded == UFX.resource._toload) newlycomplete = true
 		}
-		var f = UFX.resource._loaded / UFX.resource._toload
-		UFX.resource.onloading(f, obj, objtype, objname, url)
+		UFX.resource.fload = UFX.resource._loaded / UFX.resource._toload
+		if (newlycomplete) UFX.resource.loaded = true
+		UFX.resource.onloading(UFX.resource.fload, obj, objtype, objname, url)
 		if (opts.onload) {
 			opts.onload(obj, objtype, objname, url)
 		}
-		if (newlycomplete) {
-			UFX.resource.onload()
-		}
+		if (newlycomplete) UFX.resource.onload()
 	},
 }
 

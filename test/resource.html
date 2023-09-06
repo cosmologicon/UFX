@@ -109,6 +109,9 @@ UFX.resource.loadwebfonts("Viga", {
 	onload: draw,
 })
 
+UFX.resource.onloading = function (fload, obj, objtype, objname, url) {
+	console.log(UFX.resource.fload, UFX.resource.loaded, fload, objtype, objname, url)
+}
 UFX.resource.onload = function () {
 	document.body.style.background = "#222"
 	multijump = UFX.resource.Multisound([UFX.resource.sounds.jumpwav])
