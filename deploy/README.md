@@ -9,7 +9,7 @@ Make the remote directory writeable:
 
 To copy from local copy:
 
-	rsync -avz ./ night@night.xen.prgmr.com:/var/www/UFX/repo
+	rsync -avz --exclude=".*" ./ night@night.xen.prgmr.com:/var/www/UFX/repo
 
 Update copies
 
