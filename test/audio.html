@@ -34,9 +34,10 @@ td {
 <h1>UFX.audio test</h1>
 <p><input id=sfxvolume type="range" min=0 max=100 onchange="setsfxvolume()"> Sfx volume
 <p><input id=musicvolume type="range" min=0 max=100 onchange="setmusicvolume()"> Music volume
-<p><button type=button onclick="playsound()">Play sfx</button>
-<p><button type=button onclick="playsoundatvolume(0.5)">Play 1/2 vol sfx</button>
-<p><button type=button onclick="crossfade()">Crossfade music</button>
+<p><button type=button onclick="playmusic()" id=button0 disabled>Play music</button>
+<p><button type=button onclick="playsound()" id=button1 disabled>Play sfx</button>
+<p><button type=button onclick="playsoundatvolume(0.5)" id=button2 disabled>Play 1/2 vol sfx</button>
+<p><button type=button onclick="crossfade()" id=button3 disabled>Crossfade music</button>
 <p>Audio node size:<input type=text id=nodesize></input>
 
 <p>Music CC-BY sampled from: <a href="http://ccmixter.org/files/grapes/16626">song1</a>, <a href="http://ccmixter.org/files/morgantj/18947">song2</a>
@@ -47,8 +48,7 @@ td {
 window.onerror = function (error, url, line) {
 	document.body.innerHTML = "<p>Error in: "+url+"<p>line "+line+"<pre>"+error+"</pre>"
 }
-UFX.audio.init()
-UFX.audio.makegainnode({ name: "sfx", })
+UFX.audio.makegainnode({ name: "sfx", gain: 0.5 })
 UFX.audio.makegainnode({ name: "music", gain: 0.5 })
 
 window.setInterval(() => {
@@ -81,16 +81,7 @@ function playsoundatvolume(gain) {
 		gain: gain,
 	})
 }
-UFX.resource.base = "data"
-UFX.audio.loadbuffers({
-	jump: "data/jump.ogg",
-	song1: "data/song1.ogg",
-	song2: "data/song2.ogg",
-})
-UFX.resource.loadwebfonts("Viga", {
-})
-
-UFX.resource.onload = function () {
+function playmusic() {
 	UFX.audio.playbuffer("song1", {
 		name: "song1",
 		output: "music",
@@ -103,6 +94,22 @@ UFX.resource.onload = function () {
 		loop: true,
 		gain: 0,
 	})
+	document.getElementById("button0").disabled = true
+	document.getElementById("button3").disabled = false
+}
+UFX.resource.base = "data"
+UFX.audio.loadbuffers({
+	jump: "data/jump.ogg",
+	song1: "data/song1.ogg",
+	song2: "data/song2.ogg",
+})
+UFX.resource.loadwebfonts("Viga", {
+})
+
+UFX.resource.onload = function () {
+	document.getElementById("button0").disabled = false
+	document.getElementById("button1").disabled = false
+	document.getElementById("button2").disabled = false
 }
 
 </script>

@@ -6,14 +6,9 @@
 var UFX = UFX || {}
 UFX.audio = {
 	context: null,
-	// Override this if you want UFX.audio to use polyfill.
+	// No need to call this directly. Override this if you want UFX.audio to use polyfill.
 	newcontext: function () {
 		return new AudioContext()
-	},
-	// Set UFX.audio.context, either to the given audio context, or to a new one.
-	setcontext: function (acontext) {
-		this.context = acontext || this.newcontext()
-		this.nodes.context = this.context
 	},
 	// Call to begin. Can optionally set the context to an AudioContext object. If none is specified
 	// then one will be generated.
@@ -21,19 +16,20 @@ UFX.audio = {
 		this.nodes = {}
 		this._nextjnode = 0
 		this.buffers = {}
-		this.setcontext(acontext)
+		this.context = acontext || this.newcontext()
 	},
 	// Get the desired name of a node. If the opts don't specify one, then return a number that is
 	// not currently in use.
 	_getnodename: function (opts) {
 		opts = opts || {}
 		if (opts.name) return opts.name
-		while (this.nodes[this._nextjnode]) ++this._nextjnode
-		return this._nextjnode++
+		while (this.nodes["node_" + this._nextjnode]) ++this._nextjnode
+		return "node_" + this._nextjnode++
 	},
 	// Add the given node to this.nodes and return it. If nodename is unspecified then a free name
 	// will be chsen.
-	_addnode: function (node, nodename) {
+	addnode: function (node, nodename) {
+		if (!this.context) this.init()
 		if (nodename === undefined) nodename = this._getnodename()
 		this.nodes[nodename] = node
 		node.name = nodename
@@ -51,6 +47,7 @@ UFX.audio = {
 	},
 	// Create a buffer source with the given buffer or buffer name and play it immediately.
 	playbuffer: function (buffer, opts) {
+		if (!this.context) this.init()
 		opts = opts || {}
 		var node = this.makebuffernode(buffer, opts)
 		node.start(this.context.currentTime + (opts.dt || 0))
@@ -58,24 +55,16 @@ UFX.audio = {
 	},
 	// Retrieve the node corresponding to the given node or node name.
 	_getnode: function (nodename) {
-		var node
-		if (nodename instanceof AudioNode) {
-			node = nodename
-		} else {
-			node = this.nodes[nodename]
-			if (!node) throw "Unrecognized node " + nodename
-		}
+		if (nodename instanceof AudioNode) return nodename
+		var node = this.nodes[nodename]
+		if (!node) throw "Unrecognized node " + nodename
 		return node
 	},
 	// Retrieve the AudioBuffer object corresponding to the given buffer or buffer name.
 	_getbuffer: function (buffername) {
-		var buffer
-		if (buffername instanceof AudioBuffer) {
-			buffer = buffername
-		} else {
-			buffer = this.buffers[buffername]
-			if (!buffer) throw "Unrecognized buffer " + buffername
-		}
+		if (buffername instanceof AudioBuffer) return buffername
+		var buffer = this.buffers[buffername]
+		if (!buffer) throw "Unrecognized buffer " + buffername
 		return buffer
 	},
 	// Return the specified output, if any, or the context destination if not specified.
@@ -86,12 +75,15 @@ UFX.audio = {
 	},
 	// Set the gain of the specified gain node to the specified value.
 	setgain: function (nodename, value, opts) {
+		if (!this.context) this.init()
 		opts = opts || {}
-		var node = this._getnode(nodename)
-		if ("fade" in opts) {
-			node.gain.linearRampToValueAtTime(value, this.context.currentTime + (opts.fade || 0))
+		var node = this._getnode(nodename), gain = node.gain
+		var dt = opts.dt || 0, fade = opts.fade || 0, t0 = this.context.currentTime
+		if (fade) {
+			gain.setValueAtTime(gain.value, t0 + dt)  // Sets linearRamp start time to now.
+			gain.linearRampToValueAtTime(value, t0 + dt + fade)
 		} else {
-			node.gain.setValueAtTime(value, this.context.currentTime + (opts.dt || 0))
+			gain.setValueAtTime(value, t0 + dt)
 		}
 	},
 	// Get the current gain of the specified gain node.
@@ -101,7 +93,8 @@ UFX.audio = {
 	},
 	// Create a gain node with the given options.
 	makegainnode: function (opts) {
-		var node = this._addnode(this.context.createGain(), this._getnodename(opts))
+		if (!this.context) this.init()
+		var node = this.addnode(this.context.createGain(), this._getnodename(opts))
 		if (opts.gain !== undefined) this.setgain(node, opts.gain)
 		var output = this._getoutput(opts.output)
 		if (output) node.connect(output)
@@ -109,6 +102,7 @@ UFX.audio = {
 	},
 	// Create a buffer node with the given options.
 	makebuffernode: function (buffer, opts) {
+		if (!this.context) this.init()
 		opts = opts || {}
 		var sourcename = this._getnodename(opts)
 		var output = this._getoutput(opts.output)
@@ -122,7 +116,7 @@ UFX.audio = {
 			output = gain
 			nodes.push(gain)
 		}
-		var source = this._addnode(this.context.createBufferSource(), sourcename)
+		var source = this.addnode(this.context.createBufferSource(), sourcename)
 		nodes.push(source)
 		source.buffer = this._getbuffer(buffer)
 		if (opts.loop) {
