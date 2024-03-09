@@ -1,143 +1,113 @@
 // UFX.maximize: expand a canvas to take up the whole window or screen
 
-// UFX.maximize(element, options)
-// Options:
-//   stretch
-//   resize
-//   
-
-// For more details, see the UFX.maximize documentation at:
-// https://github.com/cosmologicon/UFX/wiki
+// Dev note: for handlers and internal methods (with the leading underscore),
+// assume that this === UFX.maximize, but don't assume this for public methods.
+// Handlers are bound to UFX.maximize.
 
 "use strict"
 var UFX = UFX || {}
 
 UFX.maximize = function (element, options) {
-	window.addEventListener("resize", UFX.maximize.onresize)
-	window.addEventListener("fullscreenchange", UFX.maximize.onfullscreenchange)
-	window.addEventListener("fullscreenerror", UFX.maximize.onfullscreenerror)
-	document.body.addEventListener("touchstart", UFX.maximize.ontouchstart, { passive: false })
-
-	if (element !== UFX.maximize.state.element) {
-		UFX.maximize.takedown()
-		UFX.maximize.element = element
-		UFX.maximize.setup()
+	UFX.maximize._addlisteners()
+	if (element !== UFX.maximize.element) {
+		UFX.maximize._takedown()
+		UFX.maximize._setup(element)
 	}
 	UFX.maximize.setoptions(options || {})
 }
-UFX.maximize.state0 = {
-	// Control of resizing
+UFX.maximize.stop = function () {
+	if (UFX.maximize.isfullscreen()) document.exitFullscreen()
+	UFX.maximize._unsetstyle()
+	UFX.maximize._takedown()
+	UFX.maximize._removelisteners()
+}
+
+UFX.maximize._options0 = {
 	stretch: true,
 	resize: true,
 	aspects: [0],
-	aspect0: null,
 	exact: false,
 	free: false,
-
 	preventscroll: true,
 	fullscreen: false,
 	mustfullscreen: false,
 	fillcolor: "black",
 }
-UFX.maximize.resetoptions = function () {
-	UFX.maximize.state = JSON.parse(JSON.stringify(UFX.maximize.state0))
+UFX.maximize.resetoptions = function (options) {
+	UFX.maximize.options = JSON.parse(JSON.stringify(UFX.maximize._options0))
+	UFX.maximize.setoptions(options || {})
 }
 UFX.maximize.resetoptions()
-// Associate UFX.maximize.element with UFX.maximize. Save the element style values so that they can
-// be restored later if UFX.maximize.stop is called.
-UFX.maximize.setup = function () {
-	var state = UFX.maximize.state, element = UFX.maximize.element, style = element.style
-	state.aspect0 = [element.width, element.height]
-	UFX.maximize.style0 = {}
+
+// Associate UFX.maximize.element with UFX.maximize. Save the element style values and other values
+// we'll be overwriting so that they can be restored later if UFX.maximize.stop is called.
+UFX.maximize._setup = function (element) {
+	this.element = element
+	var options = this.options, style = element.style
+	this.size0 = [element.width, element.height]
+	var style0 = this._style0 = {}
 	;"position left top bottom right margin width height borderLeft borderRight borderTop borderBottom".
 		split(" ").forEach(function (sname) {
-		UFX.maximize.style0[sname] = style[sname]
+		style0[sname] = style[sname]
 	})
-	UFX.maximize.overflow0 = document.body.style.overflow
+	this._overflow0 = document.body.style.overflow
 }
-// Remove the association between UFX.maximize.state.element and UFX.maximize.
-UFX.maximize.takedown = function () {
-	if (!UFX.maximize.element) return
-	var state = UFX.maximize.state, element = UFX.maximize.element, style = element.style
-	element.width = state.aspect0[0]
-	element.height = state.aspect0[1]
-	for (var sname in UFX.maximize.style0) {
-		style[sname] = UFX.maximize.style0[sname]
+// Remove the association between UFX.maximize.element and UFX.maximize.
+UFX.maximize._takedown = function () {
+	if (!this.element) return
+	this.element.width = this.size0[0]
+	this.element.height = this.size0[1]
+	for (var sname in this._style0) {
+		this.element.style[sname] = this._style0[sname]
 	}
-	document.body.style.overflow = UFX.maximize.overflow0
-	delete UFX.maximize.element
+	document.body.style.overflow = this._overflow0
+	delete this.element
 }
 
-// 
-UFX.maximize.stop = function () {
-	UFX.maximize.takedown()
+UFX.maximize._addlisteners = function () {
+	if (this._listeners) return
+	window.addEventListener("resize", UFX.maximize.onresize)
+	window.addEventListener("fullscreenchange", UFX.maximize.onfullscreenchange)
+	window.addEventListener("fullscreenerror", UFX.maximize.onfullscreenerror)
+	document.body.addEventListener("touchstart", UFX.maximize.ontouchstart, { passive: false })
+	this._listeners = true
+}
+UFX.maximize._removelisteners = function () {
+	if (!this._listeners) return
 	window.removeEventListener("resize", UFX.maximize.onresize)
 	window.removeEventListener("fullscreenchange", UFX.maximize.onfullscreenchange)
 	window.removeEventListener("fullscreenerror", UFX.maximize.onfullscreenerror)
 	document.body.removeEventListener("touchstart", UFX.maximize.ontouchstart)
+	this._listeners = false
 }
 
 UFX.maximize.getfullscreenelement = function () {
 	return document.fullscreenElement
 }
+UFX.maximize.isfullscreen = function () {
+	return UFX.maximize.element === UFX.maximize.getfullscreenelement()
+}
+
 UFX.maximize.setoptions = function (options) {
-	var state = UFX.maximize.state
 	for (var oname in options) {
 		switch (oname) {
 			case "aspects":
-				UFX.maximize.checkaspects(options.aspects)
+				UFX.maximize._checkaspects(options.aspects)
 			case "stretch": case "resize": case "exact": case "free":
 			case "preventscroll": case "fullscreen": case "mustfullscreen": case "fillcolor":
-				state[oname] = options[oname]
+				UFX.maximize.options[oname] = options[oname]
+				break
+			case "aspect":
+				UFX.maximize._checkaspects([options.aspect])
+				UFX.maximize.options.aspects = [options.aspect]
 				break
 			default:
 				throw "Unrecgonized option to UFX.maximize: " + oname
 		}
 	}
-
-	var element = UFX.maximize.element, style = element.style
-	var fullscreened = element === UFX.maximize.getfullscreenelement()
-	if (state.fullscreen && fullscreened) {
-		UFX.maximize.onresize()
-	} else if (state.fullscreen && !fullscreened) {
-		UFX.maximize.tofill = !state.mustfullscreen
-		if (element.requestFullscreen) {
-			element.requestFullscreen()
-		} else {
-			UFX.maximize.onfullscreenerror()
-		}
-	} else {
-		UFX.maximize.fillscreen()
-	}
+	if (UFX.maximize.element) UFX.maximize._maximize()
 }
-
-UFX.maximize.onfullscreenchange = function () {
-	var fullscreened = UFX.maximize.element === UFX.maximize.getfullscreenelement()
-	if (fullscreened) {
-		UFX.maximize.onresize()
-	} else {
-		UFX.maximize.onfullscreenerror()
-	}
-}.bind(UFX.maximize)
-UFX.maximize.onfullscreenerror = function () {
-	if (UFX.maximize.tofill) {
-		UFX.maximize.fillscreen()
-	} else {
-		UFX.maximize.stop()
-	}
-	delete UFX.maximize.tofill
-}.bind(UFX.maximize)
-UFX.maximize.fillscreen = function () {
-	var style = UFX.maximize.element.style
-	style.position = "absolute"
-	style.left = "0px"
-	style.top = "1px"
-	document.body.style.overflow = "hidden"
-	UFX.maximize.onresize()
-}
-
-
-UFX.maximize.checkaspects = function (aspects) {
+UFX.maximize._checkaspects = function (aspects) {
 	if (!(aspects instanceof Array)) throw "UFX.maximize aspect list must be an Array"
 	if (aspects.length < 1) throw "UFX.maximize aspect list must not be empty"
 	aspects.forEach(function (aspect) {
@@ -147,17 +117,73 @@ UFX.maximize.checkaspects = function (aspects) {
 		throw "Invalid aspect " + aspect + " must be Number or [Number, Number]"
 	})
 }
+
+
+// Setup and setoptions should already be called.
+UFX.maximize._maximize = function () {
+	this._unsetstyle()
+	if (this.options.fullscreen) {
+		this._fullscreen()
+	} else {
+		if (this.isfullscreen()) document.exitFullscreen()
+		this._fillscreen()
+	}
+}
+UFX.maximize._fullscreen = function () {
+	if (this.isfullscreen()) {
+		this.onresize()
+	} else if (this.element.requestFullscreen) {
+		this.element.requestFullscreen()
+	} else {
+		this.onfullscreenerror()
+	}
+}
+UFX.maximize.onfullscreenchange = function () {
+	if (this.isfullscreen()) {
+		this.onresize()
+	} else {
+		this.onfullscreenerror()
+	}
+}.bind(UFX.maximize)
+UFX.maximize.onfullscreenerror = function () {
+	if (this.options.mustfullscreen) {
+		this.stop()
+	} else {
+		this._fillscreen()
+	}
+}.bind(UFX.maximize)
+UFX.maximize._fillscreen = function () {
+	this._setstyle()
+	this.onresize()
+}
+// Set a few style values necessary for filling the window.
+UFX.maximize._setstyle = function () {
+	this.element.style.position = "absolute"
+	this.element.style.left = "0px"
+	this.element.style.top = "1px"
+	document.body.style.overflow = "hidden"
+}
+UFX.maximize._unsetstyle = function () {
+	this.element.style.position = this._style0.position
+	this.element.style.left = this._style0.left
+	this.element.style.top = this._style0.top
+	document.body.style.overflow = this._overflow0
+}
+
+
 // Resize handler - called whenever the window size changes.
 // Chooses the dimensions of UFX.maximize.element and updates the border to fill the window.
 UFX.maximize.onresize = function () {
-	var state = this.state, element = this.element
+	var options = this.options, element = this.element
 	if (!element) return
-	if (state.mustfullscreen && element !== this.getfullscreenelement()) return
+	if (options.mustfullscreen && !this.isfullscreen()) return
 	var wx = window.innerWidth, wy = window.innerHeight
 
+	// Greatest common divisor.
 	function gcd(a, b) {
 		return b == 0 ? a : gcd(b, a % b)
 	}
+	// Given [a,b], return [x,y] such that x/y is a/b in simplest form.
 	function reduced(aspect) {
 		var a = aspect[0], b = aspect[1], g = gcd(a, b)
 		return [a / g, b / g]
@@ -165,7 +191,7 @@ UFX.maximize.onresize = function () {
 
 	// Given an aspect ratio, determine the maximum element size that corresponds to it and fits
 	// inside the window. (Returns null if the window is too small and exact is requested.)
-	function getesize(wx, wy, aspect, exact) {
+	function getsize(wx, wy, aspect, exact) {
 		var ispair = aspect instanceof Array
 		if (ispair && !exact) {
 			aspect = aspect[0] / aspect[1]
@@ -182,45 +208,42 @@ UFX.maximize.onresize = function () {
 				: [Math.round(wy * aspect), wy]
 		}
 	}
-	var aspects = state.free ? [-1] : state.aspects
+	// TODO: for options.free allow limits on the range of acceptable aspect ratios.
+	var aspects = options.free ? [-1] : options.aspects
 	if (!aspects.length) throw "No aspect ratio options specified. Must have at least 1."
 	// Choose the aspect ratio that results in the largest element size (in terms of total area)
-	var esize = null  // element logical dimensions, i.e. height/width values
+	var ssize = null  // styled size, ie, how big to style the element
 	var area = 0, aspect = null
 	for (var j = 0 ; j < aspects.length ; ++j) {
-		var trialaspect = aspects[j]
-		if (trialaspect == 0) trialaspect = state.aspect0
-		var trialesize = getesize(wx, wy, trialaspect, state.exact)
-		if (!trialesize) continue
-		var trialarea = trialesize[0] * trialesize[1]
+		// Treat the special value 0 as the original canvas size.
+		var trialaspect = aspects[j] || this.size0
+		var trialsize = getsize(wx, wy, trialaspect, options.exact)
+		if (!trialsize) continue
+		var trialarea = trialsize[0] * trialsize[1]
 		if (trialarea > area) {
-			esize = trialesize
+			ssize = trialsize
 			area = trialarea
 			aspect = trialaspect
 		}
 	}
 	// In the event that no aspect ratio is chosen (because the window was too small for all of
 	// them), fall back to the first aspect ratio in the list, and let it be larger than the window.
-	if (!esize) {
-		aspect = aspects[0]
-		esize = reduced(aspect)
+	if (ssize === null) {
+		aspect = aspects[0] || this.size0
+		ssize = reduced(aspect)
 	}
 
-	var ssize  // stretched size, ie, how big to style the element
-	if (state.resize) {
-		ssize = esize
-	} else if (state.stretch) {
-		ssize = esize
-		esize = state.aspect0
-	} else {
-		ssize = esize = state.aspect0
+	var esize = ssize  // element logical dimensions, i.e. height/width values
+	if (!options.resize) {
+		esize = this.size0
+		if (!options.stretch) ssize = this.size0
 	}
 	element.width = esize[0]
 	element.height = esize[1]
 	element.style.width = ssize[0] + "px"
 	element.style.height = ssize[1] + "px"
 
-	if (element === this.getfullscreenelement()) {
+	if (this.isfullscreen()) {
 		element.style.top = element.style.bottom = 0
 		element.style.left = element.style.right = 0
 		element.style.margin = "auto"
@@ -228,10 +251,10 @@ UFX.maximize.onresize = function () {
 		element.style.borderTop = element.style.borderBottom = "none"
 	} else {
 		element.style.borderLeft = element.style.borderRight = wx > ssize[0]
-			? ((wx - ssize[0]) / 2 + 1) + "px " + state.fillcolor + " solid"
+			? ((wx - ssize[0]) / 2 + 1) + "px " + options.fillcolor + " solid"
 			: "none"
 		element.style.borderTop = element.style.borderBottom = wy > ssize[1]
-			? ((wy - ssize[1]) / 2 + 1) + "px " + state.fillcolor + " solid"
+			? ((wy - ssize[1]) / 2 + 1) + "px " + options.fillcolor + " solid"
 			: "none"
 		// TODO: document why this is here
 		setTimeout(function () { window.scrollTo(0, 1) }, 1)
@@ -242,7 +265,7 @@ UFX.maximize.onresize = function () {
 }.bind(UFX.maximize)
 
 UFX.maximize.ontouchstart = function (event) {
-	if (this.element && this.state.preventscroll) event.preventDefault()
+	if (this.element && this.options.preventscroll) event.preventDefault()
 }.bind(UFX.maximize)
 
 

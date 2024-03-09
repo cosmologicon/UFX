@@ -11,19 +11,22 @@
 <li>2: UFX.maximize(bcanvas)
 <li>3: UFX.maximize.stop()
 <li>4: UFX.maximize(rcanvas, { fullscreen: true })
-<li>5: UFX.maximize(rcanvas, { exact: true })
+<li>5: UFX.maximize(rcanvas, { fullscreen: false })
 <li>6: UFX.maximize(rcanvas, { resize: false })
 <li>7: UFX.maximize(rcanvas, { resize: false, stretch: false })
 <li>8: UFX.maximize(rcanvas, { aspects: [[16, 9], 1, [9, 16]] })
 <li>9: UFX.maximize(rcanvas, { aspects: [[16, 9], 1, [9, 16]], exact: true })
+<li>0: UFX.maximize.resetoptions()
 </ul>
 <p>
 <button onclick="UFX.maximize(rcanvas, { fullscreen: true })">fullscreen rcanvas</button>
 <button onclick="UFX.maximize(rcanvas, { fullscreen: true, mustfullscreen: true })">must fullscreen rcanvas</button>
 <script>
 UFX.key.init()
-let rcontext = document.getElementById("rcanvas").getContext("2d")
-let bcontext = document.getElementById("bcanvas").getContext("2d")
+let rcanvas = document.getElementById("rcanvas")
+let bcanvas = document.getElementById("bcanvas")
+let rcontext = rcanvas.getContext("2d")
+let bcontext = bcanvas.getContext("2d")
 
 // polyfill
 rcanvas.requestFullscreen = rcanvas.requestFullscreen
@@ -43,16 +46,21 @@ UFX.ticker.init(function () {
 	if (kstate.down[2]) UFX.maximize(bcanvas)
 	if (kstate.down[3]) UFX.maximize.stop()
 	if (kstate.down[4]) UFX.maximize(rcanvas, { fullscreen: true })
-	if (kstate.down[5]) UFX.maximize(rcanvas, { exact: true })
+	if (kstate.down[5]) UFX.maximize(rcanvas, { fullscreen: false })
 	if (kstate.down[6]) UFX.maximize(rcanvas, { resize: false })
 	if (kstate.down[7]) UFX.maximize(rcanvas, { resize: false, stretch: false })
 	if (kstate.down[8]) UFX.maximize(rcanvas, { aspects: [[16, 9], 1, [9, 16]] })
 	if (kstate.down[9]) UFX.maximize(rcanvas, { aspects: [[16, 9], 1, [9, 16]], exact: true })
+	if (kstate.down[0]) UFX.maximize.resetoptions()
 	UFX.draw(bcontext, "fs blue f0")
 	UFX.draw(rcontext, "fs red f0 fs white font 14px~'monospace' tab left top")
 	let texts = [
 		`rcanvas: ${rcanvas.width}x${rcanvas.height}`,
+		`isfullscreen: ${UFX.maximize.isfullscreen()}`,
 	]
+	for (let opt in UFX.maximize.options) {
+		texts.push(`${opt}: ${JSON.stringify(UFX.maximize.options[opt])}`)
+	}
 	texts.forEach((text, j) => rcontext.fillText(text, 4, 4 + 14 * j))
 })
 </script>
