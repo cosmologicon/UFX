@@ -11,14 +11,14 @@ window.onerror = function (error, url, line) { document.body.innerHTML = "<p>Err
 var canvas = document.getElementById("canvas")
 canvas.width = 300
 canvas.height = 300
-UFX.pointer(canvas)
+UFX.pointer(document.body)
 var context = canvas.getContext("2d")
 UFX.draw.setcontext(context)
 
 var texts = [], phi = 0, tau = 2 * Math.PI, dphi = 0.618 * tau
 UFX.ticker.init(function (dt) {
 	var pstate = UFX.pointer()
-	;["down", "up", "click", "drag", "cancel", "hold", "move"].forEach(function (etype) {
+	;["down", "up", "click", "cancel", "hold", "move"].forEach(function (etype) {
 		;["", "m", "r", "d"].forEach(function (ename) {
 			var s = ename + etype
 			if (pstate[s] && pstate[s].pos) {

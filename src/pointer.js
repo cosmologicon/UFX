@@ -133,7 +133,7 @@ UFX.pointer._handlers = {
 		UFX.pointer._state.updatepos(spec.pos)
 	},
 	documentmousemove: function (event) {
-		var spec = UFX.pointer._handlers.getbuttonspec(event)
+		var spec = UFX.pointer._handlers.getbuttonsspec(event)
 		if (event.buttons) UFX.pointer._state.updatebutton(spec)
 		UFX.pointer._state.updatepos(spec.pos)
 	},
@@ -197,11 +197,21 @@ UFX.pointer._handlers = {
 		}
 	},
 
+	// Retrieve button and position information for an event based on the event.button field.
+	// Should only be called for "events caused by pressing or releasing one or multiple buttons"
+	// https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
 	getbuttonspec: function (event) {
-		var button = "lmr"[event.button]
-		if (!button) throw "Unknown button type: " + event.button
 		return {
-			ptype: button,
+			ptype: "lmr"[event.button] || "b",
+			pos: this.getpos(event),
+		}
+	},
+	// Retrieve button and position information for an event based on the event.buttons field.
+	// This allows more than one mouse button to be reported. We return "b" (for borked) on all
+	// instances of multiple buttons.
+	getbuttonsspec: function (event) {
+		return {
+			ptype: { 0: " ", 1: "l", 2: "r", 4: "m"}[event.buttons] || "b",
 			pos: this.getpos(event),
 		}
 	},
@@ -237,8 +247,10 @@ UFX.pointer._handlers = {
 	},
 }
 
+// The _state object contains the state needed to interpet incoming events into
+// UFX.pointer events, in particular which button is currently down.
 UFX.pointer._state = {
-	// Current event type being watched. Can be one of null, "l", "m", "r", "t", "d", "b"
+	// Current pointer type being watched. Can be one of null, "l", "m", "r", "t", "d", "b"
 	// Invariants:
 	// When current == null, buttons and touchpoints are empty.
 	// When current == "l", keys(buttons) == ["l"], and touchpoints is empty.
@@ -248,7 +260,13 @@ UFX.pointer._state = {
 	// For all other situations, current == "b" and borked == true
 	current: null,
 	borked: false,
-	// Mouse buttons currently down.
+	// Objects tracking the mouse buttons that are currently down. button objects have
+	// the following fields:
+	//   ptype: the single-letter code of the pointer type for this button
+	//   pos0: position where this button's down event occurred
+	//   t0: timestamp when the down event occurred
+	//   pos: current mouse position
+	//   held: whether this button has reached its "hold" event
 	buttons: {},
 	nbutton: 0,
 	// Touch points currently active.
@@ -260,7 +278,6 @@ UFX.pointer._state = {
 	wheel: {},
 	pinch: null,
 
-	// Called when a new element is assigned.
 	reset: function () {
 		UFX.pointer.pos = null
 		UFX.pointer.within = false
@@ -275,6 +292,11 @@ UFX.pointer._state = {
 		this.pinch = null
 	},
 
+	// Add a UFX.pointer event to the event queue. Events have the following fields:
+	// * t: timestamp of the event
+	// * etype: event type, one of "down", "up", "click", "hold", "move", or "cancel"
+	// * ptype: pointer type, one of "l", "m", "r", "t", or "d"
+	// The spec0 argument contains additional fields to be added to the event.
 	addevent: function (etype, ptype, spec0) {
 		if (this.borked) return
 		var spec = {}
@@ -286,8 +308,12 @@ UFX.pointer._state = {
 		spec.ptype = ptype == "l" || ptype == "t" ? "p" : ptype
 		this.events.push(spec)
 	},
-	// Returns a set of events from the front of the event queue such that all events have the same
-	// ptype and any "down" events appear at the beginning.
+	// Return as many events as possible from the front of the event queue without
+	// reordering such that:
+	// * all returned events have the same ptype
+	// * any "down" event returned must be the first event returned
+	// Any consecutive "move" events are coalesced into a single event.
+	// Unreturned events remain on the queue.
 	shiftevents: function () {
 		var revents = [], last = null
 		while (this.events.length) {
@@ -306,6 +332,8 @@ UFX.pointer._state = {
 		}
 		return revents
 	},
+	// Coalesce two "move" events into a single event that covers the motion of both of them.
+	// Events are assumed to have the same ptype.
 	coalescemove: function (mevent1, mevent2) {
 		return {
 			etype: "move",
@@ -315,6 +343,7 @@ UFX.pointer._state = {
 			dpos: [mevent1.dpos[0] + mevent2.dpos[0], mevent1.dpos[1] + mevent2.dpos[1]],
 		}
 	},
+	
 	currentisheld: function () {
 		if (!this.current) return false
 		var button = this.buttons[this.current]
@@ -350,9 +379,7 @@ UFX.pointer._state = {
 			ptype: buttonspec.ptype,
 			pos0: buttonspec.pos,
 			pos: buttonspec.pos,
-			posL: buttonspec.pos,
 			t0: t,
-			tL: t,
 			held: false,
 		}
 		if (button.ptype == "d") {
