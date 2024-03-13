@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta name=viewport content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <script src="../src/maximize.js"></script>
 <script src="../src/key.js"></script>
 <script src="../src/ticker.js"></script>
@@ -10,8 +11,8 @@
 // Test UFX.pointer touch events and UFX.maximize interaction
 
 let canvas = document.getElementById("canvas")
-canvas.width = 610
-canvas.height = 377
+canvas.width = 300
+canvas.height = 199
 let context = canvas.getContext("2d")
 UFX.draw.setcontext(context)
 
@@ -23,7 +24,9 @@ let optionsets = {
 	exact: [false, true],
 	resize: [true, false],
 	stretch: [true, false],
+	applypixelratio: [true, false],
 }
+let optnames = Object.keys(optionsets)
 let joptions = {}
 for (let optname in optionsets) joptions[optname] = 0
 function maximize() {
@@ -35,16 +38,18 @@ function cycleoption(optname) {
 	joptions[optname] = (joptions[optname] + 1) % optionsets[optname].length
 	maximize()
 }
-maximize()
 
-
+let showbuttons = true
 UFX.ticker.init(function (dt) {
+	if (!UFX.maximize._element) maximize()
 	let pointer = UFX.pointer(canvas)
 	let pos = [px, py] = pointer.pos || [-1000, -1000]
 
-	UFX.draw(context, "fs #228 f0 fs white font 14px~'monospace' tab left top")
+	UFX.draw(context, "fs #228 f0 fs white font bold~14px~'monospace' tab left top")
 	let rect = canvas.getBoundingClientRect()
 	let texts = [
+		`window.devicePixelRatio: ${window.devicePixelRatio}`,
+		`window.innerWidth/Height: ${window.innerWidth} x ${window.innerHeight}`,
 		`canvas: ${canvas.width} x ${canvas.height}`,
 		`canvas.style: ${canvas.style.width} x ${canvas.style.height}`,
 		`isfullscreen: ${UFX.maximize.isfullscreen()}`,
@@ -55,18 +60,37 @@ UFX.ticker.init(function (dt) {
 		texts.push(`${opt}: ${JSON.stringify(UFX.maximize.options[opt])}`)
 	}
 	texts.forEach((text, j) => context.fillText(text, 4, 4 + 14 * j))
+
+	UFX.draw(context, "fs white b")
+	for (let dx = 0.5, y0 = canvas.height ; dx < 8 ; dx *= 2, y0 -= 20) {
+		for (let x = 0 ; x < canvas.width ; x += 2 * dx) {
+			UFX.draw(context, "fr", x, y0 - 20, dx, 20)
+		}
+	}
 	
 	let x0 = canvas.width / 2, y0 = 40, w = 140, h = 20
-	Object.keys(optionsets).forEach((optname, j) => {
+	let buttons = [
+		["hide buttons", () => { showbuttons = false }],
+		["cycle buttons", () => { optnames.push(optnames.shift()) }],
+	]
+	optnames.forEach((optname, j) => {
 		let label = `${optname}: ${JSON.stringify(optionsets[optname][joptions[optname]])}`
-		let x = x0, y = y0 + 2.5 * h * j
-		UFX.draw("[ t", x, y, "b fr", -w, -h, 2 * w, 2 * h, "fs white f")
-		UFX.draw("tab center middle fs black ft0", label.replace(" ", "~"))
-		UFX.draw("]")
-		if (pointer.click) {
-			if (Math.abs(px - x) <= w && Math.abs(py - y) <= h) cycleoption(optname)
-		}
+		let callback = () => cycleoption(optname)
+		buttons.push([label, callback])
 	})
+	if (showbuttons) {
+		buttons.forEach(([label, callback], j) => {
+			let x = x0, y = y0 + 2.5 * h * j
+			UFX.draw("[ t", x, y, "b fr", -w, -h, 2 * w, 2 * h, "fs white f")
+			UFX.draw("tab center middle fs black ft0", label.replaceAll(" ", "~"))
+			UFX.draw("]")
+			if (pointer.click) {
+				if (Math.abs(px - x) <= w && Math.abs(py - y) <= h) callback()
+			}
+		})
+	} else {
+		if (pointer.click) showbuttons = true
+	}
 	UFX.draw(context, "b o", pos, "40 lw 2 ss #77f s")
 	UFX.draw(context, "b o", pos, "25 lw 2 ss #77f s")
 	UFX.draw(context, "b o", pos, "10 lw 2 ss #77f s")

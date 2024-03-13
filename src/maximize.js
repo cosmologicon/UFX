@@ -32,6 +32,7 @@ UFX.maximize._options0 = {
 	fullscreen: false,
 	mustfullscreen: false,
 	fillcolor: "black",
+	applypixelratio: true,
 }
 
 // Associate UFX.maximize.element with UFX.maximize. Save the element style values and other values
@@ -90,6 +91,7 @@ UFX.maximize.setoptions = function (options) {
 				UFX.maximize._checkaspects(options.aspects)
 			case "stretch": case "resize": case "exact": case "free":
 			case "preventscroll": case "fullscreen": case "mustfullscreen": case "fillcolor":
+			case "applypixelratio":
 				UFX.maximize.options[oname] = options[oname]
 				break
 			case "aspect":
@@ -235,7 +237,11 @@ UFX.maximize.onresize = function () {
 		ssize = reduced(aspect)
 	}
 
-	var esize = ssize  // element logical dimensions, i.e. height/width values
+	var esize = ssize.slice()  // element logical dimensions, i.e. height/width values
+	if (options.applypixelratio) {
+		esize[0] = Math.floor(esize[0] * window.devicePixelRatio)
+		esize[1] = Math.floor(esize[1] * window.devicePixelRatio)
+	}
 	if (!options.resize) {
 		esize = this.size0
 		if (!options.stretch) ssize = this.size0
