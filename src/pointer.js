@@ -15,6 +15,7 @@ UFX.pointer = function (element) {
 		wheel: state.getwheel(),
 		pinch: state.getpinch(),
 	}
+	if (UFX.pointer.roundpos) UFX.pointer._util.roundpinch(pstate.pinch)
 	if (element && element !== UFX.pointer._element) {
 		UFX.pointer._handlers.setelement(element)
 		state.reset()
@@ -22,6 +23,7 @@ UFX.pointer = function (element) {
 	}
 	state.shiftevents().forEach(function (event) {
 		var ptype = event.ptype == "p" ? "" : event.ptype
+		if (UFX.pointer.roundpos) UFX.pointer._util.roundevent(event)
 		pstate[ptype + event.etype] = event
 		UFX.pointer.pos = event.pos
 	})
@@ -90,6 +92,18 @@ UFX.pointer._util = {
 		list.push.apply(list, tlist1)
 		list.push.apply(list, tlist2)
 		return list
+	},
+	roundevent: function (event) {
+		if (event.pos) event.pos = [Math.round(event.pos[0]), Math.round(event.pos[1])]
+		if (event.dpos) event.dpos = [Math.round(event.dpos[0]), Math.round(event.dpos[1])]
+	},
+	roundpinch: function (pinch) {
+		if (!pinch) return
+		pinch.tilt = UFX.pointer._util.normtilt(Math.round(pinch.tilt * 100) / 100)
+		pinch.dtilt = Math.round(pinch.dtilt * 100) / 100
+		pinch.sep = Math.round(pinch.sep)
+		pinch.dsep = Math.round(pinch.dsep)
+		pinch.dlogsep = Math.round(pinch.dlogsep * 10000) / 10000
 	},
 }
 
@@ -390,10 +404,9 @@ UFX.pointer._state = {
 				pinched: false,
 				tilted: false,
 			}
-			var tilt = UFX.pointer.roundpos ? Math.round(buttonspec.tilt) : buttonspec.tilt
-			var sep = UFX.pointer.roundpos ? Math.round(buttonspec.sep) : buttonspec.sep
+			var tilt = UFX.pointer._util.normtilt(buttonspec.tilt)
 			this.pinch.tilt = this.pinch.tilt0 = this.pinch.tiltL = tilt
-			this.pinch.sep = this.pinch.sep0 = this.pinch.sepL = sep
+			this.pinch.sep = this.pinch.sep0 = this.pinch.sepL = buttonspec.sep
 		}
 		this.addevent("down", buttonspec.ptype, {
 			pos: buttonspec.pos,
@@ -433,9 +446,8 @@ UFX.pointer._state = {
 			}
 		}
 		if (button.ptype == "d" && this.pinch) {
-			var tilt = UFX.pointer.roundpos ? Math.round(buttonspec.tilt) : buttonspec.tilt
-			this.pinch.tilt = UFX.pointer._util.normtilt(tilt)
-			this.pinch.sep = UFX.pointer.roundpos ? Math.round(buttonspec.sep) : buttonspec.sep
+			this.pinch.tilt = UFX.pointer._util.normtilt(buttonspec.tilt)
+			this.pinch.sep = buttonspec.sep
 			if (!this.pinch.pinched) {
 				// Has it passed the sep threshold?
 				var sep = Math.abs(this.pinch.sep - this.pinch.sep0) >= UFX.pointer.spinch
@@ -462,7 +474,7 @@ UFX.pointer._state = {
 		var event = {
 			pos: buttonspec.pos,
 			dt: 0.001 * (Date.now() - button.t0),
-			fly: [0, 0],
+			fly: [0, 0],  // TODO
 		}
 		this.addevent("up", buttonspec.ptype, event)
 		if (!button.held) {
@@ -503,7 +515,6 @@ UFX.pointer._state = {
 		var sep = this.pinch.pinched ? this.pinch.sep : this.pinch.sepL
 		var tilt = this.pinch.tilted ? this.pinch.tilt : this.pinch.tiltL
 		var dlogsep = this.pinch.sepL && sep ? Math.log(sep / this.pinch.sepL) : 0
-		if (UFX.pointer.roundpos) dlogsep = Math.round(dlogsep * 10000) / 10000
 		var ret = {
 			tilt: tilt,
 			dtilt: UFX.pointer._util.dtilt(this.pinch.tiltL, tilt),

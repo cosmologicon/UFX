@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta name=viewport content="width=device-width, initial-scale=1.0, user-scalable=yes">
 <canvas id=canvas></canvas>
-<div id=info></div>
+<script src="../src/maximize.js"></script>
 <script src="../src/pointer.js"></script>
 <script src="../src/ticker.js"></script>
 <script src="../src/draw.js"></script>
@@ -9,14 +9,15 @@
 <script>
 window.onerror = function (error, url, line) { document.body.innerHTML = "<p>Error in: "+url+"<p>line "+line+"<pre>"+error+"</pre>" }
 var canvas = document.getElementById("canvas")
-canvas.width = 300
-canvas.height = 300
-UFX.pointer(document.body)
+UFX.pointer(canvas)
 var context = canvas.getContext("2d")
 UFX.draw.setcontext(context)
+UFX.maximize(canvas, { free: true })
 
-var texts = [], phi = 0, tau = 2 * Math.PI, dphi = 0.618 * tau
+let texts = [], lastevent = null
+let phi = 0, tau = 2 * Math.PI, dphi = 0.618 * tau
 UFX.ticker.init(function (dt) {
+	UFX.pointer.scale = UFX.maximize.scale.LD
 	var pstate = UFX.pointer()
 	;["down", "up", "click", "cancel", "hold", "move"].forEach(function (etype) {
 		;["", "m", "r", "d"].forEach(function (ename) {
@@ -24,6 +25,7 @@ UFX.ticker.init(function (dt) {
 			if (pstate[s] && pstate[s].pos) {
 				texts.push({ text: s, t: 0, pos: pstate[s].pos, dx: Math.sin(phi), dy: Math.cos(phi) })
 				phi += dphi
+				if (etype != "move") lastevent = pstate[s]
 			}
 		})
 	})
@@ -55,26 +57,24 @@ UFX.ticker.init(function (dt) {
 	}
 	texts = texts.filter(function (text) {
 		text.t += dt
-		UFX.draw("[ t", text.pos, "t", 30 * text.t * text.dx, 30 * text.t * text.dy,
+		UFX.draw("[ t", text.pos, "t", 50 * text.t * text.dx, 50 * text.t * text.dy,
 			"alpha", (text.text.includes("move") ? 0.2 : 1),
-			"fs white tab center middle font 20px~sans-serif ft0", text.text, "]")
+			"fs white tab center middle font 40px~sans-serif ft0", text.text, "]")
 		return text.t < 1
 	})
-	UFX.draw("fs white font 12px~'sans-serif' tab left top")
-	var y = 4
-	context.fillText("current: " + pstate.current, 4, y)
-	context.fillText("touch: " + UFX.pointer.touch, 4, (y += 12))
-	context.fillText("wheel: " + JSON.stringify(pstate.wheel), 4, (y += 12))
-	context.fillText("pinch: " + JSON.stringify(pstate.pinch), 4, (y += 12))
-	;["isdown", "isheld"].forEach(function (etype) {
-		;["", "m", "r", "d"].forEach(function (ename) {
-			var s = ename + etype
-			if (pstate[s]) {
-				context.fillText(s, 4, (y += 12))
-			}
-		})
-	})
-
+	UFX.draw("fs white font 20px~'monospace' tab left top")
+	let lines = [
+		`current: ${pstate.current}`,
+		`touch: ${UFX.pointer.touch}`,
+		`wheel: ${JSON.stringify(pstate.wheel)}`,
+		`pinch: ${JSON.stringify(pstate.pinch)}`,
+		`canvas Lsize: ${UFX.maximize.size.L}`,
+		`canvas Dsize: ${UFX.maximize.size.D}`,
+	]
+	if (lastevent) Object.keys(lastevent).forEach(s => lines.push(`last.${s}: ${lastevent[s]}`))
+	;["isdown", "isheld"].map(etype => ["", "m", "r", "d"].map(ename => ename + etype))
+		.flat().filter(s => pstate[s]).forEach(s => lines.push(s))
+	lines.forEach((line, j) => context.fillText(line, 4, 4 + 20 * j))
 
 })
 
