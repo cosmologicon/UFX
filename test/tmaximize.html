@@ -41,7 +41,8 @@ function cycleoption(optname) {
 
 let showbuttons = true
 UFX.ticker.init(function (dt) {
-	if (!UFX.maximize._element) maximize()
+	if (!UFX.maximize.element) maximize()
+	UFX.pointer.scale = UFX.maximize.scale.LD
 	let pointer = UFX.pointer(canvas)
 	let pos = [px, py] = pointer.pos || [-1000, -1000]
 

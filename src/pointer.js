@@ -60,6 +60,8 @@ UFX.pointer.lpinch = 0.25  // Required change in log(separation)
 // Tilt threshold
 UFX.pointer.atilt = 10  // Required change in tilt
 
+UFX.pointer.scale = [1, 1]
+
 UFX.pointer._util = {
 	dpos: function (pos0, pos1) {
 		return [pos1[0] - pos0[0], pos1[1] - pos0[1]]
@@ -242,8 +244,9 @@ UFX.pointer._handlers = {
 		var ex = rect.left + element.clientLeft - element.scrollLeft
 		var ey = rect.top + element.clientTop - element.scrollTop
 		var x = obj.clientX - ex, y = obj.clientY - ey
+		x *= UFX.pointer.scale[0]
+		y *= UFX.pointer.scale[1]
 		return [x, y]
-		//return UFX.pointer.roundpos ? [Math.round(x), Math.round(y)] : [x, y]
 	},
 }
 

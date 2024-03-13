@@ -175,6 +175,9 @@ UFX.maximize._unsetstyle = function () {
 }
 
 
+UFX.maximize.size = {}
+UFX.maximize.scale = {}
+
 // Resize handler - called whenever the window size changes.
 // Chooses the dimensions of UFX.maximize.element and updates the border to fill the window.
 UFX.maximize.onresize = function () {
@@ -216,7 +219,7 @@ UFX.maximize.onresize = function () {
 	var aspects = options.free ? [-1] : options.aspects
 	if (!aspects.length) throw "No aspect ratio options specified. Must have at least 1."
 	// Choose the aspect ratio that results in the largest element size (in terms of total area)
-	var ssize = null  // styled size, ie, how big to style the element
+	var Dsize = null  // display size, ie, how big to style the element
 	var area = 0, aspect = null
 	for (var j = 0 ; j < aspects.length ; ++j) {
 		// Treat the special value 0 as the original canvas size.
@@ -225,33 +228,47 @@ UFX.maximize.onresize = function () {
 		if (!trialsize) continue
 		var trialarea = trialsize[0] * trialsize[1]
 		if (trialarea > area) {
-			ssize = trialsize
+			Dsize = trialsize
 			area = trialarea
 			aspect = trialaspect
 		}
 	}
 	// In the event that no aspect ratio is chosen (because the window was too small for all of
 	// them), fall back to the first aspect ratio in the list, and let it be larger than the window.
-	if (ssize === null) {
+	if (Dsize === null) {
 		aspect = aspects[0] || this.size0
-		ssize = reduced(aspect)
+		Dsize = reduced(aspect)
 	}
 
-	var esize = ssize.slice()  // element logical dimensions, i.e. height/width values
+	var Lsize = Dsize.slice()  // element logical dimensions, i.e. height/width values
 	if (options.applypixelratio) {
-		esize[0] = Math.floor(esize[0] * window.devicePixelRatio)
-		esize[1] = Math.floor(esize[1] * window.devicePixelRatio)
+		Lsize[0] = Math.floor(Lsize[0] * window.devicePixelRatio)
+		Lsize[1] = Math.floor(Lsize[1] * window.devicePixelRatio)
 	}
 	if (!options.resize) {
-		esize = this.size0
-		if (!options.stretch) ssize = this.size0
+		Lsize = this.size0
+		if (!options.stretch) Dsize = this.size0
 	}
-	element.width = esize[0]
-	element.height = esize[1]
-	element.style.width = ssize[0] + "px"
-	element.style.height = ssize[1] + "px"
+	element.width = Lsize[0]
+	element.height = Lsize[1]
+	element.style.width = Dsize[0] + "px"
+	element.style.height = Dsize[1] + "px"
+	
+	UFX.maximize.size = {
+		D: Dsize,
+		L: Lsize,
+		A: aspect,
+	}
+	UFX.maximize.scale = {
+		DL: [Dsize[0] / Lsize[0], Dsize[1] / Lsize[1]],
+		LD: [Lsize[0] / Dsize[0], Lsize[1] / Dsize[1]],
+		AL: aspect instanceof Array ? [aspect[0] / Lsize[0], aspect[1] / Lsize[1]] : null,
+		LA: aspect instanceof Array ? [Lsize[0] / aspect[0], Lsize[1] / aspect[1]] : null,
+		AD: aspect instanceof Array ? [aspect[0] / Dsize[0], aspect[1] / Dsize[1]] : null,
+		DA: aspect instanceof Array ? [Dsize[0] / aspect[0], Dsize[1] / aspect[1]] : null,
+	}
 
-	var bx = wx - ssize[0], by = wy - ssize[1]
+	var bx = wx - Dsize[0], by = wy - Dsize[1]
 	var left = Math.ceil(bx / 2), right = bx - left
 	var top = Math.ceil(by / 2), bottom = by - top
 	element.style.borderLeft = left + "px " + options.fillcolor + " solid"
