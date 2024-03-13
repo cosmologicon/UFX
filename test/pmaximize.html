@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<script src="../src/maximize.js"></script>
+<script src="../src/key.js"></script>
+<script src="../src/ticker.js"></script>
+<script src="../src/draw.js"></script>
+<script src="../src/pointer.js"></script>
+<canvas id=canvas></canvas>
+<script>
+
+// Test UFX.pointer and UFX.maximize interaction
+
+UFX.key.init()
+let canvas = document.getElementById("canvas")
+canvas.width = 610
+canvas.height = 377
+let context = canvas.getContext("2d")
+UFX.draw.setcontext(context)
+
+
+// Copied from: https://stackoverflow.com/a/27588908/779948
+function getPosition(element) {
+	var xPosition = 0, yPosition = 0
+	while (element) {
+		xPosition += element.offsetLeft + element.clientLeft
+		yPosition += element.offsetTop + element.clientTop
+		element = element.offsetParent
+	}
+	return [xPosition, yPosition]
+}
+function getScroll() {
+	return [
+		document.documentElement.scrollLeft || document.body.scrollLeft,
+		document.documentElement.scrollTop || document.body.scrollTop,
+	]
+}
+
+
+UFX.ticker.init(function () {
+	let pstate = UFX.pointer(canvas)
+	let kstate = UFX.key.state()
+	if (kstate.down[1]) UFX.maximize(canvas)
+	if (kstate.down[2]) UFX.maximize(canvas, { fullscreen: true })
+	if (kstate.down[3]) UFX.maximize(canvas, { resize: false })
+	if (kstate.down[4]) UFX.maximize(canvas, { fillcolor: "#242" })
+	if (kstate.down[5]) UFX.maximize.stop()
+	if (kstate.down[6]) canvas.requestFullscreen()
+	if (kstate.down[0]) UFX.maximize.resetoptions()
+	UFX.draw(context, "fs #226 f0 fs white font 14px~'monospace' tab left top")
+	UFX.draw(context, "b o", (pstate.pos || [-100, -100]), "4 fs white f")
+	let rect = canvas.getBoundingClientRect()
+	let texts = [
+		`canvas: ${canvas.width} x ${canvas.height}`,
+		`canvas.style: ${canvas.style.width} x ${canvas.style.height}`,
+		`isfullscreen: ${UFX.maximize.isfullscreen()}`,
+		`pstate.pos: ${pstate.pos}`,
+		`canvas.getBoundingClientRect(): ${rect.left},${rect.top},${rect.width},${rect.height}`,
+		`canvas.clientLeft: ${canvas.clientLeft}`,
+		`canvas.clientTop: ${canvas.clientTop}`,
+		`getPosition(canvas): ${getPosition(canvas)}`,
+		`getScroll(): ${getScroll()}`,
+		"",
+		"1: UFX.maximize(canvas)",
+		"2: UFX.maximize(canvas, { fullscreen: true })",
+		"3: UFX.maximize(canvas, { resize: false })",
+		"4: UFX.maximize(canvas, { fillcolor: '#242' })",
+		"5: UFX.maximize.stop()",
+		"6: canvas.requestFullscreen()",
+		"0: UFX.maximize.resetoptions()",
+	]
+	for (let opt in UFX.maximize.options) {
+		texts.push(`${opt}: ${JSON.stringify(UFX.maximize.options[opt])}`)
+	}
+	texts.forEach((text, j) => context.fillText(text, 4, 4 + 14 * j))
+})
+</script>
+

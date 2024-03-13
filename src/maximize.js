@@ -33,11 +33,6 @@ UFX.maximize._options0 = {
 	mustfullscreen: false,
 	fillcolor: "black",
 }
-UFX.maximize.resetoptions = function (options) {
-	UFX.maximize.options = JSON.parse(JSON.stringify(UFX.maximize._options0))
-	UFX.maximize.setoptions(options || {})
-}
-UFX.maximize.resetoptions()
 
 // Associate UFX.maximize.element with UFX.maximize. Save the element style values and other values
 // we'll be overwriting so that they can be restored later if UFX.maximize.stop is called.
@@ -107,6 +102,13 @@ UFX.maximize.setoptions = function (options) {
 	}
 	if (UFX.maximize.element) UFX.maximize._maximize()
 }
+UFX.maximize.resetoptions = function (options) {
+	UFX.maximize.options = JSON.parse(JSON.stringify(UFX.maximize._options0))
+	UFX.maximize.setoptions(options || {})
+}
+UFX.maximize.resetoptions()
+
+
 UFX.maximize._checkaspects = function (aspects) {
 	if (!(aspects instanceof Array)) throw "UFX.maximize aspect list must be an Array"
 	if (aspects.length < 1) throw "UFX.maximize aspect list must not be empty"
@@ -243,22 +245,15 @@ UFX.maximize.onresize = function () {
 	element.style.width = ssize[0] + "px"
 	element.style.height = ssize[1] + "px"
 
-	if (this.isfullscreen()) {
-		element.style.top = element.style.bottom = 0
-		element.style.left = element.style.right = 0
-		element.style.margin = "auto"
-		element.style.borderLeft = element.style.borderRight = "none"
-		element.style.borderTop = element.style.borderBottom = "none"
-	} else {
-		element.style.borderLeft = element.style.borderRight = wx > ssize[0]
-			? ((wx - ssize[0]) / 2 + 1) + "px " + options.fillcolor + " solid"
-			: "none"
-		element.style.borderTop = element.style.borderBottom = wy > ssize[1]
-			? ((wy - ssize[1]) / 2 + 1) + "px " + options.fillcolor + " solid"
-			: "none"
-		// TODO: document why this is here
-		setTimeout(function () { window.scrollTo(0, 1) }, 1)
-	}
+	var bx = wx - ssize[0], by = wy - ssize[1]
+	var left = Math.ceil(bx / 2), right = bx - left
+	var top = Math.ceil(by / 2), bottom = by - top
+	element.style.borderLeft = left + "px " + options.fillcolor + " solid"
+	element.style.borderRight = right + "px " + options.fillcolor + " solid"
+	element.style.borderTop = top + "px " + options.fillcolor + " solid"
+	element.style.borderBottom = bottom + "px " + options.fillcolor + " solid"
+	// TODO: document why this is here. Something on mobile I think?
+	setTimeout(function () { window.scrollTo(0, 1) }, 1)
 	if (this.onadjust) {
 		this.onadjust(element, element.width, element.height, aspect)
 	}

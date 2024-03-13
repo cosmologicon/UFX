@@ -52,8 +52,8 @@ UFX.ticker.init(function () {
 	if (kstate.down[8]) UFX.maximize(rcanvas, { aspects: [[16, 9], 1, [9, 16]] })
 	if (kstate.down[9]) UFX.maximize(rcanvas, { aspects: [[16, 9], 1, [9, 16]], exact: true })
 	if (kstate.down[0]) UFX.maximize.resetoptions()
-	UFX.draw(bcontext, "fs blue f0")
-	UFX.draw(rcontext, "fs red f0 fs white font 14px~'monospace' tab left top")
+	UFX.draw(bcontext, "fs #007 f0")
+	UFX.draw(rcontext, "fs #700 f0 fs white font 14px~'monospace' tab left top")
 	let texts = [
 		`rcanvas: ${rcanvas.width}x${rcanvas.height}`,
 		`isfullscreen: ${UFX.maximize.isfullscreen()}`,

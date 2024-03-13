@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<script src="../src/maximize.js"></script>
+<script src="../src/key.js"></script>
+<script src="../src/ticker.js"></script>
+<script src="../src/draw.js"></script>
+<script src="../src/pointer.js"></script>
+<canvas id=canvas></canvas>
+<script>
+
+// Test UFX.pointer touch events and UFX.maximize interaction
+
+let canvas = document.getElementById("canvas")
+canvas.width = 610
+canvas.height = 377
+let context = canvas.getContext("2d")
+UFX.draw.setcontext(context)
+
+let optionsets = {
+	fillcolor: ["black", "#282"],
+	aspects: [[[10, 11], [11, 10]], [[5, 11], [11, 5]]],
+	fullscreen: [false, true],
+	free: [false, true],
+	exact: [false, true],
+	resize: [true, false],
+	stretch: [true, false],
+}
+let joptions = {}
+for (let optname in optionsets) joptions[optname] = 0
+function maximize() {
+	let options = {}
+	for (let optname in optionsets) options[optname] = optionsets[optname][joptions[optname]]
+	UFX.maximize(canvas, options)
+}
+function cycleoption(optname) {
+	joptions[optname] = (joptions[optname] + 1) % optionsets[optname].length
+	maximize()
+}
+maximize()
+
+
+UFX.ticker.init(function (dt) {
+	let pointer = UFX.pointer(canvas)
+	let pos = [px, py] = pointer.pos || [-1000, -1000]
+
+	UFX.draw(context, "fs #228 f0 fs white font 14px~'monospace' tab left top")
+	let rect = canvas.getBoundingClientRect()
+	let texts = [
+		`canvas: ${canvas.width} x ${canvas.height}`,
+		`canvas.style: ${canvas.style.width} x ${canvas.style.height}`,
+		`isfullscreen: ${UFX.maximize.isfullscreen()}`,
+		`pointer.pos: ${pointer.pos}`,
+		"",
+	]
+	for (let opt in UFX.maximize.options) {
+		texts.push(`${opt}: ${JSON.stringify(UFX.maximize.options[opt])}`)
+	}
+	texts.forEach((text, j) => context.fillText(text, 4, 4 + 14 * j))
+	
+	let x0 = canvas.width / 2, y0 = 40, w = 140, h = 20
+	Object.keys(optionsets).forEach((optname, j) => {
+		let label = `${optname}: ${JSON.stringify(optionsets[optname][joptions[optname]])}`
+		let x = x0, y = y0 + 2.5 * h * j
+		UFX.draw("[ t", x, y, "b fr", -w, -h, 2 * w, 2 * h, "fs white f")
+		UFX.draw("tab center middle fs black ft0", label.replace(" ", "~"))
+		UFX.draw("]")
+		if (pointer.click) {
+			if (Math.abs(px - x) <= w && Math.abs(py - y) <= h) cycleoption(optname)
+		}
+	})
+	UFX.draw(context, "b o", pos, "40 lw 2 ss #77f s")
+	UFX.draw(context, "b o", pos, "25 lw 2 ss #77f s")
+	UFX.draw(context, "b o", pos, "10 lw 2 ss #77f s")
+
+})
+</script>
+
