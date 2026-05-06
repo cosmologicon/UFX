@@ -11,7 +11,12 @@ To copy from local copy:
 
 	rsync -avz --exclude=".*" ./ night@night.xen.prgmr.com:/var/www/UFX/repo
 
-Update copies
+Alternately to sync the remote copy of the repo:
+
+	cd /var/www/UFX/repo
+	git pull
+
+Update serving copies
 
 	cd /var/www/UFX
 	rm *.js
