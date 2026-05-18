@@ -4,26 +4,26 @@
 <script src="../src/mouse.js"></script>
 <style>
 body {
-    background: black; color: white;
-    font-family: 'Viga';
-    font-size: 110%;
+	background: black; color: white;
+	font-family: 'Viga';
+	font-size: 110%;
 }
 h1 {
-    font-size: 160%;
-    text-align: center;
-    margin-left: auto;
-    margin-right: auto;
+	font-size: 160%;
+	text-align: center;
+	margin-left: auto;
+	margin-right: auto;
 }
 input {
-    background: inherit; color: inherit; border: none;
-    font-family: inherit; font-size: inherit;
-    width: 20em;
+	background: inherit; color: inherit; border: none;
+	font-family: inherit; font-size: inherit;
+	width: 20em;
 }
 table {
-    margin: auto;
+	margin: auto;
 }
 td {
-    text-align: right
+	text-align: right
 }
 </style>
 <h1>UFX.mouse test</h1>
@@ -57,15 +57,15 @@ grid.height = 300
 var gcontext = grid.getContext("2d")
 
 for (var x = 0 ; x <= 400 ; x += 10) {
-    gcontext.strokeStyle = x % 100 ? "blue" : "white"
-    gcontext.beginPath()
-    gcontext.moveTo(x + 0.5, 0)
-    gcontext.lineTo(x + 0.5, 400)
-    gcontext.stroke()
-    gcontext.beginPath()
-    gcontext.moveTo(0, x + 0.5)
-    gcontext.lineTo(400, x + 0.5)
-    gcontext.stroke()
+	gcontext.strokeStyle = x % 100 ? "blue" : "white"
+	gcontext.beginPath()
+	gcontext.moveTo(x + 0.5, 0)
+	gcontext.lineTo(x + 0.5, 400)
+	gcontext.stroke()
+	gcontext.beginPath()
+	gcontext.moveTo(0, x + 0.5)
+	gcontext.lineTo(400, x + 0.5)
+	gcontext.stroke()
 }
 
 var dots = document.createElement("canvas")
@@ -76,46 +76,46 @@ var bcolor = 0
 
 
 function drawdot(pos, color) {
-    dcontext.fillStyle = color || "red"
-    dcontext.beginPath()
-    dcontext.arc(pos[0], pos[1], 4, 0, 2 * Math.PI, true); 
-    dcontext.closePath()
-    dcontext.fill()
+	dcontext.fillStyle = color || "red"
+	dcontext.beginPath()
+	dcontext.arc(pos[0], pos[1], 4, 0, 2 * Math.PI, true); 
+	dcontext.closePath()
+	dcontext.fill()
 }
 
 function draw() {
   	var mstate = UFX.mouse.state()
   	jsonlen.value = "JSON length: " + JSON.stringify(mstate).length
-    mousepos.value = "pos: " + (mstate.pos && mstate.pos[0].toFixed(1) + ", " + mstate.pos[1].toFixed(1))
-    mousedpos.value = "dpos: " + (mstate.dpos && mstate.dpos[0].toFixed(1) + ", " + mstate.dpos[1].toFixed(1))
+	mousepos.value = "pos: " + (mstate.pos && mstate.pos[0].toFixed(1) + ", " + mstate.pos[1].toFixed(1))
+	mousedpos.value = "dpos: " + (mstate.dpos && mstate.dpos[0].toFixed(1) + ", " + mstate.dpos[1].toFixed(1))
 
   	var ldrag = mstate.left.drag
   	var dx = ldrag ? ldrag.dx : null
   	var dy = ldrag ? ldrag.dy : null
-    mousedrag.value = UFX.mouse.drag ? "left drag: " + dx + "," + dy : "point: " + mstate.pos
-    
-    bcolor += mstate.wheeldy || 0
-    bcolor = ((bcolor % 255) + 255) % 255
-    context.fillStyle = "rgb(0,0," + Math.floor(bcolor) + ")"
+	mousedrag.value = UFX.mouse.drag ? "left drag: " + dx + "," + dy : "point: " + mstate.pos
+	
+	bcolor += mstate.wheeldy || 0
+	bcolor = ((bcolor % 255) + 255) % 255
+	context.fillStyle = "rgb(0,0," + Math.floor(bcolor) + ")"
 
-    context.fillRect(0, 0, 400, 300)
-    context.drawImage(grid, 0, 0)
-    context.drawImage(dots, 0, 0)
-    ;"left middle right".split(" ").forEach(function (button, jbutton) {
-        if (!mstate[button]) return
-        if (mstate[button].up) {
-            drawdot(mstate[button].up, ["red", "orange", "yellow"][jbutton])
-        }
-        if (mstate[button].isdown) {
-            context.strokeStyle = ["red", "orange", "yellow"][jbutton]
-            context.beginPath()
-            context.moveTo(mstate.pos[0] - mstate[button].dx, mstate.pos[1] - mstate[button].dy)
-            context.lineTo(mstate.pos[0], mstate.pos[1])
-            context.stroke()
-        }
-    })
+	context.fillRect(0, 0, 400, 300)
+	context.drawImage(grid, 0, 0)
+	context.drawImage(dots, 0, 0)
+	;"left middle right".split(" ").forEach(function (button, jbutton) {
+		if (!mstate[button]) return
+		if (mstate[button].up) {
+			drawdot(mstate[button].up, ["red", "orange", "yellow"][jbutton])
+		}
+		if (mstate[button].isdown) {
+			context.strokeStyle = ["red", "orange", "yellow"][jbutton]
+			context.beginPath()
+			context.moveTo(mstate.pos[0] - mstate[button].dx, mstate.pos[1] - mstate[button].dy)
+			context.lineTo(mstate.pos[0], mstate.pos[1])
+			context.stroke()
+		}
+	})
 
-    setTimeout(draw, 20)
+	setTimeout(draw, 20)
 }
 draw()
 

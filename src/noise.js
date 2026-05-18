@@ -15,176 +15,176 @@ var UFX = UFX || {}
 // This a slow, general reference implementation. Most calls should use a faster function
 //   that computes many values at once.
 UFX.noise = function (p, wrapsize) {
-    var n = p.length
-    var q = new Array(n)  // coordinates of lattice points on all sides of the given point
-    var a = new Array(n)  // distance to lower lattice point
-    for (var j = 0 ; j < n ; ++j) {
-        var w = wrapsize ? wrapsize[j] : 256
-        var i = Math.floor(p[j]) % w
-        if (i < 0) i += w
-        q[j] = [i, (i+1) % w]
-        a[j] = p[j] - Math.floor(p[j])
-    }
-    var r = 0  // return value
-    // Loop through the 2^n lattice points bordering this point
-    for (var k = 0, kmax = 1 << n ; k < kmax ; ++k) {
-        var v = new Array(n)
-        for (var j = 0 ; j < n ; ++j) {
-            v[j] = q[j][(k >> j) & 1]
-        }
-        var dprod = 0, cprod = 1
-        for (var j = 0 ; j < n ; ++j) {
-            var g = UFX.noise._gvalue(v, j)  // the j-th component of the gradient
-            var t = ((k >> j) & 1) ? 1 - a[j] : -a[j]  // distance along the j-axis to lattice point
-            dprod += g * t  // dot product sum
-            cprod *= 1 - t * t * (3 - 2 * Math.abs(t))  // cross-fade factor
-        }
-        r += dprod * cprod
-    }
-    return r / 1000. / Math.sqrt(n)
+	var n = p.length
+	var q = new Array(n)  // coordinates of lattice points on all sides of the given point
+	var a = new Array(n)  // distance to lower lattice point
+	for (var j = 0 ; j < n ; ++j) {
+		var w = wrapsize ? wrapsize[j] : 256
+		var i = Math.floor(p[j]) % w
+		if (i < 0) i += w
+		q[j] = [i, (i+1) % w]
+		a[j] = p[j] - Math.floor(p[j])
+	}
+	var r = 0  // return value
+	// Loop through the 2^n lattice points bordering this point
+	for (var k = 0, kmax = 1 << n ; k < kmax ; ++k) {
+		var v = new Array(n)
+		for (var j = 0 ; j < n ; ++j) {
+			v[j] = q[j][(k >> j) & 1]
+		}
+		var dprod = 0, cprod = 1
+		for (var j = 0 ; j < n ; ++j) {
+			var g = UFX.noise._gvalue(v, j)  // the j-th component of the gradient
+			var t = ((k >> j) & 1) ? 1 - a[j] : -a[j]  // distance along the j-axis to lattice point
+			dprod += g * t  // dot product sum
+			cprod *= 1 - t * t * (3 - 2 * Math.abs(t))  // cross-fade factor
+		}
+		r += dprod * cprod
+	}
+	return r / 1000. / Math.sqrt(n)
 }
 
 // A tileable 2d noise map
 UFX.noise.wrap2d = function (s, ngrid, soff, noff) {
-    var sx = s[0], sy = s[1], size = sx * sy
-    var val = new Array(size)
-    var gx0 = new Array(sx), gx1 = new Array(sx)
-    var ax = new Array(sx), bx = new Array(sx), cax = new Array(sx), cbx = new Array(sx)
-    ngrid = ngrid || [8, 8]
-    var nx = ngrid[0], ny = ngrid[1], n = nx * ny
-    noff = noff || [0, 0]
-    var gradx = new Array(n), grady = new Array(n)
-    for (var gy = 0, gj = 0 ; gy < ny ; ++gy) {
-        for (var gx = 0 ; gx < nx ; ++gx, ++gj) {
-            gradx[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1]], 0)
-            grady[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1]], 1)
-        }
-    }
-    soff = soff || [0, 0]
-    for (var px = 0 ; px < sx ; ++px) {
-        var x = (px + 0.5) * nx / sx + soff[0]
-        gx0[px] = Math.floor(x) % nx
-        if (gx0[px] < 0) gx0[px] += nx
-        gx1[px] = (gx0[px] + 1) % nx
-        var axj = x - Math.floor(x), bxj = 1 - axj
-        ax[px] = axj
-        bx[px] = bxj
-        cax[px] = axj*axj*(3-2*axj)
-        cbx[px] = 1 - cax[px]
-    }
-    for (var py = 0, pj = 0 ; py < sy ; ++py) {
-        var y = (py + 0.5) * ny / sy + soff[1]
-        var gy0j = Math.floor(y) % ny
-        if (gy0j < 0) gy0j += ny
-        var gy1j = (gy0j + 1) % ny
-        var ayj = y - Math.floor(y), byj = 1 - ayj
-        var cayj = ayj*ayj*(3-2*ayj), cbyj = 1 - cayj
-        for (var px = 0 ; px < sx ; ++px, ++pj) {
-            var gx0j = gx0[px], gx1j = gx1[px]
-            var axj = ax[px], bxj = bx[px], caxj = cax[px], cbxj = cbx[px]
-            var j00 = gx0j + gy0j * nx, j01 = gx0j + gy1j * nx
-            var j10 = gx1j + gy0j * nx, j11 = gx1j + gy1j * nx
-            val[pj] = ((-axj*gradx[j00] - ayj*grady[j00]) * cbyj +
-                       (-axj*gradx[j01] + byj*grady[j01]) * cayj) * cbxj +
-                      (( bxj*gradx[j10] - ayj*grady[j10]) * cbyj +
-                       ( bxj*gradx[j11] + byj*grady[j11]) * cayj) * caxj
-            val[pj] /= 1414.213
-        }
-    }
-    return val
+	var sx = s[0], sy = s[1], size = sx * sy
+	var val = new Array(size)
+	var gx0 = new Array(sx), gx1 = new Array(sx)
+	var ax = new Array(sx), bx = new Array(sx), cax = new Array(sx), cbx = new Array(sx)
+	ngrid = ngrid || [8, 8]
+	var nx = ngrid[0], ny = ngrid[1], n = nx * ny
+	noff = noff || [0, 0]
+	var gradx = new Array(n), grady = new Array(n)
+	for (var gy = 0, gj = 0 ; gy < ny ; ++gy) {
+		for (var gx = 0 ; gx < nx ; ++gx, ++gj) {
+			gradx[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1]], 0)
+			grady[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1]], 1)
+		}
+	}
+	soff = soff || [0, 0]
+	for (var px = 0 ; px < sx ; ++px) {
+		var x = (px + 0.5) * nx / sx + soff[0]
+		gx0[px] = Math.floor(x) % nx
+		if (gx0[px] < 0) gx0[px] += nx
+		gx1[px] = (gx0[px] + 1) % nx
+		var axj = x - Math.floor(x), bxj = 1 - axj
+		ax[px] = axj
+		bx[px] = bxj
+		cax[px] = axj*axj*(3-2*axj)
+		cbx[px] = 1 - cax[px]
+	}
+	for (var py = 0, pj = 0 ; py < sy ; ++py) {
+		var y = (py + 0.5) * ny / sy + soff[1]
+		var gy0j = Math.floor(y) % ny
+		if (gy0j < 0) gy0j += ny
+		var gy1j = (gy0j + 1) % ny
+		var ayj = y - Math.floor(y), byj = 1 - ayj
+		var cayj = ayj*ayj*(3-2*ayj), cbyj = 1 - cayj
+		for (var px = 0 ; px < sx ; ++px, ++pj) {
+			var gx0j = gx0[px], gx1j = gx1[px]
+			var axj = ax[px], bxj = bx[px], caxj = cax[px], cbxj = cbx[px]
+			var j00 = gx0j + gy0j * nx, j01 = gx0j + gy1j * nx
+			var j10 = gx1j + gy0j * nx, j11 = gx1j + gy1j * nx
+			val[pj] = ((-axj*gradx[j00] - ayj*grady[j00]) * cbyj +
+			           (-axj*gradx[j01] + byj*grady[j01]) * cayj) * cbxj +
+			          (( bxj*gradx[j10] - ayj*grady[j10]) * cbyj +
+			           ( bxj*gradx[j11] + byj*grady[j11]) * cayj) * caxj
+			val[pj] /= 1414.213
+		}
+	}
+	return val
 }
 
 // A tileable 2d noise map that's a slice of a 3d map (so it can morph over time)
 UFX.noise.wrapslice = function (s, zoff, ngrid, soff, noff) {
-    var sx = s[0], sy = s[1], size = sx * sy
-    var val = new Array(size)
-    var gx0 = new Array(sx), gx1 = new Array(sx)
-    var ax = new Array(sx), bx = new Array(sx), cax = new Array(sx), cbx = new Array(sx)
-    ngrid = ngrid || [8, 8, 256]
-    if (ngrid.length == 2) ngrid = [ngrid[0], ngrid[1], 256]
-    var nx = ngrid[0], ny = ngrid[1], nz = ngrid[2], n = nx * ny
-    noff = noff || [0, 0]
-    var gz0 = Math.floor(zoff) % nz
-    if (gz0 < 0) gz0 += nz
-    var gz1 = (gz0 + 1) % nz
-    var az = zoff - Math.floor(zoff), bz = 1 - az
-    var caz = az*az*(3-2*az), cbz = 1 - caz
-    var gradx0 = new Array(n), grady0 = new Array(n), gradz0 = new Array(n)
-    var gradx1 = new Array(n), grady1 = new Array(n), gradz1 = new Array(n)
-    for (var gy = 0, gj = 0 ; gy < ny ; ++gy) {
-        for (var gx = 0 ; gx < nx ; ++gx, ++gj) {
-            gradx0[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1], gz0], 0)
-            grady0[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1], gz0], 1)
-            gradz0[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1], gz0], 2)
-            gradx1[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1], gz1], 0)
-            grady1[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1], gz1], 1)
-            gradz1[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1], gz1], 2)
-        }
-    }
-    soff = soff || [0, 0]
-    for (var px = 0 ; px < sx ; ++px) {
-        var x = (px + 0.5) * nx / sx + soff[0]
-        gx0[px] = Math.floor(x) % nx
-        if (gx0[px] < 0) gx0[px] += nx
-        gx1[px] = (gx0[px] + 1) % nx
-        var axj = x - Math.floor(x), bxj = 1 - axj
-        ax[px] = axj
-        bx[px] = bxj
-        cax[px] = axj*axj*(3-2*axj)
-        cbx[px] = 1 - cax[px]
-    }
-    for (var py = 0, pj = 0 ; py < sy ; ++py) {
-        var y = (py + 0.5) * ny / sy + soff[1]
-        var gy0j = Math.floor(y) % ny
-        if (gy0j < 0) gy0j += ny
-        var gy1j = (gy0j + 1) % ny
-        var ayj = y - Math.floor(y), byj = 1 - ayj
-        var cayj = ayj*ayj*(3-2*ayj), cbyj = 1 - cayj
-        for (var px = 0 ; px < sx ; ++px, ++pj) {
-            var gx0j = gx0[px], gx1j = gx1[px]
-            var axj = ax[px], bxj = bx[px], caxj = cax[px], cbxj = cbx[px]
-            var j00 = gx0j + gy0j * nx, j01 = gx0j + gy1j * nx
-            var j10 = gx1j + gy0j * nx, j11 = gx1j + gy1j * nx
-            val[pj] = (((-axj*gradx0[j00] - ayj*grady0[j00] - az*gradz0[j00]) * cbyj +
-                        (-axj*gradx0[j01] + byj*grady0[j01] - az*gradz0[j01]) * cayj) * cbxj +
-                       (( bxj*gradx0[j10] - ayj*grady0[j10] - az*gradz0[j10]) * cbyj +
-                        ( bxj*gradx0[j11] + byj*grady0[j11] - az*gradz0[j11]) * cayj) * caxj) * cbz +
-                      (((-axj*gradx1[j00] - ayj*grady1[j00] + bz*gradz1[j00]) * cbyj +
-                        (-axj*gradx1[j01] + byj*grady1[j01] + bz*gradz1[j01]) * cayj) * cbxj +
-                       (( bxj*gradx1[j10] - ayj*grady1[j10] + bz*gradz1[j10]) * cbyj +
-                        ( bxj*gradx1[j11] + byj*grady1[j11] + bz*gradz1[j11]) * cayj) * caxj) * caz
-            val[pj] /= 1732.051
-        }
-    }
-    return val
+	var sx = s[0], sy = s[1], size = sx * sy
+	var val = new Array(size)
+	var gx0 = new Array(sx), gx1 = new Array(sx)
+	var ax = new Array(sx), bx = new Array(sx), cax = new Array(sx), cbx = new Array(sx)
+	ngrid = ngrid || [8, 8, 256]
+	if (ngrid.length == 2) ngrid = [ngrid[0], ngrid[1], 256]
+	var nx = ngrid[0], ny = ngrid[1], nz = ngrid[2], n = nx * ny
+	noff = noff || [0, 0]
+	var gz0 = Math.floor(zoff) % nz
+	if (gz0 < 0) gz0 += nz
+	var gz1 = (gz0 + 1) % nz
+	var az = zoff - Math.floor(zoff), bz = 1 - az
+	var caz = az*az*(3-2*az), cbz = 1 - caz
+	var gradx0 = new Array(n), grady0 = new Array(n), gradz0 = new Array(n)
+	var gradx1 = new Array(n), grady1 = new Array(n), gradz1 = new Array(n)
+	for (var gy = 0, gj = 0 ; gy < ny ; ++gy) {
+		for (var gx = 0 ; gx < nx ; ++gx, ++gj) {
+			gradx0[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1], gz0], 0)
+			grady0[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1], gz0], 1)
+			gradz0[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1], gz0], 2)
+			gradx1[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1], gz1], 0)
+			grady1[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1], gz1], 1)
+			gradz1[gj] = UFX.noise._gvalue([gx + noff[0], gy + noff[1], gz1], 2)
+		}
+	}
+	soff = soff || [0, 0]
+	for (var px = 0 ; px < sx ; ++px) {
+		var x = (px + 0.5) * nx / sx + soff[0]
+		gx0[px] = Math.floor(x) % nx
+		if (gx0[px] < 0) gx0[px] += nx
+		gx1[px] = (gx0[px] + 1) % nx
+		var axj = x - Math.floor(x), bxj = 1 - axj
+		ax[px] = axj
+		bx[px] = bxj
+		cax[px] = axj*axj*(3-2*axj)
+		cbx[px] = 1 - cax[px]
+	}
+	for (var py = 0, pj = 0 ; py < sy ; ++py) {
+		var y = (py + 0.5) * ny / sy + soff[1]
+		var gy0j = Math.floor(y) % ny
+		if (gy0j < 0) gy0j += ny
+		var gy1j = (gy0j + 1) % ny
+		var ayj = y - Math.floor(y), byj = 1 - ayj
+		var cayj = ayj*ayj*(3-2*ayj), cbyj = 1 - cayj
+		for (var px = 0 ; px < sx ; ++px, ++pj) {
+			var gx0j = gx0[px], gx1j = gx1[px]
+			var axj = ax[px], bxj = bx[px], caxj = cax[px], cbxj = cbx[px]
+			var j00 = gx0j + gy0j * nx, j01 = gx0j + gy1j * nx
+			var j10 = gx1j + gy0j * nx, j11 = gx1j + gy1j * nx
+			val[pj] = (((-axj*gradx0[j00] - ayj*grady0[j00] - az*gradz0[j00]) * cbyj +
+			            (-axj*gradx0[j01] + byj*grady0[j01] - az*gradz0[j01]) * cayj) * cbxj +
+			           (( bxj*gradx0[j10] - ayj*grady0[j10] - az*gradz0[j10]) * cbyj +
+			            ( bxj*gradx0[j11] + byj*grady0[j11] - az*gradz0[j11]) * cayj) * caxj) * cbz +
+			          (((-axj*gradx1[j00] - ayj*grady1[j00] + bz*gradz1[j00]) * cbyj +
+			            (-axj*gradx1[j01] + byj*grady1[j01] + bz*gradz1[j01]) * cayj) * cbxj +
+			           (( bxj*gradx1[j10] - ayj*grady1[j10] + bz*gradz1[j10]) * cbyj +
+			            ( bxj*gradx1[j11] + byj*grady1[j11] + bz*gradz1[j11]) * cayj) * caxj) * caz
+			val[pj] /= 1732.051
+		}
+	}
+	return val
 }
 
 // Fractalize a noise map
 // TODO: handle non-power-of-2 sizes
 UFX.noise.fractalize = function (v, s, levels) {
-    var sx = s[0], sy = s[1]  // TODO: assume sqrt sizes if s is not given
-    var sx2 = sx/2, sy2 = sy/2, s2 = sx2 * sy2
-    if (sx2 < 2 || sy2 < 2) return
-    var v2 = new Array(sx2 * sy2)
-    for (var y = 0, j = 0 ; y < sy ; y += 2) {
-        var h = y * sx
-        for (var x = 0 ; x < sx ; x += 2, ++j) {
-            v2[j] = v[h + x]
-        }
-    }
-    if (levels !== 1) {
-        UFX.noise.fractalize(v2, [sx2, sy2], (typeof levels == "number" ? levels - 1 : levels))
-    }
-    for (var j = 0 ; j < s2 ; ++j) v2[j] *= 0.5
-    for (var y2 = 0, j2 = 0 ; y2 < sy2 ; ++y2) {
-        for (var x2 = 0 ; x2 < sx2 ; ++x2, ++j2) {
-            var val = v2[j2]
-            v[y2*sx+x2] += val
-            v[y2*sx+x2+sx2] += val
-            v[(y2+sy2)*sx+x2] += val
-            v[(y2+sy2)*sx+x2+sx2] += val
-        }
-    }
+	var sx = s[0], sy = s[1]  // TODO: assume sqrt sizes if s is not given
+	var sx2 = sx/2, sy2 = sy/2, s2 = sx2 * sy2
+	if (sx2 < 2 || sy2 < 2) return
+	var v2 = new Array(sx2 * sy2)
+	for (var y = 0, j = 0 ; y < sy ; y += 2) {
+		var h = y * sx
+		for (var x = 0 ; x < sx ; x += 2, ++j) {
+			v2[j] = v[h + x]
+		}
+	}
+	if (levels !== 1) {
+		UFX.noise.fractalize(v2, [sx2, sy2], (typeof levels == "number" ? levels - 1 : levels))
+	}
+	for (var j = 0 ; j < s2 ; ++j) v2[j] *= 0.5
+	for (var y2 = 0, j2 = 0 ; y2 < sy2 ; ++y2) {
+		for (var x2 = 0 ; x2 < sx2 ; ++x2, ++j2) {
+			var val = v2[j2]
+			v[y2*sx+x2] += val
+			v[y2*sx+x2+sx2] += val
+			v[(y2+sy2)*sx+x2] += val
+			v[(y2+sy2)*sx+x2+sx2] += val
+		}
+	}
 }
 
 
@@ -220,9 +220,9 @@ UFX.noise._perm = [127,13,214,153,195,181,253,32,17,180,95,9,159,81,209,129,31,1
   174,29,151,82,12,225,59,125,20,5,69,251,77,102,90,89,226,87]
 // Use the permutation to convert an vector of indices into a gradient value
 UFX.noise._gvalue = function (v, n) {
-    var i = UFX.noise._perm[n]
-    for (var j = 0 ; j < v.length ; ++j) i = UFX.noise._perm[(i + v[j]) & 255]
-    return UFX.noise._grad[i]
+	var i = UFX.noise._perm[n]
+	for (var j = 0 ; j < v.length ; ++j) i = UFX.noise._perm[(i + v[j]) & 255]
+	return UFX.noise._grad[i]
 }
 
 

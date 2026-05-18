@@ -30,10 +30,10 @@ function getps(touches) {
 
 function eventpos (event, elem) {
 	elem = elem || event.target
-    var rect = elem.getBoundingClientRect()
-    var ex = rect.left + elem.clientLeft - elem.scrollLeft
-    var ey = rect.top + elem.clientTop - elem.scrollTop
-    return [event.clientX - ex, event.clientY - ey]
+	var rect = elem.getBoundingClientRect()
+	var ex = rect.left + elem.clientLeft - elem.scrollLeft
+	var ey = rect.top + elem.clientTop - elem.scrollTop
+	return [event.clientX - ex, event.clientY - ey]
 }
 
 
@@ -106,6 +106,6 @@ UFX.ticker.init(function (dt) {
 	touchmap.think(dt)
 	touchmap.draw()
 })
-    
+
 
 </script>

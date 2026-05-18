@@ -5,26 +5,26 @@
 <link href='https://fonts.googleapis.com/css?family=Viga' rel='stylesheet' type='text/css'>
 <style>
 body {
-    background: black; color: white;
-    font-family: 'Viga';
-    font-size: 110%;
+	background: black; color: white;
+	font-family: 'Viga';
+	font-size: 110%;
 }
 h1 {
-    font-size: 160%;
-    text-align: center;
-    margin-left: auto;
-    margin-right: auto;
+	font-size: 160%;
+	text-align: center;
+	margin-left: auto;
+	margin-right: auto;
 }
 input {
-    background: inherit; color: inherit; border: none;
-    font-family: inherit; font-size: inherit;
-    width: 20em;
+	background: inherit; color: inherit; border: none;
+	font-family: inherit; font-size: inherit;
+	width: 20em;
 }
 table {
-    margin: auto;
+	margin: auto;
 }
 td {
-    text-align: right
+	text-align: right
 }
 </style>
 
@@ -73,156 +73,156 @@ var HasChildren = {
 	},
 }
 var InteractChildren = {
-    think: function (dt) {
-        for (var j = 1 ; j < this.children.length ; ++j) {
-            for (var i = 0 ; i < j ; ++i) {
-                this.children[i].interact(this.children[j])
-            }
-        }
-    },
+	think: function (dt) {
+		for (var j = 1 ; j < this.children.length ; ++j) {
+			for (var i = 0 ; i < j ; ++i) {
+				this.children[i].interact(this.children[j])
+			}
+		}
+	},
 }
 
 var balls = UFX.Thing([InteractChildren, HasChildren])
 
 MoveLinear = {
-    init: function (p, v) {
-        this.p = p || {x: 0, y: 0}
-        this.v = v || {x: UFX.random(-100, 100), y: UFX.random(-100, 100)}
-    },
-    think: function (dt) {
-        this.p.x += this.v.x * dt
-        this.p.y += this.v.y * dt
-    },
+	init: function (p, v) {
+		this.p = p || {x: 0, y: 0}
+		this.v = v || {x: UFX.random(-100, 100), y: UFX.random(-100, 100)}
+	},
+	think: function (dt) {
+		this.p.x += this.v.x * dt
+		this.p.y += this.v.y * dt
+	},
 }
 
 MoveAccel = {
-    init: function (p, v) {
-        MoveLinear.init.call(this, p, v)
-        this.a = {x: 0, y: 0}
-    },
-    think: function (dt) {
-        this.p.x += (0.5 * this.a.x * dt + this.v.x) * dt
-        this.p.y += (0.5 * this.a.y * dt + this.v.y) * dt
-        this.v.x += this.a.x * dt
-        this.v.y += this.a.y * dt
-        this.a.x = this.a.y = 0
-    },
+	init: function (p, v) {
+		MoveLinear.init.call(this, p, v)
+		this.a = {x: 0, y: 0}
+	},
+	think: function (dt) {
+		this.p.x += (0.5 * this.a.x * dt + this.v.x) * dt
+		this.p.y += (0.5 * this.a.y * dt + this.v.y) * dt
+		this.v.x += this.a.x * dt
+		this.v.y += this.a.y * dt
+		this.a.x = this.a.y = 0
+	},
 }
 
 LinearDrag = {
-    init: function (beta) {
-        this.beta = typeof beta == "number" ? beta : 0.2
-    },
-    think: function () {
-        this.a.x -= this.beta * this.v.x
-        this.a.y -= this.beta * this.v.y
-    },
+	init: function (beta) {
+		this.beta = typeof beta == "number" ? beta : 0.2
+	},
+	think: function () {
+		this.a.x -= this.beta * this.v.x
+		this.a.y -= this.beta * this.v.y
+	},
 }
 
 CubicDrag = {
-    init: function (beta) {
-        this.beta = typeof beta == "number" ? beta : 1e-6
-    },
-    think: function () {
-        var v2 = this.v.x * this.v.x + this.v.y * this.v.y
-        this.a.x -= this.beta * this.v.x * v2
-        this.a.y -= this.beta * this.v.y * v2
-    },
+	init: function (beta) {
+		this.beta = typeof beta == "number" ? beta : 1e-6
+	},
+	think: function () {
+		var v2 = this.v.x * this.v.x + this.v.y * this.v.y
+		this.a.x -= this.beta * this.v.x * v2
+		this.a.y -= this.beta * this.v.y * v2
+	},
 }
 
 Attract = {
-    interact: function (that) {
-        var dx = this.p.x - that.p.x, dy = this.p.y - that.p.y
-        var d = Math.sqrt(dx * dx + dy * dy)
-        var a = Math.min(40000.0 / (d * d), 4000.0)
-        if (this.color == that.color) a = -a
-        var ax = a * dx / d
-        var ay = a * dy / d
-        this.a.x += ax
-        this.a.y += ay
-        that.a.x -= ax
-        that.a.y -= ay
-    },
+	interact: function (that) {
+		var dx = this.p.x - that.p.x, dy = this.p.y - that.p.y
+		var d = Math.sqrt(dx * dx + dy * dy)
+		var a = Math.min(40000.0 / (d * d), 4000.0)
+		if (this.color == that.color) a = -a
+		var ax = a * dx / d
+		var ay = a * dy / d
+		this.a.x += ax
+		this.a.y += ay
+		that.a.x -= ax
+		that.a.y -= ay
+	},
 }
 
 DrawAt = {
-    draw: function (context) {
-        context.translate(this.p.x, this.p.y)
-    },
+	draw: function (context) {
+		context.translate(this.p.x, this.p.y)
+	},
 }
 
 DrawSquish = {
-    draw: function (context) {
-        var v2 = this.v.x * this.v.x + this.v.y * this.v.y
-        if (v2 > 0.1) {
-            context.rotate(Math.atan2(this.v.y, this.v.x))
-        }
-        var f = 0.6 + 0.4 * Math.exp(-v2 / 10000.)
-        context.scale(1.0 / f, f)
-    },
+	draw: function (context) {
+		var v2 = this.v.x * this.v.x + this.v.y * this.v.y
+		if (v2 > 0.1) {
+			context.rotate(Math.atan2(this.v.y, this.v.x))
+		}
+		var f = 0.6 + 0.4 * Math.exp(-v2 / 10000.)
+		context.scale(1.0 / f, f)
+	},
 }
 
 DrawCircle = {
-    init: function (r, color) {
-        this.r = r || 5
-        this.color = color || "red"
-    },
-    draw: function (context) {
-        context.fillStyle = this.color
-        context.beginPath()
-        context.arc(0, 0, this.r, 0, 2 * Math.PI, true); 
-        context.closePath()
-        context.fill()
-    },
+	init: function (r, color) {
+		this.r = r || 5
+		this.color = color || "red"
+	},
+	draw: function (context) {
+		context.fillStyle = this.color
+		context.beginPath()
+		context.arc(0, 0, this.r, 0, 2 * Math.PI, true); 
+		context.closePath()
+		context.fill()
+	},
 }
 
 Bounce = {
-    think: function () {
-        if (this.p.x < 0) this.v.x = Math.abs(this.v.x)
-        if (this.p.x > 400) this.v.x = -Math.abs(this.v.x)
-        if (this.p.y < 0) this.v.y = Math.abs(this.v.y)
-        if (this.p.y > 300) this.v.y = -Math.abs(this.v.y)
-    },
+	think: function () {
+		if (this.p.x < 0) this.v.x = Math.abs(this.v.x)
+		if (this.p.x > 400) this.v.x = -Math.abs(this.v.x)
+		if (this.p.y < 0) this.v.y = Math.abs(this.v.y)
+		if (this.p.y > 300) this.v.y = -Math.abs(this.v.y)
+	},
 }
 
 Ball = function () {
-    var p = {x: UFX.random(400), y: UFX.random(300)}
-    var r = UFX.random(5, 10)
-    var color = UFX.random.choice(["red", "green", "blue", "yellow"])
-    return UFX.Thing()
-             .addcomp(Attract)
-             .addcomp(CubicDrag)
-             .addcomp(MoveAccel, p)
-             .addcomp(DrawAt)
-             .addcomp(DrawSquish)
-             .addcomp(DrawCircle, r, color)
-             .addcomp(Bounce)
+	var p = {x: UFX.random(400), y: UFX.random(300)}
+	var r = UFX.random(5, 10)
+	var color = UFX.random.choice(["red", "green", "blue", "yellow"])
+	return UFX.Thing()
+			 .addcomp(Attract)
+			 .addcomp(CubicDrag)
+			 .addcomp(MoveAccel, p)
+			 .addcomp(DrawAt)
+			 .addcomp(DrawSquish)
+			 .addcomp(DrawCircle, r, color)
+			 .addcomp(Bounce)
 }
 
 function setballs(n) {
-    while (balls.children.length < n) {
-        var ball = Ball()
-        balls.addchild(ball)
-    }
-    while (balls.children.length > n) {
-        balls.children.pop()
-    }
-    document.getElementById("nballs").value = n
+	while (balls.children.length < n) {
+		var ball = Ball()
+		balls.addchild(ball)
+	}
+	while (balls.children.length > n) {
+		balls.children.pop()
+	}
+	document.getElementById("nballs").value = n
 }
 function mballs(fac) {
-    setballs(Math.max(Math.round(fac * balls.children.length), 1))
+	setballs(Math.max(Math.round(fac * balls.children.length), 1))
 }
 setballs(10)
 
 function think(dt) {
-    balls.think(dt)
+	balls.think(dt)
 }
 
 function draw() {
-    context.fillStyle = "black"
-    context.fillRect(0, 0, 400, 300)
-    balls.draw(context)
-    document.getElementById("fps").value = UFX.ticker.getrates()
+	context.fillStyle = "black"
+	context.fillRect(0, 0, 400, 300)
+	balls.draw(context)
+	document.getElementById("fps").value = UFX.ticker.getrates()
 }
 
 UFX.ticker.init(think, draw, {minups: 10, maxups: 300})

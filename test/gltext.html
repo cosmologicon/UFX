@@ -2,15 +2,15 @@
 <title>UFX.gltext test</title>
 <style>
 body {
-    background: #444; color: white;
-    font-family: 'Viga';
-    font-size: 110%;
+	background: #444; color: white;
+	font-family: 'Viga';
+	font-size: 110%;
 }
 h1 {
-    font-size: 160%;
-    text-align: center;
-    margin-left: auto;
-    margin-right: auto;
+	font-size: 160%;
+	text-align: center;
+	margin-left: auto;
+	margin-right: auto;
 }
 canvas {
 	border: medium white solid;
@@ -52,9 +52,9 @@ UFX.resource.onload = function () {
 	prog.draw("Vertical text", { midleft: [600, 300], rotation: 90 })
 	prog.drawbox("Text that's constrained to fit within a certain rectangle on the screen", [400, 300, 100, 50])
 	prog.draw("All together now:\nCombining the above options", {
-	    midbottom: [600, 100], width: 360, fontname: "Boogaloo", fontsize: 48,
-	    color: "#AAFF00", gcolor: "#66AA00", owidth: 1.5, ocolor: "black", rotation: 10,
-    })
+		midbottom: [600, 100], width: 360, fontname: "Boogaloo", fontsize: 48,
+		color: "#AAFF00", gcolor: "#66AA00", owidth: 1.5, ocolor: "black", rotation: 10,
+	})
 }
 UFX.resource.loadwebfonts("Boogaloo")
 //UFX.resource.onload()
