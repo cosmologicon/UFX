@@ -37,7 +37,21 @@ function addcanvas(title, command) {
 }
 
 addcanvas("Drawing Rectangles", [
-	"fs #123 f0 fs gray fr 10 10 40 100 ss blue lw 6 sr 60 10 40 100 fsr 110 10 40 100 sfr 160 10 40 100 cr 210 10 40 100"
+	"fs #123 f0 fs gray fr 10 10 40 100 ss blue lw 6 sr 60 10 40 100 fsr 110 10 40 100 sfr 160 10 40 100 cr 210 10 40 100",
+])
+addcanvas("Drawing Text", [
+	"fs gray f0 fs white ss black lw 1,2 font 20px~sans-serif",
+	"ft fillText 10 30 [ t 150 30 ft0 fillText0 ]",
+	"st strokeText 10 60 [ t 150 60 st0 strokeText0 ]",
+	"fst fillStrokeText 10 90 [ t 150 90 fst0 fillStrokeText0 ]",
+	"sft strokeFillText 10 120 [ t 150 120 sft0 strokeFillText0 ]",
+])
+addcanvas("Line Styles", [
+	"fs black f0 ss white lw 10",
+	"b m 10 10 l 200 10 l 10 30 miterlimit 1 lc round s",
+	"b m 10 40 l 200 40 l 10 60 miterlimit 100 lc butt s",
+	"b m 10 100 l 380 100 linedash 10,20,30 s",
+	"b m 10 130 l 380 130 linedash 10,20,30 linedashoffset 20 s",
 ])
 </script>
 

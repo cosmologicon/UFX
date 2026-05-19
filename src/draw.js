@@ -63,11 +63,63 @@ UFX._draw = function () {
 				this.strokeRect(x, y, w, h)
 				this.fillRect(x, y, w, h)
 				break
+			case "c0": case "clearall":
+				this.clearRect(0, 0, this.canvas.width, this.canvas.height)
+				break
 			case "f0": case "fillall":
 				this.fillRect(0, 0, this.canvas.width, this.canvas.height)
 				break
-			case "c0": case "clearall":
-				this.clearRect(0, 0, this.canvas.width, this.canvas.height)
+			// Drawing text
+			case "filltext": case "ft":
+				this.fillText(t[++j].replace(/~/g, " "), +t[++j], +t[++j])
+				break
+			case "filltext0": case "ft0":
+				this.fillText(t[++j].replace(/~/g, " "), 0, 0)
+				break
+			case "stroketext": case "st":
+				this.strokeText(t[++j].replace(/~/g, " "), +t[++j], +t[++j])
+				break
+			case "stroketext0": case "st0":
+				this.strokeText(t[++j].replace(/~/g, " "), 0, 0)
+				break
+			case "fillstroketext": case "fst":
+				var s = t[++j].replace(/~/g, " "), x = +t[++j], y = +t[++j]
+				this.fillText(s, x, y)
+				this.strokeText(s, x, y)
+				break
+			case "fillstroketext0": case "fst0":
+				var s = t[++j].replace(/~/g, " ")
+				this.fillText(s, 0, 0)
+				this.strokeText(s, 0, 0)
+				break
+			case "strokefilltext": case "sft":
+				var s = t[++j].replace(/~/g, " "), x = +t[++j], y = +t[++j]
+				this.strokeText(s, x, y)
+				this.fillText(s, x, y)
+				break
+			case "strokefilltext0": case "sft0":
+				var s = t[++j].replace(/~/g, " ")
+				this.strokeText(s, 0, 0)
+				this.fillText(s, 0, 0)
+				break
+			// Line styles
+			case "lw": case "linewidth":
+				this.lineWidth = +t[++j]
+				break
+			case "lc": case "linecap":
+				this.lineCap = t[++j]
+				break
+			case "lj": case "linejoin":
+				this.lineJoin = t[++j]
+				break
+			case "miterlimit":
+				this.miterLimit = +t[++j]
+				break
+			case "linedash":
+				this.setLineDash(t[++j].split(",").map(seg => +seg))
+				break
+			case "linedashoffset":
+				this.lineDashOffset = +t[++j]
 				break
 
 
@@ -196,12 +248,6 @@ UFX._draw = function () {
 			case "al": case "alpha": case "globalalpha":
 				this.globalAlpha = +t[++j]
 				break
-			case "lw": case "linewidth":
-				this.lineWidth = +t[++j]
-				break
-			case "lc": case "linecap":
-				this.lineCap = t[++j]
-				break
 			case "textalign": case "ta":
 				this.textAlign = t[++j]
 				break
@@ -220,38 +266,6 @@ UFX._draw = function () {
 				break
 			case "font":
 				this.font = t[++j].replace(/~/g, " ")
-				break
-			case "filltext": case "ft":
-				this.fillText(t[++j].replace(/~/g, " "), +t[++j], +t[++j])
-				break
-			case "filltext0": case "ft0":
-				this.fillText(t[++j].replace(/~/g, " "), 0, 0)
-				break
-			case "stroketext": case "st":
-				this.strokeText(t[++j].replace(/~/g, " "), +t[++j], +t[++j])
-				break
-			case "stroketext0": case "st0":
-				this.strokeText(t[++j].replace(/~/g, " "), 0, 0)
-				break
-			case "fillstroketext": case "fst":
-				var s = t[++j].replace(/~/g, " "), x = +t[++j], y = +t[++j]
-				this.fillText(s, x, y)
-				this.strokeText(s, x, y)
-				break
-			case "fillstroketext0": case "fst0":
-				var s = t[++j].replace(/~/g, " ")
-				this.fillText(s, 0, 0)
-				this.strokeText(s, 0, 0)
-				break
-			case "strokefilltext": case "sft":
-				var s = t[++j].replace(/~/g, " "), x = +t[++j], y = +t[++j]
-				this.strokeText(s, x, y)
-				this.fillText(s, x, y)
-				break
-			case "strokefilltext0": case "sft0":
-				var s = t[++j].replace(/~/g, " ")
-				this.strokeText(s, 0, 0)
-				this.fillText(s, 0, 0)
 				break
 			default:
 				throw "Unrecognized draw token " + t[j]
