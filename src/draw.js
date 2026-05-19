@@ -40,8 +40,37 @@ UFX._draw = function () {
 			default: return s
 		}
 	}
+	// https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D#reference
 	for (var j = 0 ; j < t.length ; ++j) {
 		switch (t[j].toLowerCase()) {
+			// Drawing rectangles
+			case "cr": case "clearrect":
+				this.clearRect(+t[++j], +t[++j], +t[++j], +t[++j])
+				break
+			case "fr": case "fillrect":
+				this.fillRect(+t[++j], +t[++j], +t[++j], +t[++j])
+				break
+			case "sr": case "strokerect":
+				this.strokeRect(+t[++j], +t[++j], +t[++j], +t[++j])
+				break
+			case "fsr": case "fillstrokerect":
+				var x = +t[++j], y = +t[++j], w = +t[++j], h = +t[++j]
+				this.fillRect(x, y, w, h)
+				this.strokeRect(x, y, w, h)
+				break
+			case "sfr": case "strokefillrect":
+				var x = +t[++j], y = +t[++j], w = +t[++j], h = +t[++j]
+				this.strokeRect(x, y, w, h)
+				this.fillRect(x, y, w, h)
+				break
+			case "f0": case "fillall":
+				this.fillRect(0, 0, this.canvas.width, this.canvas.height)
+				break
+			case "c0": case "clearall":
+				this.clearRect(0, 0, this.canvas.width, this.canvas.height)
+				break
+
+
 			case "b": case "(": case "beginpath":
 				this.beginPath()
 				break
@@ -71,6 +100,15 @@ UFX._draw = function () {
 				break
 			case "o": case "circle":
 				this.arc(+t[++j], +t[++j], +t[++j], 0, 2*Math.PI)
+				break
+			case "tr": case "tracerect":
+				var x = +t[++j], y = +t[++j], w = +t[++j], h = +t[++j]
+				this.beginPath()
+				this.moveTo(x, y)
+				this.lineTo(x+w, y)
+				this.lineTo(x+w, y+h)
+				this.lineTo(x, y+h)
+				this.closePath()
 				break
 			case "rr": case "roundedrect":
 				var x = +t[++j], y = +t[++j], w = +t[++j], h = +t[++j], r = +t[++j]
@@ -117,40 +155,6 @@ UFX._draw = function () {
 				break
 			case "s": case "stroke":
 				this.stroke()
-				break
-			case "fr": case "fillrect":
-				this.fillRect(+t[++j], +t[++j], +t[++j], +t[++j])
-				break
-			case "sr": case "strokerect":
-				this.strokeRect(+t[++j], +t[++j], +t[++j], +t[++j])
-				break
-			case "fsr": case "fillstrokerect":
-				var x = +t[++j], y = +t[++j], w = +t[++j], h = +t[++j]
-				this.fillRect(x, y, w, h)
-				this.strokeRect(x, y, w, h)
-				break
-			case "sfr": case "strokefillrect":
-				var x = +t[++j], y = +t[++j], w = +t[++j], h = +t[++j]
-				this.strokeRect(x, y, w, h)
-				this.fillRect(x, y, w, h)
-				break
-			case "cr": case "clearrect":
-				this.clearRect(+t[++j], +t[++j], +t[++j], +t[++j])
-				break
-			case "f0": case "fillall":
-				this.fillRect(0, 0, this.canvas.width, this.canvas.height)
-				break
-			case "c0": case "clearall":
-				this.clearRect(0, 0, this.canvas.width, this.canvas.height)
-				break
-			case "tr": case "tracerect":
-				var x = +t[++j], y = +t[++j], w = +t[++j], h = +t[++j]
-				this.beginPath()
-				this.moveTo(x, y)
-				this.lineTo(x+w, y)
-				this.lineTo(x+w, y+h)
-				this.lineTo(x, y+h)
-				this.closePath()
 				break
 			case "fs": case "fillstyle":
 				this.fillStyle = getcolor(t[++j])
